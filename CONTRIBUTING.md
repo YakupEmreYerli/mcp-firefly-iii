@@ -115,5 +115,7 @@ Three things stop a bad release:
 - `prepublishOnly` runs the typecheck, the tests and the build, so a broken
   tree cannot be published from anywhere.
 
-Publishing needs an `NPM_TOKEN` repository secret — a granular access token
-with publish rights, added with `gh secret set NPM_TOKEN`.
+Publishing uses npm trusted publishing: npm trusts this repository and the
+`release.yml` workflow by name and issues credentials to it directly. There is
+no token in the repository to leak or expire, and every release carries a
+provenance attestation.

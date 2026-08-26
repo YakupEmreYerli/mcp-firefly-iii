@@ -68,7 +68,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          # Trusted publishing needs npm >= 11.5.1, which ships with Node 24.
+          node-version: "24"
           registry-url: https://registry.npmjs.org
           cache: npm
 
@@ -83,22 +84,24 @@ jobs:
             exit 1
           fi
 
-      - name: Check the publish token is configured
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Check npm is new enough for trusted publishing
         run: |
-          if [ -z "${NPM_TOKEN:-}" ]; then
-            echo "NPM_TOKEN is not set on this repository." >&2
-            echo "Create a granular access token with publish rights at" >&2
-            echo "https://www.npmjs.com/settings/yakupemreyerli/tokens and add it with:" >&2
-            echo "  gh secret set NPM_TOKEN" >&2
+          set -euo pipefail
+          version="$(npm --version)"
+          major="${version%%.*}"
+          rest="${version#*.}"
+          minor="${rest%%.*}"
+          if [ "$major" -lt 11 ] || { [ "$major" -eq 11 ] && [ "$minor" -lt 5 ]; }; then
+            echo "npm $version is too old for trusted publishing; need >= 11.5.1." >&2
             exit 1
           fi
 
       - run: npm ci
 
-      # prepublishOnly runs the typecheck, the tests and the build; a broken
+      # Published through npm trusted publishing: the registry trusts this
+      # repository and workflow by name, so there is no token to leak, expire,
+      # or fail an OTP prompt in CI. Provenance comes with it.
+      #
+      # prepublishOnly runs the typecheck, the tests and the build, so a broken
       # tree cannot reach npm even from here.
-      - run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --access public
