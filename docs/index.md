@@ -16,9 +16,9 @@ assistant looks at your own instance and answers.
 - **An analysis surface, not just CRUD.** Reading and writing records is one
   thing; answering questions about them is another. `summary.overview` returns a
   whole period in a single call.
-- **Read-only mode.** With `FIREFLY_READ_ONLY=true`, write operations are both
-  refused and hidden from the tool catalogue. Cheap insurance on live financial
-  data.
+- **Read-only mode when you want it.** Writes are on by default; with
+  `FIREFLY_READ_ONLY=true` they are both refused and hidden from the tool
+  catalogue.
 - **3 meta-tools, 139 operations.** Most MCP clients degrade past roughly 40
   tools, so operations are reached through three meta-tools rather than exposed
   one by one.

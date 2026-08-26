@@ -1,6 +1,6 @@
 {
   "name": "@yakupemreyerli/firefly-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Model Context Protocol server for Firefly III personal finance management",
   "license": "MIT",
   "author": "Yakup Emre Yerli",

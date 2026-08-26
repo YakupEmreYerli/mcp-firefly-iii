@@ -22,7 +22,18 @@ as a password: it grants full access to your financial data.
 
 ## Install
 
-There is no install step. Your MCP client runs the server through `npx`.
+The quickest way is to let setup do the work:
+
+```bash
+npx -y @yakupemreyerli/firefly-mcp setup
+```
+
+It asks for your address and token, checks them against your instance before
+anything depends on them, and configures Claude Code and Claude Desktop if it
+finds them. It backs up any file it changes and leaves your other MCP servers
+untouched. For any other client it prints the configuration for you to paste.
+
+Everything below is the same thing done by hand.
 
 === "Claude Code"
 
@@ -90,18 +101,19 @@ There is no install step. Your MCP client runs the server through `npx`.
 
 The `/api/v1` suffix on the URL is required.
 
-!!! tip "If you only mean to ask questions"
+!!! tip "Read-only mode"
 
-    Add `"FIREFLY_READ_ONLY": "true"`. The server talks to live financial data,
-    and a wrong write costs far more than a refused call. In read-only mode
-    write operations are hidden from the catalogue as well as refused, so the
-    assistant does not attempt them.
+    Writes are on by default. If you want a session that can only answer
+    questions, add `"FIREFLY_READ_ONLY": "true"` — write operations are then
+    hidden from the catalogue as well as refused, so the assistant does not
+    attempt them.
 
 Other optional variables are covered in [Configuration](configuration.md).
 
 ## Verify
 
-Restart your MCP client, then ask it something harmless — "list my accounts".
+Restart your MCP client — a running client keeps the old configuration until it
+does. Then ask it something harmless: "list my accounts".
 If the tools are there, the assistant will answer from your instance.
 
 If you cloned the repository instead of installing from npm, the fastest check

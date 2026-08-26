@@ -14,7 +14,18 @@ token. Nothing is shared, and no data passes through a third party.
 
 ## Install
 
-Requires Node.js 20.6+. No install step — your MCP client runs it via `npx`.
+Requires Node.js 20.6+. The quickest way is to let setup do it:
+
+```bash
+npx -y @yakupemreyerli/firefly-mcp setup
+```
+
+It asks for your Firefly III address and API token, **checks that they actually
+work** against your instance, and then configures Claude Code and Claude Desktop
+if it finds them — backing up anything it touches and leaving your other MCP
+servers alone. For any other client it prints the configuration to paste.
+
+If you would rather do it by hand:
 
 ### Claude Code
 
@@ -47,11 +58,14 @@ Add this to the client's MCP configuration file:
 Get the token from Firefly III → **Options → Profile → OAuth → Create New
 Personal Access Token**. The `/api/v1` suffix on the URL is required.
 
-## Start read-only
+## Read-only mode
 
-Set `FIREFLY_READ_ONLY=true` and every create, update and delete is refused —
-and hidden from the tool catalogue, so the assistant does not try. This is worth
-doing for any session meant only to answer questions about your money.
+Writes are on by default: you can ask the assistant to record a purchase or
+categorise a transaction and it will.
+
+If you want a session that can only answer questions, set
+`FIREFLY_READ_ONLY=true`. Every create, update and delete is then refused and
+hidden from the tool catalogue, so the assistant does not attempt one.
 
 ```json
 "env": {

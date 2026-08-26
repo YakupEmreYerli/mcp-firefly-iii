@@ -2,6 +2,10 @@
 
 How to connect the Firefly III MCP server to common MCP clients.
 
+`npx -y @yakupemreyerli/firefly-mcp setup` does all of this interactively —
+including checking that your token works before writing anything. The pages
+below are the manual equivalent.
+
 The simplest setup runs the published package with `npx`, so there is nothing to
 install and no path to get wrong. If you point a client at a local checkout
 instead, **paths must be absolute** — a relative path is resolved against the

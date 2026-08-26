@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-27
+
+### Added
+
+- `firefly-mcp setup`: an interactive first-run command. It asks for the Firefly
+  III address and API token and verifies them against the live instance before
+  anything depends on them, reporting which of the two was wrong rather than a
+  stack trace. It then configures Claude Code (through `claude mcp add`) and
+  Claude Desktop if it finds them, backing up any file it changes and merging
+  into the existing configuration so other MCP servers survive untouched. For
+  any other client it prints the configuration to paste.
+
+### Fixed
+
+- `firefly-mcp-http` did nothing when installed from npm. npm installs binaries
+  as symlinks, and the entry-point check compared the invoked path against the
+  resolved module path, so the server exited 0 without starting. Both sides are
+  now resolved before comparing.
+
 ## [0.1.0] - 2026-08-27
 
 First release.
@@ -25,5 +44,6 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.0
 [0.1.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.1.0

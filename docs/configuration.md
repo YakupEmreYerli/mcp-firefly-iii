@@ -70,9 +70,9 @@ schema lookups. Read operations are unaffected.
 FIREFLY_READ_ONLY=true
 ```
 
-Worth turning on for any session meant only to answer questions. The server is
-talking to live financial data, and the cost of a refused call is nothing next
-to the cost of a wrong write.
+Writes are on by default. Read-only is there for the sessions where you want a
+guarantee rather than a habit — a shared screen, a demo, or an agent you have
+not watched work yet.
 
 The two behaviours work together and both are deliberate. Hiding alone would not
 be enforcement; refusing alone would send the model down a dead end every time.

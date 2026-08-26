@@ -14,8 +14,19 @@ yoktur, veri üçüncü bir taraftan geçmez.
 
 ## Kurulum
 
-Node.js 20.6+ gerekir. Ayrı bir kurulum adımı yok — MCP istemciniz `npx` ile
-çalıştırır.
+Node.js 20.6+ gerekir. En kısa yol, kurulumu ona bırakmak:
+
+```bash
+npx -y @yakupemreyerli/firefly-mcp setup
+```
+
+Firefly III adresinizi ve API token'ınızı sorar, **gerçekten çalışıp
+çalışmadıklarını** örneğinize karşı sınar, sonra bulursa Claude Code ve Claude
+Desktop'ı yapılandırır — dokunduğu her dosyanın yedeğini alır ve diğer MCP
+sunucularınıza ilişmez. Başka bir istemci kullanıyorsanız yapıştırmanız için
+yapılandırmayı ekrana basar.
+
+Elle yapmayı tercih ederseniz:
 
 ### Claude Code
 
@@ -48,11 +59,14 @@ claude mcp add firefly \
 Token'ı Firefly III → **Options → Profile → OAuth → Create New Personal Access
 Token** yolundan alırsınız. URL'nin sonundaki `/api/v1` zorunludur.
 
-## Salt-okunur başlayın
+## Salt-okunur mod
 
-`FIREFLY_READ_ONLY=true` verdiğinizde her oluşturma, güncelleme ve silme
-reddedilir — üstelik araç kataloğundan da gizlenir, böylece asistan denemez.
-Yalnızca soru cevaplaması beklenen her oturum için açmaya değer.
+Yazma varsayılan olarak açık: asistandan bir harcamayı kaydetmesini veya bir
+işlemi kategorilendirmesini isteyebilirsiniz, yapar.
+
+Yalnızca soru cevaplayan bir oturum isterseniz `FIREFLY_READ_ONLY=true` verin.
+O zaman her oluşturma, güncelleme ve silme reddedilir ve araç kataloğundan
+gizlenir, böylece asistan denemez bile.
 
 ```json
 "env": {
