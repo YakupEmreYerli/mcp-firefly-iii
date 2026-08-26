@@ -134,6 +134,26 @@ access to your financial history — do not expose the port directly.
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, search, and the eight insight endpoints |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Poking at the server interactively while developing |
 
+## Docker
+
+For the HTTP mode there is a prebuilt image, for `linux/amd64` and
+`linux/arm64`:
+
+```bash
+docker run -d \
+  -e FIREFLY_API_URL=https://your-firefly.example/api/v1 \
+  -e FIREFLY_API_TOKEN=your-token \
+  -e MCP_HTTP_HOST=0.0.0.0 \
+  -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
+  -p 3000:3000 \
+  ghcr.io/yakupemreyerli/mcp-firefly-iii:latest
+```
+
+`/health` answers without a token, for container probes. Everything on `/mcp`
+needs `Authorization: Bearer <MCP_HTTP_TOKEN>`.
+
+Pin a version (`:0.3.1`) rather than `:latest` for anything you depend on.
+
 ## Development
 
 ```bash

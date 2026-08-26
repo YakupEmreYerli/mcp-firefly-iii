@@ -137,6 +137,25 @@ arasındaki tek şey — portu doğrudan açmayın.
 
 Dokümantasyon sayfaları İngilizcedir.
 
+## Docker
+
+HTTP modu için hazır imaj var, `linux/amd64` ve `linux/arm64` için:
+
+```bash
+docker run -d \
+  -e FIREFLY_API_URL=https://kendi-firefly-adresiniz/api/v1 \
+  -e FIREFLY_API_TOKEN=token-degeriniz \
+  -e MCP_HTTP_HOST=0.0.0.0 \
+  -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
+  -p 3000:3000 \
+  ghcr.io/yakupemreyerli/mcp-firefly-iii:latest
+```
+
+`/health` token istemez, container probe'ları içindir. `/mcp` üzerindeki her
+şey `Authorization: Bearer <MCP_HTTP_TOKEN>` ister.
+
+Bağımlı olduğunuz bir yerde `:latest` yerine sürüm sabitleyin (`:0.3.1`).
+
 ## Geliştirme
 
 ```bash

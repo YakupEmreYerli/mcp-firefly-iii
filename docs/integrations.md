@@ -177,7 +177,19 @@ MCP Client Tool set the connection type to `HTTP Streamable` and the URL to
 `https://your-domain/mcp`; choose Bearer authentication and enter the same
 `MCP_HTTP_TOKEN`. The `/health` endpoint needs no authentication.
 
-With Docker, from a checkout:
+With Docker, using the prebuilt image (`linux/amd64` and `linux/arm64`):
+
+```bash
+docker run -d \
+  -e FIREFLY_API_URL=https://your-firefly.example/api/v1 \
+  -e FIREFLY_API_TOKEN=your-token \
+  -e MCP_HTTP_HOST=0.0.0.0 \
+  -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
+  -p 3000:3000 \
+  ghcr.io/yakupemreyerli/mcp-firefly-iii:latest
+```
+
+Or from a checkout, building it yourself:
 
 ```bash
 cp .env.example .env

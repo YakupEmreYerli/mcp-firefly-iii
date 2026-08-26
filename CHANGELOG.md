@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-08-27
+
+### Added
+
+- A prebuilt container image at `ghcr.io/yakupemreyerli/mcp-firefly-iii`, for
+  `linux/amd64` and `linux/arm64`, published on every tag. Self-hosting the HTTP
+  mode no longer means cloning and building — and arm64 is there because a
+  Raspberry Pi is a common place to run Firefly III.
+
+### Changed
+
+- Releases publish to npm through trusted publishing rather than a token. A
+  classic publish token still demands a one-time password, which nothing in a
+  workflow can supply; trusted publishing leaves no credential in the
+  repository at all.
+
 ## [0.3.1] - 2026-08-27
 
 ### Fixed
@@ -97,7 +113,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.2
 [0.3.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.1
 [0.3.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.0
 [0.2.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.2

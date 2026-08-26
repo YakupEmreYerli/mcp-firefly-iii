@@ -9,6 +9,8 @@ permissions:
   # npm provenance: attests that this tarball was built from this repository
   # by this workflow, which npm shows on the package page.
   id-token: write
+  # Pushing the container image to GitHub Container Registry.
+  packages: write
 
 jobs:
   release:
@@ -105,3 +107,33 @@ jobs:
       # prepublishOnly runs the typecheck, the tests and the build, so a broken
       # tree cannot reach npm even from here.
       - run: npm publish --access public
+
+  image:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # arm64 as well as amd64: Firefly III is commonly self-hosted on a
+      # Raspberry Pi, and the HTTP mode is exactly what such a host runs.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/yakupemreyerli/mcp-firefly-iii:${{ github.ref_name }}
+            ghcr.io/yakupemreyerli/mcp-firefly-iii:latest
+          provenance: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+\n
