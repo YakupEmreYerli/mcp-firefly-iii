@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { createClient } from "./firefly.js";
 import { FireflyApiError } from "./errors.js";
 import type { Config } from "./config.js";
+import { packageVersion } from "./cli.js";
 
 const PACKAGE_NAME = "@yakupemreyerli/firefly-mcp";
 
@@ -289,6 +290,58 @@ function addToClaudeCode(answers: Answers): boolean {
   return spawnSync("claude", args, { stdio: "inherit" }).status === 0;
 }
 
+/** True when `running` is an earlier release than `latest`.
+ *
+ * Only the numeric triple is compared. A maintainer running an unpublished
+ * build is ahead, not behind, and must not be told to uninstall it.
+ */
+export function isOlder(running: string, latest: string): boolean {
+  const parse = (value: string): number[] =>
+    value.split("-")[0]!.split(".").map((part) => Number.parseInt(part, 10));
+
+  const a = parse(running);
+  const b = parse(latest);
+  if (a.some(Number.isNaN) || b.some(Number.isNaN)) return false;
+
+  for (let i = 0; i < 3; i += 1) {
+    const left = a[i] ?? 0;
+    const right = b[i] ?? 0;
+    if (left !== right) return left < right;
+  }
+  return false;
+}
+
+/** Warn when the running copy is behind what npm publishes.
+ *
+ * A stale copy is easy to end up with by accident: `npm install` into a
+ * directory leaves a version there, and `npx` prefers a local install over the
+ * registry, so it silently keeps running the old one. Never fails setup — a
+ * version check is not worth blocking a working install over.
+ */
+async function warnIfOutdated(): Promise<void> {
+  const running = packageVersion();
+  if (running === "unknown") return;
+
+  try {
+    const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}/latest`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!response.ok) return;
+
+    const payload: unknown = await response.json();
+    if (!isRecord(payload) || typeof payload.version !== "string") return;
+    const latest = payload.version;
+    if (!isOlder(running, latest)) return;
+
+    console.log(`  You are running ${running}; npm has ${latest}.`);
+    console.log("  If that is a copy installed into a directory, npx will keep using it:");
+    console.log(`    npm uninstall ${PACKAGE_NAME}`);
+    console.log(`  Then run this again with: npx -y ${PACKAGE_NAME}@latest setup\n`);
+  } catch {
+    // Offline, slow, or the registry is down. None of that should stop setup.
+  }
+}
+
 export async function runSetup(): Promise<void> {
   const output = new MutableOutput();
   const rl = createInterface({ input: process.stdin, output, terminal: true });
@@ -297,6 +350,8 @@ export async function runSetup(): Promise<void> {
     console.log("\nFirefly III MCP server — setup\n");
     console.log("This asks for your Firefly III address and API token, checks that they");
     console.log("work, and writes the configuration your AI client needs.\n");
+
+    await warnIfOutdated();
 
     let apiUrl = "";
     let apiToken = "";
