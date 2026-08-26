@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/YakupEmreYerli/mcp-firefly-iii/security/advisories/new
+    about: Report privately. This server can read and modify real financial data.
+  - name: Firefly III itself
+    url: https://github.com/firefly-iii/firefly-iii
+    about: For bugs in Firefly III rather than in this MCP server.

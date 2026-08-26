@@ -1,0 +1,59 @@
+name: Bug report
+description: Something behaves differently from what the docs say
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Never paste your API token, a real Firefly III hostname, or real
+        financial data.** Replace them with placeholders.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The operation and parameters, or the request you sent.
+      placeholder: |
+        {
+          "entity": "transaction",
+          "operation": "list",
+          "params": { "start": "2026-08-01", "end": "2026-08-31" }
+        }
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Package version, Node.js version, Firefly III version.
+      placeholder: "firefly-mcp 0.1.0, Node 22.4.0, Firefly III 6.6.3"
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: How are you running it?
+      options:
+        - stdio (npx, through an MCP client)
+        - stdio (local checkout)
+        - HTTP (firefly-mcp-http)
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: "Claude Code, Claude Desktop, Cursor, n8n, ..."
+  - type: checkboxes
+    id: readonly
+    attributes:
+      label: Configuration
+      options:
+        - label: "`FIREFLY_READ_ONLY` is on"
+        - label: "`FIREFLY_DIRECT_MODE` is on"

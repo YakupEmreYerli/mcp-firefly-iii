@@ -1,0 +1,4 @@
+# Documentation toolchain. The server itself is TypeScript and needs none of
+# this — these are only for building the docs site.
+mkdocs-material>=9.4.0
+mkdocs-git-revision-date-localized-plugin>=1.2.0

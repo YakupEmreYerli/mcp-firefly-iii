@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20.6 is the floor the package declares; 22 is current LTS.
+        node-version: ["20.6", "22"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Pack, install the tarball into a clean directory, and start both
+      # binaries. A package that passes its tests can still be unusable if a
+      # runtime dependency sits in devDependencies or `files` misses something.
+      - name: Install the packed tarball and start both binaries
+        run: |
+          set -euo pipefail
+          tarball="$(npm pack --silent)"
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          npm init -y > /dev/null
+          npm install --omit=dev "$GITHUB_WORKSPACE/$tarball"
+          export FIREFLY_API_URL=https://firefly.invalid/api/v1
+          export FIREFLY_API_TOKEN=not-a-real-token
+          # stdio server: answers tools/list and exits when stdin closes.
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | ./node_modules/.bin/firefly-mcp | grep -q firefly_execute
+          # HTTP server: must refuse to start without a token.
+          if ./node_modules/.bin/firefly-mcp-http 2>/dev/null; then
+            echo "HTTP server started without MCP_HTTP_TOKEN" >&2
+            exit 1
+          fi

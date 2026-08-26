@@ -1,0 +1,11 @@
+node_modules
+dist
+site
+exports
+.env
+.env.*
+!.env.example
+.git
+.pytest_cache
+test
+docs

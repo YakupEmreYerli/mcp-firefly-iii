@@ -1,0 +1,78 @@
+site_name: Firefly III MCP Server
+site_description: Model Context Protocol server for Firefly III personal finance management
+site_author: Yakup Emre Yerli
+site_url: https://yakupemreyerli.github.io/mcp-firefly-iii/
+
+repo_name: YakupEmreYerli/mcp-firefly-iii
+repo_url: https://github.com/YakupEmreYerli/mcp-firefly-iii
+edit_uri: edit/main/docs/
+
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+nav:
+  - Overview: index.md
+  - Getting started:
+    - Quickstart: quickstart.md
+    - Configuration: configuration.md
+  - MCP Integration: integrations.md
+  - Reference:
+    - Operations: api/operations.md
+    - Analysis Operations: api/analysis.md
+  - Development:
+    - MCP Inspector: development/mcp-inspector.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/YakupEmreYerli/mcp-firefly-iii
+  version:
+    provider: mike

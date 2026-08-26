@@ -1,0 +1,58 @@
+{
+  "name": "@yakupemreyerli/firefly-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for Firefly III personal finance management",
+  "license": "MIT",
+  "author": "Yakup Emre Yerli",
+  "homepage": "https://github.com/YakupEmreYerli/mcp-firefly-iii#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YakupEmreYerli/mcp-firefly-iii.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YakupEmreYerli/mcp-firefly-iii/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "firefly-iii",
+    "personal-finance",
+    "llm"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "bin": {
+    "firefly-mcp": "dist/index.js",
+    "firefly-mcp-http": "dist/http.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.tr.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "check": "node --env-file=.env dist/check.js",
+    "start": "node --env-file=.env dist/index.js",
+    "start:http": "node --env-file=.env dist/http.js",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "smoke:live": "npm run build && node --env-file=.env scripts/live-smoke.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "undici": "^7.0.0",
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}

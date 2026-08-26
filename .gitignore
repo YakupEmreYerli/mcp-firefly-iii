@@ -1,0 +1,22 @@
+__pycache__/
+.venv/
+.env
+.env.*
+!.env.example
+htmlcov/
+.coverage
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+# mkdocs build output
+site/
+.sdd/
+
+node_modules/
+dist/
+exports/
+
+# Documentation toolchain virtualenv
+.venv-docs/
