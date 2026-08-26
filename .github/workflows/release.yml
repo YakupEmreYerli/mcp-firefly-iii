@@ -30,8 +30,8 @@ jobs:
           awk -v v="## [${version}]" '
             index($0, v) == 1 { found = 1; next }
             found && index($0, "## [") == 1 { exit }
-            # Link reference definitions live at the foot of the file and are
-            # not part of any version's notes.
+            # Link reference definitions live at the foot of the file and
+            # belong to no release.
             found && /^\[[^]]+\]: http/ { exit }
             found { print }
           ' CHANGELOG.md > release-notes.md

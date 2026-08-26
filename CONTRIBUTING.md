@@ -92,7 +92,7 @@ npm test
 npm run build
 ```
 
-Comments and identifiers in the code are English. Commit messages can be either.
+Comments, identifiers and commit messages are English.
 
 ## Releases
 
