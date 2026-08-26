@@ -6,6 +6,9 @@ on:
 
 permissions:
   contents: write
+  # npm provenance: attests that this tarball was built from this repository
+  # by this workflow, which npm shows on the package page.
+  id-token: write
 
 jobs:
   release:
@@ -57,3 +60,45 @@ jobs:
             --title "$GITHUB_REF_NAME" \
             --notes-file release-notes.md \
             --verify-tag
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Refuse to publish a version that does not match the tag
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          manifest="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$manifest" ]; then
+            echo "Tag is v$tag but package.json says $manifest." >&2
+            echo "Publishing would put the wrong version on npm under this tag." >&2
+            exit 1
+          fi
+
+      - name: Check the publish token is configured
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "NPM_TOKEN is not set on this repository." >&2
+            echo "Create a granular access token with publish rights at" >&2
+            echo "https://www.npmjs.com/settings/yakupemreyerli/tokens and add it with:" >&2
+            echo "  gh secret set NPM_TOKEN" >&2
+            exit 1
+          fi
+
+      - run: npm ci
+
+      # prepublishOnly runs the typecheck, the tests and the build; a broken
+      # tree cannot reach npm even from here.
+      - run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

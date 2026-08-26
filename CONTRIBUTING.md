@@ -96,18 +96,24 @@ Comments, identifiers and commit messages are English.
 
 ## Releases
 
-Releases are published by hand, not by CI:
+Write the version's section in `CHANGELOG.md`, then:
 
 ```bash
 npm version <patch|minor|major>
-npm publish --access public
 git push --follow-tags
 ```
 
-`prepublishOnly` runs the typecheck, the tests and the build, so a broken tree
-cannot be published.
+Pushing the tag does the rest. A workflow builds the GitHub release from that
+version's `CHANGELOG.md` section, then publishes to npm with provenance.
 
-Update `CHANGELOG.md` in the same commit as the version bump: pushing the tag
-triggers a workflow that builds the GitHub release from that version's section,
-and it fails if the section is missing or empty. Nothing is published to npm by
-CI — that step stays manual and deliberate.
+Three things stop a bad release:
+
+- The release job fails if `CHANGELOG.md` has no section for the version, or if
+  the section is empty.
+- The publish job fails if `package.json` disagrees with the tag, so a
+  mistyped tag cannot put the wrong version on npm.
+- `prepublishOnly` runs the typecheck, the tests and the build, so a broken
+  tree cannot be published from anywhere.
+
+Publishing needs an `NPM_TOKEN` repository secret — a granular access token
+with publish rights, added with `gh secret set NPM_TOKEN`.
