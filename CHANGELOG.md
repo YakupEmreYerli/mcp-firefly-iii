@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-27
+
+### Fixed
+
+- An unrecognised argument started the stdio server instead of being refused.
+  Someone on an older version typing `firefly-mcp setup` got a process sitting
+  silently on stdin, which is indistinguishable from a hang. Unknown commands
+  and extra arguments now print usage to stderr and exit 1.
+
+### Added
+
+- `firefly-mcp --help` and `firefly-mcp --version`.
+
 ## [0.2.0] - 2026-08-27
 
 ### Added
@@ -44,6 +57,7 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.0
 [0.1.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.1.0
