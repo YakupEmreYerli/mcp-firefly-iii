@@ -60,3 +60,43 @@ jobs:
             echo "HTTP server started without MCP_HTTP_TOKEN" >&2
             exit 1
           fi
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The image had a Dockerfile that contradicted .dockerignore and nobody
+      # noticed, because nothing ever built it. Building is not enough on its
+      # own either: an image that builds can still refuse to serve.
+      - run: docker build -t firefly-mcp:ci .
+      - name: Start it and check both the refusal and the served surface
+        run: |
+          set -euo pipefail
+          # No MCP_HTTP_TOKEN: must refuse rather than listen unauthenticated.
+          if docker run --rm -e FIREFLY_API_URL=https://firefly.invalid/api/v1 \
+               -e FIREFLY_API_TOKEN=x firefly-mcp:ci 2>/dev/null; then
+            echo "Container started without MCP_HTTP_TOKEN" >&2
+            exit 1
+          fi
+
+          docker run -d --name ffmcp -p 3000:3000 \
+            -e FIREFLY_API_URL=https://firefly.invalid/api/v1 \
+            -e FIREFLY_API_TOKEN=x \
+            -e MCP_HTTP_HOST=0.0.0.0 \
+            -e MCP_HTTP_TOKEN=ci-token firefly-mcp:ci
+
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3000/health > /dev/null && break
+            sleep 1
+          done
+
+          curl -sf http://127.0.0.1:3000/health | grep -q '"ok":true'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/mcp)" = "401"
+          curl -s -X POST http://127.0.0.1:3000/mcp \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+            | grep -q firefly_execute
+
+          docker rm -f ffmcp > /dev/null

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-27
+
+### Fixed
+
+- The Docker image did not build. The Dockerfile copied `test`, which
+  `.dockerignore` excludes, so `docker build` failed at that step. The build
+  stage compiles `src` only and never needed the tests. CI now builds the image
+  and starts it — checking that it refuses to run without `MCP_HTTP_TOKEN`, that
+  `/health` answers, that `/mcp` is 401 without a token and serves the tools
+  with one — so a Dockerfile nobody builds cannot rot again.
+
 ## [0.3.0] - 2026-08-27
 
 ### Changed
@@ -86,7 +97,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.1
 [0.3.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.0
 [0.2.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.2
 [0.2.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.1
