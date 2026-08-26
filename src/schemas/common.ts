@@ -3,7 +3,8 @@ import { z } from "zod";
 /** A Firefly date, `YYYY-MM-DD`. */
 export const isoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "expected a date formatted YYYY-MM-DD");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "expected a date formatted YYYY-MM-DD")
+  .describe("Date formatted YYYY-MM-DD");
 
 /** A Firefly resource id. Always a numeric string in the JSON:API envelope. */
 export const entityId = z.string().regex(/^\d+$/, "expected a numeric id");

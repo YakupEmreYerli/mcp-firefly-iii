@@ -76,6 +76,20 @@ describe("Registry.execute", () => {
     expect(result.data[0]!.attributes).toEqual({});
   });
 
+  it("puts the schema in the refusal, so the caller needs no second call", async () => {
+    // Zod says "Required" and nothing about shape. Learning that a date is
+    // YYYY-MM-DD should not cost a round-trip through firefly_get_schema.
+    const error: Error = await makeRegistry()
+      .execute("account", "list", { type: 7 })
+      .then(
+        () => new Error("expected a validation failure"),
+        (caught: unknown) => (caught instanceof Error ? caught : new Error(String(caught))),
+      );
+
+    expect(error.message).toContain("Expected schema:");
+    expect(error.message).toContain('"type"');
+  });
+
   it("raises for an unknown operation", async () => {
     await expect(makeRegistry().execute("account", "nonsense")).rejects.toBeInstanceOf(
       OperationNotFoundError,

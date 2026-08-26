@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-27
+
+### Changed
+
+- **Transaction responses are flattened to one row per split.** Firefly stores a
+  transaction as a group of splits, so its own API buries the fields you want at
+  `data[].attributes.transactions[0].amount` — three levels down even for a
+  single purchase. Every response that carries transactions now lifts the
+  split's fields into `attributes`. The shape is the same for one split or
+  five; a group with several produces several rows, each marked `split_count`.
+
+  `id` remains the **group** id, which is what `get`, `update` and `delete`
+  take; each row also keeps `transaction_journal_id`, which updates need inside
+  the split. `meta.pagination` is left as Firefly sent it and therefore counts
+  groups rather than rows.
+
+- Validation failures now carry the operation's schema. Zod says "Required" and
+  nothing about shape, which cost a second call through `firefly_get_schema`
+  just to learn that a date is `YYYY-MM-DD`.
+
 ## [0.2.2] - 2026-08-27
 
 ### Added
@@ -66,7 +86,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.0
 [0.2.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.2
 [0.2.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.2.0

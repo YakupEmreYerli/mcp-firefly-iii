@@ -10,6 +10,7 @@ import {
   ValidationError,
 } from "./errors.js";
 import { projectFields, stripEmpty } from "./projection.js";
+import { flattenTransactions } from "./flatten.js";
 
 /** An input schema that rejects unknown keys.
  *
@@ -180,14 +181,23 @@ export class Registry {
 
     const parsed = found.input.safeParse(params ?? {});
     if (!parsed.success) {
+      // The schema travels with the refusal. Zod says "Required" for a missing
+      // field and nothing about its shape, which costs the caller a second
+      // round-trip through firefly_get_schema just to learn that a date is
+      // `YYYY-MM-DD`. Answering the follow-up question up front is cheaper
+      // than the extra call.
+      const complaints = parsed.error.issues
+        .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+        .join("; ");
       throw new ValidationError(
-        `Invalid parameters for ${entity}.${operation}: ${parsed.error.issues
-          .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
-          .join("; ")}`,
+        `Invalid parameters for ${entity}.${operation}: ${complaints}. ` +
+          `Expected schema: ${JSON.stringify(zodToJsonSchema(found.input, { $refStrategy: "none" }))}`,
       );
     }
 
     const result = await found.handler(parsed.data, this.client);
-    return projectFields(stripEmpty(result), fields);
+    // Flatten before projecting, so `fields` names the attributes the caller
+    // actually sees rather than the ones buried in a split.
+    return projectFields(flattenTransactions(stripEmpty(result)), fields);
   }
 }

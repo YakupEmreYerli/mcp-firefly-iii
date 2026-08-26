@@ -10,7 +10,12 @@
 /** Envelope keys that identify a record; never dropped by a field projection. */
 const RECORD_KEYS = ["id", "type"] as const;
 
-/** Transactions nest their real fields one level deeper, as "splits". */
+/** Transactions nest their real fields one level deeper, as "splits".
+ *
+ * `flattenTransactions` normally lifts those out before a projection ever runs,
+ * so this path is a guard for any payload that reached here unflattened rather
+ * than the usual case.
+ */
 const SPLIT_KEY = "transactions";
 
 /** Top-level keys that stay even when empty. An empty `data` list is the answer

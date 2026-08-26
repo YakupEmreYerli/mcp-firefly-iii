@@ -104,6 +104,45 @@ range treats **`end` as inclusive**.
 
 ## Transactions
 
+### The shape of a transaction response
+
+In Firefly a transaction is a *group* holding one or more splits, so its own API
+buries the fields you want at `data[].attributes.transactions[0].amount`. This
+server lifts them out: every response gives **one row per split**, with the
+split's fields directly in `attributes`.
+
+```json
+{
+  "data": [
+    {
+      "id": "7",
+      "type": "transactions",
+      "attributes": {
+        "transaction_journal_id": "900",
+        "date": "2026-08-01T10:00:00+03:00",
+        "amount": "25.50",
+        "description": "market",
+        "category_name": "Groceries"
+      }
+    }
+  ]
+}
+```
+
+The shape does not change between a single purchase and a split transaction — a
+group with several splits simply produces several rows, each carrying
+`split_count`.
+
+`id` stays the **group** id, because that is what `get`, `update` and `delete`
+take. The split's own `transaction_journal_id` is on the row as well, since
+updates need it inside the split.
+
+One caveat: Firefly paginates *groups*, so `meta.pagination` counts groups
+rather than rows. The two differ only for split transactions, which say so with
+`split_count`.
+
+### Creating and updating
+
 `create` creates a transaction group. In Firefly every transaction is stored as
 a group containing one or more "splits" — even a single purchase is written that
 way.
