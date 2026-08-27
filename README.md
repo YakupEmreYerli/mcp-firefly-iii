@@ -107,7 +107,8 @@ attributes you name — on a large transaction list that is roughly a 90% cut.
 | `FIREFLY_API_URL` | — | Required. Base URL including `/api/v1`. |
 | `FIREFLY_API_TOKEN` | — | Required. Personal Access Token. |
 | `FIREFLY_READ_ONLY` | `false` | Refuse and hide every write operation. |
-| `FIREFLY_DIRECT_MODE` | `false` | One tool per operation instead of three meta-tools. |
+| `FIREFLY_PERMISSIONS` | unset | Finer than the read-only switch: a preset, or a level per entity. |
+| `FIREFLY_DIRECT_MODE` | `false` | One tool per operation instead of the five meta-tools. |
 | `FIREFLY_ENABLED_ENTITIES` | `all` | Comma-separated entity names to expose. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Only for a local instance with a self-signed certificate. |
 

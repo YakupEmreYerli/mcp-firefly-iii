@@ -116,7 +116,10 @@ Either a preset:
 | `safe` | Reads, creates and updates; nothing that cannot be undone |
 | `full` | Everything. This is the default when the variable is unset |
 
-or a per-entity list, where `*` sets the fallback for entities it does not name:
+A bare level name works as a preset too, so `FIREFLY_PERMISSIONS=write` means
+the same as `safe`, and `destructive` the same as `full`.
+
+Or a per-entity list, where `*` sets the fallback for entities it does not name:
 
 ```
 FIREFLY_PERMISSIONS=transaction:safe;account:read;rule:none;*:read
@@ -132,7 +135,9 @@ grants access nobody asked for.
 
 Operations the policy refuses are hidden from the catalogue as well as blocked,
 for the same reason writes are hidden in read-only mode: advertising an
-operation that can only fail sends the model down a dead end.
+operation that can only fail sends the model down a dead end. A surface left
+with no operations at all — `firefly_mutate` and `firefly_destructive` under
+`FIREFLY_PERMISSIONS=read`, for instance — is not registered as a tool either.
 
 **Consolidated mode (default)** exposes five meta-tools: `firefly_query`,
 `firefly_mutate`, `firefly_destructive`, `firefly_list_operations` and
@@ -141,7 +146,7 @@ risk so a host can annotate them differently. This is the default because most M
 roughly 40 tools.
 
 **Direct mode** gives every operation its own tool (`account_list`,
-`transaction_create`, and so on). The tool names are more explicit, but 139
+`transaction_create`, and so on). The tool names are more explicit, but 146
 tools is too many for most clients. It makes sense in narrow automations where
 you enable only a few entities.
 

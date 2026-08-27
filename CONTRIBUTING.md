@@ -21,7 +21,7 @@ URL and token. `make check` then verifies the connection read-only.
 src/
   index.ts        stdio entry point
   http.ts         HTTP entry point
-  server.ts       MCP server and the three meta-tools
+  server.ts       MCP server and the meta-tools
   registry.ts     entity registry, read-only gate, schema generation
   firefly.ts      HTTP layer: auth, TLS, error translation
   projection.ts   response trimming
@@ -30,9 +30,14 @@ src/
 ```
 
 `src/registry.ts` binds entities to operations and exposes everything through
-three meta-tools (`firefly_execute`, `firefly_list_operations`,
-`firefly_get_schema`) rather than 139 separate tools, because most MCP clients
-degrade past roughly 40.
+five meta-tools rather than 146 separate tools, because most MCP clients degrade
+past roughly 40. Execution is split by risk across `firefly_query`,
+`firefly_mutate` and `firefly_destructive`, with `firefly_list_operations` and
+`firefly_get_schema` alongside them. The split is enforced in
+`Registry.execute`, not merely advertised: an operation reached through the
+wrong surface is refused with `WrongAccessSurfaceError`. Without that, the tool
+annotations would be a claim the server does not keep. A surface the
+configuration has left with no operations on it is not registered at all.
 
 ## Adding an operation
 
@@ -41,12 +46,14 @@ degrade past roughly 40.
 
 Two things are easy to miss:
 
-**Tag every operation `read` or `write`.** Read-only mode keys off `access`. It
-is a required field, so a missing tag is a compile error rather than a silently
-callable write.
+**Tag every operation `read`, `write` or `destructive`.** Read-only mode and the
+three execution surfaces both key off `access`. It is a required field, so a
+missing tag is a compile error rather than a silently callable write.
+`destructive` is the subset the caller cannot undo: it deletes a record, or
+rewrites one field across many records in a single call.
 
 **Write the description as the question the operation answers.** The catalogue
-embedded in `firefly_execute` is the only guidance the model has when choosing
+embedded in the execution tools is the only guidance the model has when choosing
 an operation. "How much was spent per category in a period?" beats "expense
 category insight".
 

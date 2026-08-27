@@ -18,10 +18,11 @@ assistant looks at your own instance and answers.
   whole period in a single call.
 - **Read-only mode when you want it.** Writes are on by default; with
   `FIREFLY_READ_ONLY=true` they are both refused and hidden from the tool
-  catalogue.
-- **3 meta-tools, 139 operations.** Most MCP clients degrade past roughly 40
-  tools, so operations are reached through three meta-tools rather than exposed
-  one by one.
+  catalogue. `FIREFLY_PERMISSIONS` sets a finer policy per entity.
+- **5 meta-tools, 146 operations.** Most MCP clients degrade past roughly 40
+  tools, so operations are reached through meta-tools rather than exposed one by
+  one. Execution is split across three of them by risk — query, mutate,
+  destructive — and the split is enforced, not just advertised.
 - **Validated inputs.** Every operation declares a strict schema: unknown
   parameters are refused rather than silently dropped, which is what keeps a
   malformed update from succeeding with no effect.
@@ -60,11 +61,13 @@ Once installed, you talk to your assistant in plain language:
 
 ## Operations
 
-139 operations across 24 entities.
+146 operations across 26 entities.
 
 | Entity | Purpose | Operations |
 |--------|---------|------------|
 | **summary** | Period summary and overview | overview, basic |
+| **analysis** | Questions answered from the ledger rather than fetched | compare_periods, recurring_expenses, uncategorized |
+| **resolve** | Turning a name a user said into the record they meant | account, budget, category, tag |
 | **search** | Finding records without knowing an ID | transactions, accounts |
 | **insight** | Spending and income analysis | expense_total, expense_category, expense_budget, expense_tag, expense_no_category, income_total, income_category, transfer_total |
 | **account** | Asset, expense, revenue and liability accounts | list, get, create, update, delete, list_transactions, list_attachments, list_piggy_banks |

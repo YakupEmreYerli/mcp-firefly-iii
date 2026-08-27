@@ -108,7 +108,8 @@ listesi alır — büyük bir işlem listesinde bu yaklaşık %90 küçülme dem
 | `FIREFLY_API_URL` | — | Zorunlu. `/api/v1` dahil temel URL. |
 | `FIREFLY_API_TOKEN` | — | Zorunlu. Personal Access Token. |
 | `FIREFLY_READ_ONLY` | `false` | Tüm yazma operasyonlarını reddeder ve gizler. |
-| `FIREFLY_DIRECT_MODE` | `false` | Üç meta-araç yerine operasyon başına bir araç. |
+| `FIREFLY_PERMISSIONS` | boş | Salt-okunur anahtarından ince ayar: hazır seviye ya da varlık başına seviye. |
+| `FIREFLY_DIRECT_MODE` | `false` | Beş meta-araç yerine operasyon başına bir araç. |
 | `FIREFLY_ENABLED_ENTITIES` | `all` | Açılacak varlıklar, virgülle ayrılmış. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Yalnızca kendinden imzalı sertifikalı yerel örnek için. |
 

@@ -1,13 +1,14 @@
 # Operations
 
-**139 operations** across 24 entities. This page covers the CRUD side; for the
+**146 operations** across 26 entities. This page covers the CRUD side; for the
 operations that answer questions about your data — spending totals, category
-breakdowns, search — see [Analysis Operations](analysis.md).
+breakdowns, period comparisons, search — see [Analysis Operations](analysis.md).
 
 ## How operations are called
 
 In the default **consolidated mode** operations are not individual tools. There
-are three meta-tools, and everything goes through them:
+are five meta-tools, and everything goes through them. Execution is split across
+three of them by risk, so a host can annotate a delete differently from a read:
 
 | Tool | Purpose |
 |------|---------|
@@ -25,8 +26,13 @@ are three meta-tools, and everything goes through them:
 }
 ```
 
+An operation called through the wrong surface is refused rather than quietly
+run — a delete reached through `firefly_query` is told which tool to use. And a
+surface your configuration has left with no operations on it is not registered
+at all, so it cannot be called only to fail.
+
 With `FIREFLY_DIRECT_MODE=true` every operation becomes its own tool
-(`account_list`, `transaction_create`). That registers 139 tools, and most
+(`account_list`, `transaction_create`). That registers 146 tools, and most
 clients degrade past roughly 40.
 
 ### Trimming responses
@@ -50,6 +56,8 @@ Omit `fields` when you do not yet know which attributes matter.
 
 | Entity | Count | Operations |
 |--------|-------|------------|
+| `analysis` | 3 | compare_periods, recurring_expenses, uncategorized |
+| `resolve` | 4 | account, budget, category, tag |
 | `summary` | 2 | overview, basic |
 | `search` | 2 | transactions, accounts |
 | `insight` | 8 | expense_total, expense_category, expense_budget, expense_tag, expense_no_category, income_total, income_category, transfer_total |
@@ -171,10 +179,40 @@ transfer requires both accounts to exist already.
     with an independent read.
 
 `bulk_categorize` and `bulk_tag` categorise or tag many transactions in one
-call. Names containing `=`, `&`, or (for tags) a comma are refused: Firefly
-parses the bulk instruction as an expression, and such a name would change what
-the expression means — landing the update somewhere other than where you asked,
-with a 200 in response.
+call. Both fan out into a `GET` plus a `PUT` per id: Firefly's own
+`/data/bulk/transactions` endpoint only moves transactions between accounts and
+cannot set a category or tags at all.
+
+Because the field travels as JSON rather than inside a query expression, a name
+containing `=`, `&` or a comma is an ordinary value and is accepted.
+
+!!! note "`bulk_tag` adds; it does not replace"
+
+    Firefly rewrites the whole tag set on a journal update rather than merging
+    into it. `bulk_tag` therefore reads the existing tags back and merges yours
+    into them, so tagging an already-tagged transaction keeps what was there.
+    To remove a tag, use `transaction.update`.
+
+Both return a record per id rather than a single count, because these are
+destructive operations and a failure part-way through would otherwise leave you
+unable to tell how much had already changed:
+
+```json
+{
+  "updated": 2,
+  "failed": 1,
+  "skipped": 0,
+  "results": [
+    { "id": 1, "status": "updated" },
+    { "id": 2, "status": "failed", "reason": "404 – Not found" },
+    { "id": 3, "status": "updated" }
+  ],
+  "category_name": "Market"
+}
+```
+
+A failing id does not stop the ones after it: you named each id deliberately,
+and one stale entry is not a reason to abandon the rest.
 
 ## Budgets
 
