@@ -12,7 +12,7 @@ import {
   ReadOnlyModeError,
   ValidationError,
 } from "./errors.js";
-import { projectFields, stripEmpty } from "./projection.js";
+import { projectFields, stripEmpty, markThirdPartyText } from "./projection.js";
 import { flattenTransactions } from "./flatten.js";
 
 /** An input schema that rejects unknown keys.
@@ -137,7 +137,13 @@ export class Registry {
       return "writes to Firefly III and the server is running with FIREFLY_READ_ONLY enabled";
     }
     if (!permits(this.config.permissions, entity, operation.access)) {
-      return `needs ${operation.access} access on '${entity}', which FIREFLY_PERMISSIONS does not grant`;
+      // Names the setting and the value, because "not granted" alone leaves the
+      // operator guessing at a syntax they may never have written.
+      const grant = operation.access === "destructive" ? "full" : operation.access;
+      return (
+        `needs ${operation.access} access on '${entity}', which FIREFLY_PERMISSIONS does not grant. ` +
+        `Set FIREFLY_PERMISSIONS=${grant} for every entity, or ${entity}:${grant} for this one`
+      );
     }
     return undefined;
   }
@@ -264,6 +270,6 @@ export class Registry {
     const result = await found.handler(parsed.data, this.client);
     // Flatten before projecting, so `fields` names the attributes the caller
     // actually sees rather than the ones buried in a split.
-    return projectFields(flattenTransactions(stripEmpty(result)), fields);
+    return markThirdPartyText(projectFields(flattenTransactions(stripEmpty(result)), fields));
   }
 }

@@ -9,6 +9,7 @@ import { EntityType, type Access } from "./types.js";
  */
 export type PermissionLevel = "none" | "read" | "write" | "destructive";
 
+
 const LEVEL_RANK: Record<PermissionLevel, number> = { none: 0, read: 1, write: 2, destructive: 3 };
 const ACCESS_RANK: Record<Access, number> = { read: 1, write: 2, destructive: 3 };
 
@@ -104,6 +105,10 @@ function parseEntities(raw: string | undefined): Set<EntityType> {
  */
 function parsePermissions(raw: string | undefined): PermissionPolicy {
   const text = raw?.trim().toLowerCase() ?? "";
+  // Unset means unrestricted. Narrowing it would be friction for the person who
+  // deliberately issued a full-scope Firefly token, and no obstacle to anything
+  // else: whoever installs this has already made the access decision. The knob
+  // is here for those who want a narrower one, not to second-guess them.
   if (text === "") return { fallback: "destructive", byEntity: new Map() };
 
   // Both vocabularies, not just the aliases: the docs offer `none|read|write|

@@ -23,6 +23,34 @@ anyone's real financial data in the report.
 
 This project is pre-1.0. Fixes land on the latest release only.
 
+## Record content is written by other people
+
+Descriptions, notes, tags and counterparty account names are typed by whoever
+moved the money. On an incoming payment that is not the account holder: a payer
+chooses the description their bank records, and an import carries it into the
+ledger verbatim. Anyone able to send this user a payment can therefore choose
+text that reaches the model, in the same session as tools that can write.
+
+Two things stand between that and a write nobody asked for.
+
+The first is structural. Execution is split into `firefly_query`,
+`firefly_mutate` and `firefly_destructive`, and the split is enforced in the
+registry rather than advertised — a delete reached through the reading surface
+is refused. Each carries the MCP annotations a host uses to decide what to
+confirm, so acting on an injected instruction means calling a tool the host can
+hold. `dry_run` returns the exact request a write would send without sending
+it.
+
+The second is that the server says which half of a response it vouches for. A
+tool description is written here and is trusted; a tool result is not. Every
+execution surface carries that statement, and any response containing
+third-party text repeats it beside the records, because a long result puts the
+description far behind the data.
+
+None of this makes the content safe to follow. It makes following it require a
+step a host can see. If you connect this server to an agent that writes without
+review, that step is where you have chosen to remove the check.
+
 ## Deployment notes that are your responsibility
 
 - **Never expose the HTTP server directly to the internet.** `MCP_HTTP_TOKEN` is

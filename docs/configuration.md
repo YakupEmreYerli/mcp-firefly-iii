@@ -133,6 +133,12 @@ the one the operator actually set. A clause that cannot be parsed is dropped
 rather than widened — a misspelt entity or level fails closed, so a typo never
 grants access nobody asked for.
 
+A narrower policy is available, not advised by default: whoever issues a
+full-scope Firefly token has already made the access decision, and this setting
+exists to serve a narrower one rather than to second-guess it. `read` is worth
+reaching for when a session is only meant to answer questions, and `safe` when
+an agent should record transactions but never remove one.
+
 Operations the policy refuses are hidden from the catalogue as well as blocked,
 for the same reason writes are hidden in read-only mode: advertising an
 operation that can only fail sends the model down a dead end. A surface left

@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reaches the model alongside tools that can write. The split between query,
   mutate and destructive is the structural half of the answer; this is the half
   that says which part of the payload is trusted.
+- A response carrying third-party text now repeats, beside the records, that it
+  is data rather than instruction. The execution tools already say so, but a
+  result running to tens of kilobytes leaves that far behind the data it
+  describes. Added only where such a field is present, only to an object, and
+  measured at 0.4–3% of a real response.
 - The arrays Firefly replaces wholesale rather than merging into — transaction
   tags, rule triggers and actions, piggy bank accounts, recurrence repetitions
   — now say so in their schema, with what to do instead. Measured against 6.6.3:
