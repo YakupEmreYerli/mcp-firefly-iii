@@ -12,7 +12,6 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "firefly-token",
-        permissions: { fallback: "destructive", byEntity: new Map() },
         structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
     logLevel: "INFO",
     httpHost: "127.0.0.1",
@@ -330,29 +329,6 @@ describe("OAuth resource server", () => {
       resource: oauthResource,
       authorization_servers: [ISSUER],
       scopes_supported: ["firefly:read", "firefly:write", "firefly:destructive"],
-    });
-  });
-
-  it("advertises only the scopes the operator's ceiling allows", async () => {
-    // A client asks for what it reads here, and a scope it never requested
-    // cannot be granted later — so advertising the minimum would leave a
-    // full-permission server looking read-only to every OAuth client.
-    await startIssuer();
-    const base = await startOauth({ permissions: { fallback: "read", byEntity: new Map() } });
-    const response = await fetch(`${base}/.well-known/oauth-protected-resource`);
-
-    expect(await response.json()).toMatchObject({ scopes_supported: ["firefly:read"] });
-  });
-
-  it("counts a per-entity clause towards the advertised ceiling", async () => {
-    await startIssuer();
-    const base = await startOauth({
-      permissions: { fallback: "read", byEntity: new Map([[EntityType.Transaction, "write" as const]]) },
-    });
-    const response = await fetch(`${base}/.well-known/oauth-protected-resource`);
-
-    expect(await response.json()).toMatchObject({
-      scopes_supported: ["firefly:read", "firefly:write"],
     });
   });
 

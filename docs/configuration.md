@@ -17,9 +17,6 @@ FIREFLY_API_URL=your-firefly.example
 # Required: a Personal Access Token from Firefly III
 FIREFLY_API_TOKEN=your-token
 
-# How far the assistant may go (default: unset, meaning everything)
-FIREFLY_PERMISSIONS=
-
 # Only for a local instance with a self-signed certificate
 FIREFLY_DISABLE_SSL_VERIFY=false
 ```
@@ -78,41 +75,32 @@ set `MCP_AUTH_PASSWORD` and `MCP_AUTHORIZATION_SERVERS` together. For HTTPS
 reverse proxy recipes see
 [Remote access with embedded OAuth](oauth.md).
 
-## Read-only mode
+## What the assistant may do
 
-Read-only is a permission level, not a separate switch:
+Everything the token can do, over stdio. There is no server-wide permission
+setting: `FIREFLY_PERMISSIONS`, `FIREFLY_READ_ONLY` and
+`FIREFLY_ENABLED_ENTITIES` were all removed, and a server whose environment
+still narrows access with any of them **refuses to start** rather than starting
+silently wider than its operator wrote.
 
-```bash
-# Ask questions, change nothing
-FIREFLY_PERMISSIONS=read
-```
+Two things decide access instead, and both belong to whoever is connecting:
 
-Operations tagged `write` and `destructive` are then both **refused** and
-**hidden** — from the tool catalogue and from schema lookups — and the two
-writing tools are not registered at all. Read operations are unaffected.
+- **The Firefly token.** A Personal Access Token issued read-only is read-only
+  here, enforced by Firefly III rather than by this server. This is the
+  guarantee worth having for a shared screen or a demo.
+- **The OAuth scopes**, in HTTP mode. `firefly:read`, `firefly:write` and
+  `firefly:destructive` are approved per connection on the consent screen; a
+  surface the connection was not granted is refused *and* hidden — from the
+  catalogue, from schema lookups, and from the tool list, since advertising an
+  operation that can only fail sends the model down a dead end.
 
-Writes are on by default. Read-only is there for the sessions where you want a
-guarantee rather than a habit — a shared screen, a demo, or an agent you have
-not watched work yet.
-
-!!! warning "`FIREFLY_READ_ONLY` was removed in 2.0.0"
-
-    It said the same thing as `FIREFLY_PERMISSIONS=read`, and two settings for
-    one decision is how they drift apart. A server whose environment still sets
-    it to a restricting value **refuses to start** and names the replacement,
-    rather than starting silently writable.
-
-The two behaviours work together and both are deliberate. Hiding alone would not
-be enforcement; refusing alone would send the model down a dead end every time.
-The refusal happens before the request reaches Firefly III, and reports itself
-as a read-only error rather than a generic failure — so the caller can tell
-"refused by policy" from "something broke".
+The refusal happens before the request reaches Firefly III and names the scope
+that was missing, so a caller can tell "not granted" from "something broke".
 
 ## Operating mode
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `FIREFLY_PERMISSIONS` | unset (full) | Finer access control than the read-only switch |
 | `MCP_STRUCTURED_OUTPUT` | `false` | Return `structuredContent` instead of JSON as text |
 
 ### `MCP_STRUCTURED_OUTPUT`
@@ -133,44 +121,6 @@ operator's call: leave it off unless your client understands
 `configuration.list` answer with a bare array. Those arrive under a `result`
 key; objects pass through unchanged.
 
-### `FIREFLY_PERMISSIONS`
-
-Either a preset:
-
-| Value | Allows |
-|-------|--------|
-| `read` | Reads only; every write is refused and hidden |
-| `safe` | Reads, creates and updates; nothing that cannot be undone |
-| `full` | Everything. This is the default when the variable is unset |
-
-A bare level name works as a preset too, so `FIREFLY_PERMISSIONS=write` means
-the same as `safe`, and `destructive` the same as `full`.
-
-Or a per-entity list, where `*` sets the fallback for entities it does not name:
-
-```
-FIREFLY_PERMISSIONS=transaction:safe;account:read;rule:none;*:read
-```
-
-The levels are `none`, `read`, `write` and `destructive`; the preset names are
-accepted in a list too, so `transaction:full` means `transaction:destructive`.
-
-A clause that cannot be parsed is dropped
-rather than widened — a misspelt entity or level fails closed, so a typo never
-grants access nobody asked for.
-
-A narrower policy is available, not advised by default: whoever issues a
-full-scope Firefly token has already made the access decision, and this setting
-exists to serve a narrower one rather than to second-guess it. `read` is worth
-reaching for when a session is only meant to answer questions, and `safe` when
-an agent should record transactions but never remove one.
-
-Operations the policy refuses are hidden from the catalogue as well as blocked,
-for the same reason writes are hidden in read-only mode: advertising an
-operation that can only fail sends the model down a dead end. A surface left
-with no operations at all — `firefly_mutate` and `firefly_destructive` under
-`FIREFLY_PERMISSIONS=read`, for instance — is not registered as a tool either.
-
 The server exposes five meta-tools: `firefly_query`, `firefly_mutate`,
 `firefly_destructive`, `firefly_list_operations` and `firefly_get_schema`. All
 146 operations are reached through those, split by risk so a host can annotate
@@ -180,19 +130,11 @@ Listing every operation as its own tool was offered once and removed: it cost
 93.5% more of the model's context — 154 KB against 10 KB, measured — and most
 clients degrade past roughly forty tools.
 
-## Hiding an entity
+## Entities
 
-There is no separate entity switch. Giving an entity `none` in
-`FIREFLY_PERMISSIONS` hides it completely — from the catalogue, from schema
-lookups, and from execution:
-
-```bash
-# Accounts and transactions only
-FIREFLY_PERMISSIONS=account:full;transaction:full;*:none
-
-# A question-answering setup
-FIREFLY_PERMISSIONS=account:read;transaction:read;summary:read;search:read;insight:read;*:none
-```
+Every entity is always available. There is no switch that hides one: the
+per-entity policy that used to do it is gone, and what a connection may reach
+is decided by its scopes.
 
 Available entities:
 
@@ -222,12 +164,6 @@ Available entities:
 | `preference` | User preferences |
 | `configuration` | Firefly system settings |
 | `data_export` | Exporting financial data |
-
-!!! warning "`FIREFLY_ENABLED_ENTITIES` was removed in 2.0.0"
-
-    It was a coarser spelling of the same policy. A server whose environment
-    still narrows entities with it **refuses to start**, and the message names
-    the `FIREFLY_PERMISSIONS` value that hides exactly the same entities.
 
 ## Remote HTTP mode
 

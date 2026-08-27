@@ -202,10 +202,9 @@ const SURFACES: Surface[] = [
 
 function registerMetaTools(server: McpServer, registry: Registry, config: Config): void {
   for (const surface of SURFACES) {
-    // Asked of the registry rather than inferred from one setting. Read-only
-    // mode is not the only way a surface ends up with nothing on it —
-    // FIREFLY_PERMISSIONS=read empties the writing surfaces just as completely,
-    // and used to register them anyway: a tool whose description read
+    // Asked of the registry rather than inferred from anything outside it. A
+    // connection granted only firefly:read empties both writing surfaces, and
+    // they used to be registered anyway: a tool whose description read
     // "Available entities and their operations:" followed by nothing, and whose
     // every call failed with PermissionDeniedError. Registering a tool that can
     // only refuse sends the model down a dead end, which is the same reason the

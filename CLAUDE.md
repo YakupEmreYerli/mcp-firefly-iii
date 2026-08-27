@@ -48,17 +48,24 @@ tutmadığı bir iddia olurdu.
 İki şeyi atlamak kolay:
 
 **Her operasyonu `read`, `write` veya `destructive` diye etiketleyin.**
-`FIREFLY_PERMISSIONS` ve üç çalıştırma yüzeyi bu etiketlere bakar.
+Üç çalıştırma yüzeyi ve OAuth kapsamları bu etiketlere bakar.
 `destructive`, çağıranın geri alamayacağı alt kümedir: kaydı siler, ya da tek
 çağrıda çok kaydın bir alanını yeniden yazar. Kapı tek bir yerde, `permits` ile
 seviye karşılaştırarak çalışır — etiketi tamamen unutulmuş bir operasyonu
 yakalayacak ikinci bir isim listesi yok, ama `access` zorunlu alan olduğu için
 eksik etiket derleme hatası olur.
 
-İzin ayarı tektir: `FIREFLY_READ_ONLY` ve `FIREFLY_ENABLED_ENTITIES` 2.0.0'da
-kaldırıldı, ikisi de `FIREFLY_PERMISSIONS`'ın alt kümesiydi. Kısıtlayan bir
-değerle hâlâ tanımlıysalar sunucu **açılmayı reddeder** — sessizce yok saymak,
-operatörün yazdığından daha geniş bir sunucu bırakırdı.
+Sunucunun kendi izin ayarı yok. `FIREFLY_PERMISSIONS`, `FIREFLY_READ_ONLY` ve
+`FIREFLY_ENABLED_ENTITIES` kaldırıldı; erişimi bağlantının kendisi belirler —
+stdio istemcisi Firefly token'ının izin verdiği her şeyi yapar, OAuth istemcisi
+onay ekranında onaylanan kapsamları taşır. Kısıtlayan bir değerle hâlâ
+tanımlıysalar sunucu **açılmayı reddeder**: sessizce yok saymak, operatörün
+yazdığından daha geniş bir sunucu bırakırdı.
+
+Kapsam kapısı `Registry`'de tek yerdedir: bağlantıya verilen `Access` kümesi
+constructor'a geçer, verilmeyen operasyon hem reddedilir hem katalogdan
+gizlenir. Katalogda görünüp yalnızca hata döndüren bir operasyon, modeli her
+seferinde çıkmaz sokağa sokar.
 
 **Açıklamaları, operasyonun cevapladığı soru olarak yazın.**
 `"Dönemde kategoriye göre ne kadar harcandı?"`, `"Gider kategori insight'ı"`ndan

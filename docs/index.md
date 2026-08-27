@@ -16,9 +16,9 @@ assistant looks at your own instance and answers.
 - **An analysis surface, not just CRUD.** Reading and writing records is one
   thing; answering questions about them is another. `summary.overview` returns a
   whole period in a single call.
-- **Read-only mode when you want it.** Writes are on by default; with
-  `FIREFLY_PERMISSIONS=read` they are both refused and hidden from the tool
-  catalogue. `FIREFLY_PERMISSIONS` sets a finer policy per entity.
+- **Access belongs to the connection.** A stdio client can do whatever its
+  Firefly token can. Over HTTP, OAuth scopes are approved per connection, and a
+  surface that was not granted is refused as well as hidden from the catalogue.
 - **5 meta-tools, 146 operations.** Most MCP clients degrade past roughly 40
   tools, so operations are reached through meta-tools rather than exposed one by
   one. Execution is split across three of them by risk — query, mutate,

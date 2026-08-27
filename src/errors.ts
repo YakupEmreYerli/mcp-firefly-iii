@@ -13,9 +13,9 @@ export class ConfigurationError extends FireflyMcpError {}
  * not cover it — a delete reached through the read-only surface, say. Without
  * this the annotation would be a claim the server does not keep. */
 export class WrongAccessSurfaceError extends FireflyMcpError {}
-/** Raised when FIREFLY_PERMISSIONS does not grant an entity the level an
- * operation needs. Distinct from ReadOnlyModeError so the message can name the
- * setting the operator would actually have to change. */
+/** Raised when the connection was not granted the access an operation needs.
+ * The message names the scope that was missing, which is the thing the caller
+ * can actually go and ask for. */
 export class PermissionDeniedError extends FireflyMcpError {}
 
 /** Raised when interactive setup runs without a terminal to ask into.

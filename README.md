@@ -60,22 +60,17 @@ Personal Access Token**. For the URL, your domain is enough — `https://` and
 `/api/v1` are filled in. Give the full URL if your instance sits behind a
 subpath, on a custom port, or on plain http.
 
-## Read-only mode
+## How far it can go
 
-Writes are on by default: you can ask the assistant to record a purchase or
-categorise a transaction and it will.
+Over stdio, as far as the Firefly token allows: you can ask the assistant to
+record a purchase or categorise a transaction and it will. There is no
+server-wide permission setting — for a session that can only answer questions,
+issue a read-only Personal Access Token in Firefly III, so the limit is enforced
+by Firefly rather than by a variable the same person can edit.
 
-If you want a session that can only answer questions, set
-`FIREFLY_PERMISSIONS=read`. Every create, update and delete is then refused and
-hidden from the tool catalogue, so the assistant does not attempt one.
-
-```json
-"env": {
-  "FIREFLY_API_URL": "your-firefly.example",
-  "FIREFLY_API_TOKEN": "your-token",
-  "FIREFLY_PERMISSIONS": "read"
-}
-```
+Over HTTP with OAuth, access is decided per connection: `firefly:read`,
+`firefly:write` and `firefly:destructive` are approved on the consent screen,
+and a surface that was not granted is hidden as well as refused.
 
 ## What the assistant sees
 
@@ -92,8 +87,8 @@ reading a balance from deleting a transaction:
 
 Each carries MCP tool annotations (`readOnlyHint`, `destructiveHint`,
 `idempotentHint`), and the split is enforced, not merely advertised: a delete
-reached through `firefly_query` is refused. With `FIREFLY_PERMISSIONS=read` the
-two writing tools are not registered at all.
+reached through `firefly_query` is refused. A connection granted only
+`firefly:read` never sees the two writing tools at all.
 
 Most MCP clients degrade past roughly 40 tools, which is why the surface is
 three.
@@ -108,7 +103,6 @@ attributes you name — on a large transaction list that is roughly a 90% cut.
 | --- | --- | --- |
 | `FIREFLY_API_URL` | — | Required. A bare domain, or a full base URL including `/api/v1`. |
 | `FIREFLY_API_TOKEN` | — | Required. Personal Access Token. |
-| `FIREFLY_PERMISSIONS` | unset (everything) | How far the assistant may go: `read`, `safe`, `full`, or a level per entity. `entity:none` hides one. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Only for a local instance with a self-signed certificate. |
 
 ## Remote HTTP mode

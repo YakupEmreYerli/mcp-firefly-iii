@@ -204,10 +204,10 @@ export class BuiltinAuth {
 
     // A client that names no scope is taken to want everything the operator
     // allows; the consent screen is where that gets narrowed, by a person.
-    const requested = (params.get("scope") ?? scopesWithin(this.config.permissions).join(" "))
+    const requested = (params.get("scope") ?? scopesWithin().join(" "))
       .split(" ")
       .filter((scope) => ALL_SCOPES.includes(scope as typeof SCOPES.read));
-    const scopes = grantedScopes(requested, this.config.permissions);
+    const scopes = grantedScopes(requested);
     const formToken = await this.formToken({
       clientId: client.client_id,
       redirectUri,

@@ -1,8 +1,6 @@
 import { createRemoteJWKSet, customFetch, decodeJwt, jwtVerify, type JWTPayload } from "jose";
 import type { KeyObject } from "node:crypto";
-import { EntityType } from "./types.js";
 import type { Access } from "./types.js";
-import type { PermissionLevel, PermissionPolicy } from "./config.js";
 
 /** The scopes this resource server understands.
  *
@@ -44,68 +42,20 @@ export function allowedBy(scopes: Iterable<string>): Set<Access> {
   return allowed;
 }
 
-/** Turn granted scopes into the permission policy the registry already gates on.
+
+/** Every scope worth asking for.
  *
- * The HTTP layer refuses an under-scoped call before dispatch, which is what
- * the specification asks for and what gives the client something to act on.
- * This is the second gate behind it: enforcement then does not depend on that
- * parsing being right, and it runs through the path that is already tested.
+ * What `scopes_supported` advertises and what a client that asks for nothing
+ * is taken to want. The narrowing happens on the consent screen, by a person.
  */
-export function policyForScopes(scopes: Iterable<string>, ceiling?: PermissionPolicy): PermissionPolicy {
-  const allowed = allowedBy(scopes);
-  const fallback: PermissionLevel = allowed.has("destructive")
-    ? "destructive"
-    : allowed.has("write")
-      ? "write"
-      : allowed.has("read")
-        ? "read"
-        : "none";
-  if (!ceiling) return { fallback, byEntity: new Map<EntityType, PermissionLevel>() };
-  const rank: Record<PermissionLevel, number> = { none: 0, read: 1, write: 2, destructive: 3 };
-  const minimum = (left: PermissionLevel, right: PermissionLevel): PermissionLevel => rank[left] < rank[right] ? left : right;
-  const byEntity = new Map<EntityType, PermissionLevel>();
-  for (const entity of Object.values(EntityType)) {
-    const value = minimum(ceiling.byEntity.get(entity) ?? ceiling.fallback, fallback);
-    if (value !== fallback) byEntity.set(entity, value);
-  }
-  return { fallback: minimum(fallback, ceiling.fallback), byEntity };
+export function scopesWithin(): string[] {
+  return [...ALL_SCOPE_VALUES];
 }
 
-const LEVEL_RANK: Record<PermissionLevel, number> = { none: 0, read: 1, write: 2, destructive: 3 };
-const SCOPE_RANK: Record<string, number> = { [SCOPES.read]: 1, [SCOPES.write]: 2, [SCOPES.destructive]: 3 };
-
-/** The highest level the operator's policy allows anywhere.
- *
- * Per-entity clauses count: `transaction:write;*:read` has to be able to hand
- * out `firefly:write`, or the one entity the operator opened up stays shut.
- * Granting the scope does not widen anything on its own — enforcement runs the
- * policy again per call, with the token's scopes intersected into it.
- */
-function ceilingLevel(policy: PermissionPolicy): PermissionLevel {
-  let level = policy.fallback;
-  for (const value of policy.byEntity.values()) {
-    if (LEVEL_RANK[value] > LEVEL_RANK[level]) level = value;
-  }
-  return level;
-}
-
-/** The scopes worth asking for under the operator's ceiling.
- *
- * What a client sees in `scopes_supported`, and what it is assumed to want
- * when it asks for nothing. Advertising only the minimum instead reads to a
- * client as a read-only server: it requests `firefly:read`, and the consent
- * screen can then offer nothing else, since an authorization server must not
- * grant a scope that was never requested.
- */
-export function scopesWithin(policy: PermissionPolicy): string[] {
-  const ceiling = LEVEL_RANK[ceilingLevel(policy)];
-  return ALL_SCOPE_VALUES.filter((scope) => SCOPE_RANK[scope]! <= ceiling);
-}
-
-/** Intersect requested scopes with the operator's permission ceiling. */
-export function grantedScopes(scopes: Iterable<string>, ceiling: PermissionPolicy): string[] {
-  const allowed = new Set(scopesWithin(ceiling));
-  return [...new Set(scopes)].filter((scope) => allowed.has(scope));
+/** Keep only scopes this server defines; anything else is dropped in silence. */
+export function grantedScopes(scopes: Iterable<string>): string[] {
+  const known = new Set<string>(ALL_SCOPE_VALUES);
+  return [...new Set(scopes)].filter((scope) => known.has(scope));
 }
 
 /** Which surface a tool name belongs to, in the default meta-tool mode. */
@@ -181,21 +131,15 @@ export type ResourceMetadata = {
 
 /** RFC 9728 Protected Resource Metadata.
  *
- * `scopes_supported` is what the operator's FIREFLY_PERMISSIONS ceiling allows,
- * not the minimum: a client reads this to decide what to ask for, and a client
- * that asks for `firefly:read` alone can never be consented up to writing,
- * however the consent screen is answered.
+ * `scopes_supported` lists all three, not the minimum: a client reads this to
+ * decide what to ask for, and one that asks for `firefly:read` alone can never
+ * be consented up to writing, however the consent screen is answered.
  */
-export function resourceMetadata(
-  resource: string,
-  authorizationServers: string[],
-  ceiling?: PermissionPolicy,
-): ResourceMetadata {
-  const scopes = ceiling ? scopesWithin(ceiling) : [MINIMUM_SCOPE];
+export function resourceMetadata(resource: string, authorizationServers: string[]): ResourceMetadata {
   return {
     resource,
     authorization_servers: authorizationServers,
-    scopes_supported: scopes.length > 0 ? scopes : [MINIMUM_SCOPE],
+    scopes_supported: scopesWithin(),
     bearer_methods_supported: ["header"],
   };
 }

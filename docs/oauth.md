@@ -30,8 +30,10 @@ The three scopes map onto the three execution surfaces:
 | `firefly:write` | + `firefly_mutate` |
 | `firefly:destructive` | + `firefly_destructive` |
 
-Broader implies narrower, so one scope is enough. Whatever is approved on the
-consent screen is still capped by the operator's `FIREFLY_PERMISSIONS`.
+Broader implies narrower, so one scope is enough. What the consent screen
+approves is the whole of what that connection can do — there is no server-wide
+setting above it, and a surface it was not granted is hidden as well as
+refused.
 
 ## ChatGPT
 

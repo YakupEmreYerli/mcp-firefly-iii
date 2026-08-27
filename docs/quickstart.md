@@ -101,12 +101,12 @@ Everything below is the same thing done by hand.
 
 The `/api/v1` suffix on the URL is required.
 
-!!! tip "Read-only mode"
+!!! tip "A session that can only read"
 
-    Writes are on by default. If you want a session that can only answer
-    questions, add `"FIREFLY_PERMISSIONS": "read"` — write operations are then
-    hidden from the catalogue as well as refused, so the assistant does not
-    attempt them.
+    There is no read-only setting on this server. Issue a read-only Personal
+    Access Token in Firefly III and use that instead — the guarantee then comes
+    from Firefly itself rather than from a variable in the same file the
+    assistant's operator can edit.
 
 Other optional variables are covered in [Configuration](configuration.md).
 
@@ -200,8 +200,9 @@ Never turn this on for a publicly reachable instance.
 
 ### ❌ Writes are not working
 
-`FIREFLY_PERMISSIONS=read` is probably on. Write operations then never appear in
-the tool list, and are refused explicitly if called.
+Check the Firefly III token first: a Personal Access Token issued without write
+access refuses writes at Firefly's own end. Over HTTP, a connection that was
+granted only `firefly:read` sees no writing tools at all.
 
 ## What next?
 

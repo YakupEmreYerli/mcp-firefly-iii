@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Registry, defineOperation, type EntityModule } from "../src/registry.js";
 import { createServer, executeDescription } from "../src/server.js";
-import { EntityType } from "../src/types.js";
+import { EntityType, type Access } from "../src/types.js";
 import type { Config } from "../src/config.js";
 import type { FireflyClient } from "../src/firefly.js";
 
@@ -22,7 +22,6 @@ const client: FireflyClient = {
 const config: Config = {
   apiUrl: "https://firefly.example/api/v1",
   apiToken: "token",
-    permissions: { fallback: "destructive", byEntity: new Map() },
     structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   logLevel: "INFO",
 };
@@ -40,19 +39,27 @@ const module: EntityModule = {
   },
 };
 
-function makeRegistry(overrides: Partial<Config> = {}, register: EntityModule = module): Registry {
-  const registry = new Registry({ ...config, ...overrides }, client);
+function makeRegistry(
+  overrides: Partial<Config> = {},
+  register: EntityModule = module,
+  granted?: ReadonlySet<Access>,
+): Registry {
+  const registry = new Registry({ ...config, ...overrides }, client, granted);
   registry.register(register);
   return registry;
 }
 
 /** Ask the running server for its tool list over the SDK's own client, rather
  * than reaching into McpServer's private tool map. */
-async function registeredToolNames(overrides: Partial<Config> = {}, register?: EntityModule): Promise<string[]> {
-  // The registry gets the overrides too: which operations are visible is a
-  // registry decision, and a server built over a registry that never saw the
-  // policy would answer about a different configuration than the one asked for.
-  const server = createServer(makeRegistry(overrides, register), { ...config, ...overrides });
+async function registeredToolNames(
+  overrides: Partial<Config> = {},
+  register?: EntityModule,
+  granted?: ReadonlySet<Access>,
+): Promise<string[]> {
+  // The registry gets the grant too: which operations are visible is a registry
+  // decision, and a server built over a registry that never saw the connection's
+  // scopes would answer about a different connection than the one asked for.
+  const server = createServer(makeRegistry(overrides, register, granted), { ...config, ...overrides });
   const mcpClient = new Client({ name: "test", version: "0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
@@ -339,8 +346,8 @@ describe("the meta-tools", () => {
     ]);
   });
 
-  it("does not offer a writing surface that could only refuse, in read-only mode", async () => {
-    expect(await registeredToolNames({ permissions: { fallback: "read", byEntity: new Map() } }, accessModule)).toEqual([
+  it("does not offer a writing surface that could only refuse, to a read-scoped connection", async () => {
+    expect(await registeredToolNames({}, accessModule, new Set<Access>(["read"]))).toEqual([
       "firefly_get_schema",
       "firefly_list_operations",
       "firefly_query",
@@ -349,8 +356,8 @@ describe("the meta-tools", () => {
 });
 
 describe("access surfaces are enforced, not merely advertised", () => {
-  function accessRegistry(overrides: Partial<Config> = {}): Registry {
-    const registry = new Registry({ ...config, ...overrides }, client);
+  function accessRegistry(overrides: Partial<Config> = {}, granted?: ReadonlySet<Access>): Registry {
+    const registry = new Registry({ ...config, ...overrides }, client, granted);
     registry.register(accessModule);
     return registry;
   }
@@ -385,13 +392,13 @@ describe("access surfaces are enforced, not merely advertised", () => {
     await expect(accessRegistry().execute("transaction", "delete", {})).resolves.toBeDefined();
   });
 
-  it("reports the permission refusal rather than the wrong surface, when both apply", async () => {
+  it("reports the missing scope rather than the wrong surface, when both apply", async () => {
     // The more useful complaint is the one the caller can act on: no surface
     // would have worked here, so naming the surface would send them to retry
     // through a tool that refuses just the same.
     await expect(
-      accessRegistry({ permissions: { fallback: "read", byEntity: new Map() } }).execute("transaction", "delete", {}, undefined, ["destructive"]),
-    ).rejects.toThrow(/FIREFLY_PERMISSIONS/);
+      accessRegistry({}, new Set<Access>(["read"])).execute("transaction", "delete", {}, undefined, ["destructive"]),
+    ).rejects.toThrow(/firefly:destructive/);
   });
 });
 
@@ -431,24 +438,18 @@ describe("each surface carries only its own catalogue", () => {
   });
 });
 
-describe("surfaces a permission policy has emptied", () => {
-  const readOnlyPolicy = { fallback: "read" as const, byEntity: new Map() };
-
+describe("surfaces a connection's scopes have emptied", () => {
   it("does not register a write surface whose catalogue is empty", async () => {
     // Registering it would advertise "Available entities and their operations:"
-    // followed by nothing, and every call would fail with PermissionDeniedError
-    // — the dead end docs/configuration.md says is avoided. FIREFLY_READ_ONLY
-    // was the only path that skipped them; FIREFLY_PERMISSIONS=read was not.
-    const names = await registeredToolNames({ permissions: readOnlyPolicy });
+    // followed by nothing, and every call would fail with PermissionDeniedError.
+    const names = await registeredToolNames({}, undefined, new Set<Access>(["read"]));
     expect(names).toContain("firefly_query");
     expect(names).not.toContain("firefly_mutate");
     expect(names).not.toContain("firefly_destructive");
   });
 
-  it("still registers a surface the policy left something on", async () => {
-    const names = await registeredToolNames({
-      permissions: { fallback: "write" as const, byEntity: new Map() },
-    });
+  it("registers every surface when nothing narrowed the connection", async () => {
+    const names = await registeredToolNames();
     expect(names).toContain("firefly_query");
   });
 });

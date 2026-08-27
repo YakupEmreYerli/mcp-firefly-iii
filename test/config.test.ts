@@ -29,19 +29,32 @@ describe("loadConfig", () => {
   );
 });
 
-describe("settings that FIREFLY_PERMISSIONS replaced", () => {
-  // Both were subsets of FIREFLY_PERMISSIONS. Removing them is safe only if a
-  // deployment that still sets them cannot start with a *different* meaning
+describe("retired permission settings", () => {
+  // All three narrowed what the server would do. Removing them is safe only if
+  // a deployment that still sets one cannot start with a *different* meaning
   // than it had — a server that silently becomes writable is exactly the class
   // of failure this project is built against.
 
-  it("refuses to start when FIREFLY_READ_ONLY would have restricted writes", () => {
-    expect(() => loadConfig({ FIREFLY_READ_ONLY: "true" })).toThrow(/FIREFLY_PERMISSIONS=read/);
+  it("refuses to start when FIREFLY_PERMISSIONS would have narrowed access", () => {
+    expect(() => loadConfig({ FIREFLY_PERMISSIONS: "read" })).toThrow(/no longer supported/);
+    expect(() => loadConfig({ FIREFLY_PERMISSIONS: "transaction:safe;*:read" })).toThrow(/no longer supported/);
   });
 
-  it("names the replacement for every truthy spelling the old setting took", () => {
+  it("starts when FIREFLY_PERMISSIONS restricted nothing", () => {
+    // `full` and an empty value both meant "everything", which is now the only
+    // thing the server does. Stopping for them would be friction with nothing
+    // gained, and .env.example shipped the empty one.
+    expect(() => loadConfig({ FIREFLY_PERMISSIONS: "full" })).not.toThrow();
+    expect(() => loadConfig({ FIREFLY_PERMISSIONS: "" })).not.toThrow();
+  });
+
+  it("refuses to start when FIREFLY_READ_ONLY would have restricted writes", () => {
+    expect(() => loadConfig({ FIREFLY_READ_ONLY: "true" })).toThrow(/no longer supported/);
+  });
+
+  it("refuses every truthy spelling the old setting took", () => {
     for (const value of ["true", "1", "yes", "on", "TRUE"]) {
-      expect(() => loadConfig({ FIREFLY_READ_ONLY: value }), value).toThrow(/FIREFLY_PERMISSIONS=read/);
+      expect(() => loadConfig({ FIREFLY_READ_ONLY: value }), value).toThrow(/no longer supported/);
     }
   });
 
@@ -55,7 +68,7 @@ describe("settings that FIREFLY_PERMISSIONS replaced", () => {
 
   it("refuses to start when FIREFLY_ENABLED_ENTITIES would have hidden entities", () => {
     expect(() => loadConfig({ FIREFLY_ENABLED_ENTITIES: "account,transaction" })).toThrow(
-      /FIREFLY_PERMISSIONS/,
+      /no longer supported/,
     );
   });
 

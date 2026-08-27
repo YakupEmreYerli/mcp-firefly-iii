@@ -20,7 +20,7 @@ let server: Server | undefined;
 let stateDir: string;
 
 function config(resourceUrl: string): Config {
-  return { apiUrl: "https://firefly.example/api/v1", apiToken: "x", permissions: { fallback: "destructive", byEntity: new Map() }, disableSslVerify: false, logLevel: "INFO", httpHost: "127.0.0.1", httpPort: 0, httpToken: "", resourceUrl, authorizationServers: [], authPassword: "correct-password-long", authStateDir: stateDir, structuredOutput: false };
+  return { apiUrl: "https://firefly.example/api/v1", apiToken: "x", disableSslVerify: false, logLevel: "INFO", httpHost: "127.0.0.1", httpPort: 0, httpToken: "", resourceUrl, authorizationServers: [], authPassword: "correct-password-long", authStateDir: stateDir, structuredOutput: false };
 }
 
 async function start(overrides: Partial<Config> = {}): Promise<{ base: string; resource: string }> {
@@ -96,7 +96,7 @@ describe("embedded authorization server", () => {
   });
 
   it("includes iss on an authorization error after validating the redirect", async () => {
-    const { base, resource } = await start({ permissions: { fallback: "read", byEntity: new Map() } });
+    const { base, resource } = await start({ });
     const registration = await (await fetch(`${base}/oauth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ redirect_uris: [redirectUri] }) })).json() as { client_id: string };
     const params = new URLSearchParams({ response_type: "code", client_id: registration.client_id, redirect_uri: redirectUri, code_challenge: challenge, code_challenge_method: "plain", resource, state: "state" });
     const response = await fetch(`${base}/oauth/authorize?${params}`, { redirect: "manual" }); const location = new URL(response.headers.get("location")!);
@@ -132,7 +132,7 @@ describe("embedded authorization server", () => {
   });
 
   it("publishes consistent metadata and protected-resource discovery", async () => {
-    const { base, resource } = await start({ permissions: { fallback: "read", byEntity: new Map() } });
+    const { base, resource } = await start({ });
     const metadata = await (await fetch(`${base}/.well-known/oauth-authorization-server`)).json() as { issuer: string };
     const protectedResource = await (await fetch(`${base}/.well-known/oauth-protected-resource`)).json() as { authorization_servers: string[] };
     expect(metadata.issuer).toBe(new URL(resource).origin); expect(protectedResource.authorization_servers).toEqual([metadata.issuer]);
@@ -177,10 +177,14 @@ describe("embedded authorization server", () => {
     expect(badResource.status).toBe(400);
   });
 
-  it("keeps the operator permission ceiling when a client requests broader scopes", async () => {
-    const { base, resource } = await start({ permissions: { fallback: "read", byEntity: new Map() } });
+  it("carries every scope a client asked for onto the consent screen", async () => {
+    // The person approving is the one who narrows now; a scope missing here
+    // could never be granted later, however the screen was answered.
+    const { base, resource } = await start({});
     const registration = await (await fetch(`${base}/oauth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ redirect_uris: [redirectUri] }) })).json() as { client_id: string };
     const params = new URLSearchParams({ response_type: "code", client_id: registration.client_id, redirect_uri: redirectUri, scope: "firefly:read firefly:write firefly:destructive", code_challenge: challenge, code_challenge_method: "S256", resource });
-    const html = await (await fetch(`${base}/oauth/authorize?${params}`)).text(); const form = /name="form_token" value="([^"]+)"/.exec(html)![1]!; expect(decodeJwt(form).scopes).toEqual(["firefly:read"]);
+    const html = await (await fetch(`${base}/oauth/authorize?${params}`)).text(); const form = /name="form_token" value="([^"]+)"/.exec(html)![1]!;
+
+    expect(decodeJwt(form).scopes).toEqual(["firefly:read", "firefly:write", "firefly:destructive"]);
   });
 });

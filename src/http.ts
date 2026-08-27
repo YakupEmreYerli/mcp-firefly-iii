@@ -16,7 +16,6 @@ import {
   allowedBy,
   challenge,
   grantsAnything,
-  policyForScopes,
   resourceMetadata,
   scopeFor,
   verifyToken,
@@ -124,13 +123,13 @@ export function createHttpServer(config: Config): Server {
 
   /** The registry a request runs against.
    *
-   * A static token carries no scopes and keeps the configured permissions. An
+   * A static token carries no scopes and keeps every surface. An
    * OAuth token is narrowed to what it was actually granted, so the gate the
    * rest of the server already goes through does the enforcing.
    */
   function registryFor(scopes: Set<string> | undefined): Registry {
     if (scopes === undefined) return registry;
-    const scoped = new Registry({ ...config, permissions: policyForScopes(scopes, config.permissions) }, client);
+    const scoped = new Registry(config, client, allowedBy(scopes));
     for (const module of ENTITY_MODULES) scoped.register(module);
     return scoped;
   }
@@ -177,7 +176,7 @@ export function createHttpServer(config: Config): Server {
     // because it does not yet have a token, and RFC 9728 carries nothing
     // secret — only where to go and ask.
     if (metadataPaths.has(path) && req.method === "GET") {
-      writeJson(res, 200, resourceMetadata(config.resourceUrl, issuers, config.permissions));
+      writeJson(res, 200, resourceMetadata(config.resourceUrl, issuers));
       return;
     }
     if (!MCP_PATHS.has(path) || !MCP_METHODS.has(req.method ?? "")) {

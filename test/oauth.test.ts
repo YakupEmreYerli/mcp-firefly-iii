@@ -6,7 +6,6 @@ import {
   allowedBy,
   challenge,
   metadataUrlFor,
-  policyForScopes,
   resetOauthCaches,
   resourceMetadata,
   accessForRequest,
@@ -42,20 +41,19 @@ describe("scope hierarchy", () => {
   });
 });
 
-describe("scopes become the permission policy the registry already gates on", () => {
-  it("maps write to a policy that permits writes but not deletes", () => {
-    const policy = policyForScopes([SCOPES.write]);
-    expect(policy.fallback).toBe("write");
+describe("scopes become the access set the registry gates on", () => {
+  it("maps write to writes and reads, but not deletes", () => {
+    expect(allowedBy([SCOPES.write])).toEqual(new Set(["read", "write"]));
   });
 
-  it("maps destructive to the widest policy", () => {
-    expect(policyForScopes([SCOPES.destructive]).fallback).toBe("destructive");
+  it("maps destructive to every access level", () => {
+    expect(allowedBy([SCOPES.destructive])).toEqual(new Set(["read", "write", "destructive"]));
   });
 
   it("grants nothing for a token carrying no scope of ours", () => {
     // Failing open here would make every unscoped token a full-access token.
-    expect(policyForScopes([]).fallback).toBe("none");
-    expect(policyForScopes(["openid"]).fallback).toBe("none");
+    expect(allowedBy([])).toEqual(new Set());
+    expect(allowedBy(["openid"])).toEqual(new Set());
   });
 });
 
@@ -125,8 +123,14 @@ describe("protected resource metadata", () => {
     expect(resourceMetadata(RESOURCE, [ISSUER]).authorization_servers).toEqual([ISSUER]);
   });
 
-  it("advertises the minimum rather than everything, so a client asks small first", () => {
-    expect(resourceMetadata(RESOURCE, [ISSUER]).scopes_supported).toEqual([MINIMUM_SCOPE]);
+  it("advertises all three, because a client can only be granted what it asked for", () => {
+    // Advertising the minimum made every OAuth client request firefly:read and
+    // nothing else, and the consent screen then had nothing else to offer.
+    expect(resourceMetadata(RESOURCE, [ISSUER]).scopes_supported).toEqual([
+      "firefly:read",
+      "firefly:write",
+      "firefly:destructive",
+    ]);
   });
 
   it("has no path to insert when the resource is an origin", () => {

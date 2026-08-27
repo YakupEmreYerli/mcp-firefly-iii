@@ -34,7 +34,7 @@ export type ClientTarget = {
   wrapperKey: "mcpServers" | "servers";
 };
 
-export type Answers = { apiUrl: string; apiToken: string; readOnly: boolean };
+export type Answers = { apiUrl: string; apiToken: string };
 
 /** Normalise what a person types into the base URL Firefly actually serves.
  *
@@ -127,10 +127,6 @@ export function serverEntry(answers: Answers): unknown {
     FIREFLY_API_URL: answers.apiUrl,
     FIREFLY_API_TOKEN: answers.apiToken,
   };
-  // `read` rather than a separate read-only switch: one setting expresses the
-  // whole range, and the retired one would now stop the server this wizard is
-  // configuring from starting at all.
-  if (answers.readOnly) env.FIREFLY_PERMISSIONS = "read";
   return { command: "npx", args: ["-y", PACKAGE_NAME], env };
 }
 
@@ -244,7 +240,6 @@ async function verifyConnection(apiUrl: string, apiToken: string): Promise<strin
   const config: Config = {
     apiUrl,
     apiToken,
-    permissions: { fallback: "read", byEntity: new Map() },
     structuredOutput: false,
     resourceUrl: "",
     authorizationServers: [],
@@ -294,7 +289,6 @@ function addToClaudeCode(answers: Answers): boolean {
     "--env",
     `FIREFLY_API_TOKEN=${answers.apiToken}`,
   ];
-  if (answers.readOnly) args.push("--env", "FIREFLY_PERMISSIONS=read");
   args.push("--", "npx", "-y", PACKAGE_NAME);
   return spawnSync("claude", args, { stdio: "inherit" }).status === 0;
 }
@@ -388,15 +382,10 @@ export async function runSetup(): Promise<void> {
       if (version !== undefined) console.log(`connected to Firefly III ${version}.\n`);
     }
 
-    const writes = await ask(rl, "Let the assistant create and change records? [Y/n]: ");
-    const readOnly = /^n(o)?$/i.test(writes.trim());
-    console.log(
-      readOnly
-        ? "  Read-only. Write operations are refused and hidden from the assistant.\n"
-        : "  Writes enabled. Recording a purchase by asking for it will work.\n",
-    );
-
-    const answers: Answers = { apiUrl, apiToken, readOnly };
+    // No read-only question any more: a stdio client holds the Firefly token
+    // itself, so the narrowing it would write was never a boundary the person
+    // at this prompt could not undo. Issue a read-only Firefly token instead.
+    const answers: Answers = { apiUrl, apiToken };
     const entry = serverEntry(answers);
     let configured = 0;
 

@@ -22,7 +22,7 @@ function clientWithCalls(): { client: FireflyClient; calls: Query[] } {
 
 function registry(client: FireflyClient): Registry {
   const config: Config = {
-    apiUrl: "https://firefly.example/api/v1", apiToken: "", permissions: { fallback: "destructive", byEntity: new Map() },     structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    apiUrl: "https://firefly.example/api/v1", apiToken: "",     structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const result = new Registry(config, client);
   result.register(accountsModule);

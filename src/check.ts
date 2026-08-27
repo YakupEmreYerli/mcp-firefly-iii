@@ -34,10 +34,6 @@ async function main(): Promise<void> {
 
   const operations = registry.listOperations();
   console.log(`${registry.entityModules().length} entities, ${operations.length} operations`);
-  const level = config.permissions.fallback;
-  if (level !== "destructive" || config.permissions.byEntity.size > 0) {
-    console.log(`FIREFLY_PERMISSIONS is narrowing access: operations beyond '${level}' are hidden`);
-  }
 }
 
 main().catch((caught: unknown) => {

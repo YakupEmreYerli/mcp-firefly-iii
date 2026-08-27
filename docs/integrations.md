@@ -116,7 +116,6 @@ Run `npm install && npm run build` in the checkout first, so `dist/` exists.
 |----------|---------|---------|
 | `FIREFLY_API_URL` | Firefly III API address | `https://firefly.example.com/api/v1` |
 | `FIREFLY_API_TOKEN` | Personal Access Token | `your-token` |
-| `FIREFLY_PERMISSIONS` | How far the assistant may go | unset (everything), `read`, `safe`, or a per-entity list |
 
 For the full list see [Configuration](configuration.md).
 
@@ -149,7 +148,7 @@ make check
 | **No tools appear** | Is the JSON valid, and did you restart the client? |
 | **Connection error** | Verify the API URL and token with `curl`, or run `make check` |
 | **SSL error** | For local development only: `"FIREFLY_DISABLE_SSL_VERIFY": "true"` |
-| **Writes not working** | `FIREFLY_PERMISSIONS` may be narrowing access |
+| **Writes not working** | The Firefly token may be read-only, or the connection lacks `firefly:write` |
 | **Changes have no effect** | The client starts the server once; restart it |
 
 That last row is the most common one: a change to your configuration or to the
@@ -169,8 +168,8 @@ short version is:
    endpoint.
 3. Choose **OAuth** as the authentication method. The client registers itself
    through DCR and runs PKCE on its own; no token is typed in by hand.
-4. Complete the password and consent screens in the browser. The operator's
-   `FIREFLY_PERMISSIONS` ceiling caps whatever scopes are approved there.
+4. Complete the password and consent screens in the browser. What you approve
+   there is what that connection can do, and nothing wider.
 
 `MCP_RESOURCE_URL` must be the externally visible origin exactly —
 `https://mcp.example.com`, with no path. The connection URL may end in `/mcp`;

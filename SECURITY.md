@@ -2,8 +2,8 @@
 
 ## What this software touches
 
-This server holds a Firefly III Personal Access Token and can read — and unless
-`FIREFLY_PERMISSIONS=read` is set, modify — the full financial history of whoever
+This server holds a Firefly III Personal Access Token and can read — and, unless
+that token is itself read-only, modify — the full financial history of whoever
 configured it. Treat a vulnerability here as you would one in a banking client.
 
 ## Reporting a vulnerability
@@ -62,10 +62,11 @@ review, that step is where you have chosen to remove the check.
 - **`FIREFLY_DISABLE_SSL_VERIFY=true` disables certificate verification
   entirely.** It exists for local instances with self-signed certificates. On
   anything reachable over a network it makes the connection interceptable.
-- **Prefer `FIREFLY_PERMISSIONS=read`** for any session that only needs to answer
-  questions. Write operations are then refused before the request reaches
-  Firefly III, and hidden from the tool catalogue so the model does not attempt
-  them.
+- **Prefer a read-only Firefly token** for any session that only needs to answer
+  questions. This server has no permission setting of its own to fall back on:
+  the token is the boundary, and Firefly III enforces it. Over OAuth, withhold
+  `firefly:write` on the consent screen — the writing surfaces are then hidden
+  as well as refused, so the model does not attempt them.
 - **Your MCP client's configuration file holds your token.** Those files are
   usually not git-ignored and do end up in backups.
 

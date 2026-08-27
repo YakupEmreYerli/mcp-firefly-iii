@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { permits, type Config } from "./config.js";
+import type { Config } from "./config.js";
 import { duplicateWarnings, previewClient, type PlannedWrite } from "./preview.js";
 import type { FireflyClient } from "./firefly.js";
 import { EntityType, type Access } from "./types.js";
@@ -96,9 +96,14 @@ function toEntityType(value: string): EntityType {
 export class Registry {
   private readonly modules = new Map<EntityType, EntityModule>();
 
+  /** `granted` is the access a connection holds, or undefined for all of it.
+   *
+   * Undefined is the stdio case and the static-token case: whoever holds the
+   * token already made that decision. A set arrives only from OAuth scopes. */
   constructor(
     private readonly config: Config,
     private readonly client: FireflyClient,
+    private readonly granted?: ReadonlySet<Access>,
   ) {}
 
   register(module: EntityModule): void {
@@ -122,20 +127,14 @@ export class Registry {
 
   /** Why this operation is unavailable, or undefined if it is available.
    *
-   * One policy, one answer. FIREFLY_READ_ONLY used to be checked separately
-   * here, which meant two settings could each refuse a call and the message had
-   * to guess which one the operator had actually written. The permission policy
-   * expresses both — read-only is `FIREFLY_PERMISSIONS=read`.
+   * Only a connection's own grant can withhold an operation now. There is no
+   * server-wide policy to consult: a stdio client has every surface, and an
+   * OAuth one has what the consent screen approved.
    */
   private blockedReason(entity: EntityType, operation: Operation): string | undefined {
-    if (!permits(this.config.permissions, entity, operation.access)) {
-      // Names the setting and the value, because "not granted" alone leaves the
-      // operator guessing at a syntax they may never have written.
-      const grant = operation.access === "destructive" ? "full" : operation.access;
-      return (
-        `needs ${operation.access} access on '${entity}', which FIREFLY_PERMISSIONS does not grant. ` +
-        `Set FIREFLY_PERMISSIONS=${grant} for every entity, or ${entity}:${grant} for this one`
-      );
+    if (this.granted && !this.granted.has(operation.access)) {
+      const scope = operation.access === "destructive" ? "firefly:destructive" : `firefly:${operation.access}`;
+      return `needs ${operation.access} access on '${entity}', which this connection's ${scope} scope was not granted`;
     }
     return undefined;
   }

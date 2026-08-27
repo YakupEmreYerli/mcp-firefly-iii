@@ -61,22 +61,18 @@ Token** yolundan alırsınız. URL için alan adınız yeterli — `https://` ve
 `/api/v1` tamamlanır. Örneğiniz bir alt yolda, özel bir portta ya da düz
 http üzerindeyse tam URL'i verin.
 
-## Salt-okunur mod
+## Asistan nereye kadar gidebilir
 
-Yazma varsayılan olarak açık: asistandan bir harcamayı kaydetmesini veya bir
-işlemi kategorilendirmesini isteyebilirsiniz, yapar.
+stdio üzerinde, Firefly token'ının izin verdiği kadar: asistandan bir harcamayı
+kaydetmesini veya bir işlemi kategorilendirmesini isteyebilirsiniz, yapar.
+Sunucunun kendi izin ayarı yok — yalnızca soru cevaplayan bir oturum isterseniz
+Firefly III'te salt-okunur bir Personal Access Token üretin. Sınırı o zaman
+asistanın operatörünün aynı dosyadan değiştirebileceği bir değişken değil,
+Firefly'ın kendisi uygular.
 
-Yalnızca soru cevaplayan bir oturum isterseniz `FIREFLY_PERMISSIONS=read` verin.
-O zaman her oluşturma, güncelleme ve silme reddedilir ve araç kataloğundan
-gizlenir, böylece asistan denemez bile.
-
-```json
-"env": {
-  "FIREFLY_API_URL": "kendi-firefly-adresiniz",
-  "FIREFLY_API_TOKEN": "token-degeriniz",
-  "FIREFLY_PERMISSIONS": "read"
-}
-```
+HTTP üzerinde OAuth ile erişim bağlantı başına belirlenir: `firefly:read`,
+`firefly:write` ve `firefly:destructive` onay ekranında onaylanır, verilmeyen
+yüzey hem reddedilir hem de gizlenir.
 
 ## Asistanın gördüğü yüzey
 
@@ -93,8 +89,8 @@ bakiye okumakla işlem silmeyi ayırt edebiliyor:
 
 Her birinde MCP tool annotation'ları var (`readOnlyHint`, `destructiveHint`,
 `idempotentHint`) ve ayrım yalnızca ilan edilmiyor, **uygulanıyor**:
-`firefly_query` üzerinden çağrılan bir silme reddedilir. `FIREFLY_PERMISSIONS=read`
-iken yazan iki araç hiç kaydedilmez.
+`firefly_query` üzerinden çağrılan bir silme reddedilir. Yalnızca `firefly:read`
+verilmiş bir bağlantı, yazan iki aracı hiç görmez.
 
 Çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için yüzey üç araçta tutuldu.
 
@@ -108,7 +104,6 @@ listesi alır — büyük bir işlem listesinde bu yaklaşık %90 küçülme dem
 | --- | --- | --- |
 | `FIREFLY_API_URL` | — | Zorunlu. Yalnızca alan adı, ya da `/api/v1` dahil tam URL. |
 | `FIREFLY_API_TOKEN` | — | Zorunlu. Personal Access Token. |
-| `FIREFLY_PERMISSIONS` | boş (her şey) | Asistan nereye kadar gidebilir: `read`, `safe`, `full`, ya da varlık başına seviye. `varlık:none` onu tamamen gizler. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Yalnızca kendinden imzalı sertifikalı yerel örnek için. |
 
 ## Uzak HTTP modu

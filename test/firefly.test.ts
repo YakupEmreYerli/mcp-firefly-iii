@@ -6,8 +6,7 @@ import type { Config } from "../src/config.js";
 const config: Config = {
   apiUrl: "https://firefly.example/api/v1",
   apiToken: "token",
-    permissions: { fallback: "destructive", byEntity: new Map() },
-    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
+  structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   logLevel: "INFO",
 };
 

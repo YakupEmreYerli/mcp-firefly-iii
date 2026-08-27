@@ -9,15 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- `FIREFLY_PERMISSIONS`, and with it every server-wide permission setting. What
+  the assistant may do is now decided by the connection: a stdio client can do
+  whatever its Firefly token can — issue a read-only token if that is the limit
+  you want — and an OAuth client carries the scopes approved on the consent
+  screen, with a surface it was not granted hidden as well as refused. The
+  setting narrowed a token its own operator had issued at full scope, and could
+  be widened by editing the same file the token sits in, so it read as a
+  boundary without being one.
+
+  A deployment that still sets it to a **restricting** value refuses to start.
+  `full`, `all` and an empty value restricted nothing and are accepted in
+  silence.
+
 - `FIREFLY_READ_ONLY` and `FIREFLY_ENABLED_ENTITIES`. Both said something
-  `FIREFLY_PERMISSIONS` already says — read-only is `FIREFLY_PERMISSIONS=read`,
+  the permission policy already said — read-only is `FIREFLY_PERMISSIONS=read`,
   and hiding entities is `<entity>:none` — and two settings for one decision is
   how they drift apart. The read-only switch had its own branch in the registry,
   so a refusal had to guess which of the two settings the operator had actually
   written.
 
   A deployment that still sets either one to a **restricting** value now refuses
-  to start, and the message names the replacement. Ignoring them silently would
+  to start. Ignoring them silently would
   leave a server more permissive than its operator wrote, which is the failure
   this project is built against. A value that restricted nothing — `false`,
   `all`, empty — is ignored in silence, because `.env.example` shipped exactly
@@ -52,8 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scopes over the three execution surfaces: `firefly:read`, `firefly:write` and
   `firefly:destructive`, with broader implying narrower. A call beyond the
   token's reach is refused with 403 `insufficient_scope` before the tool runs,
-  naming the scope that would have worked, and the granted scopes also narrow
-  the permission policy so enforcement does not rest on that check alone.
+  naming the scope that would have worked, and the granted scopes are also what
+  the registry gates on, so enforcement does not rest on that check alone.
 - The scope check reads direct mode too, where a tool is named after its entity
   and operation rather than after a surface. The lookup comes from the registry,
   which is the one place the access level is declared.

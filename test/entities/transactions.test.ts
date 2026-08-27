@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Registry } from "../../src/registry.js";
 import { transactionOperations, transactionsModule } from "../../src/entities/transactions.js";
-import { EntityType } from "../../src/types.js";
+import { EntityType, type Access } from "../../src/types.js";
 import { FireflyApiError, ValidationError } from "../../src/errors.js";
 import type { Config } from "../../src/config.js";
 import type { FireflyClient, Query } from "../../src/firefly.js";
@@ -41,15 +41,14 @@ function spyClient(): { client: FireflyClient; calls: Record<string, Call[]> } {
   return { client, calls };
 }
 
-function makeRegistry(client: FireflyClient, readsOnly = false): Registry {
+function makeRegistry(client: FireflyClient, granted?: ReadonlySet<Access>): Registry {
   const config: Config = {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "token",
-    permissions: { fallback: readsOnly ? "read" : "destructive", byEntity: new Map() },
         structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
     logLevel: "INFO",
   };
-  const registry = new Registry(config, client);
+  const registry = new Registry(config, client, granted);
   registry.register(transactionsModule);
   return registry;
 }
@@ -310,9 +309,9 @@ describe("access tagging", () => {
     expect(destructive).toEqual(["bulk_categorize", "bulk_tag", "delete"]);
   });
 
-  it("hides all of them under a read-only policy", () => {
+  it("hides all of them from a connection granted only firefly:read", () => {
     const { client } = spyClient();
-    const names = makeRegistry(client, true)
+    const names = makeRegistry(client, new Set<Access>(["read"]))
       .listOperations()
       .map((op) => op.operation)
       .sort();
