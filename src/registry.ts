@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import type { Config } from "./config.js";
+import { permits, type Config } from "./config.js";
 import type { FireflyClient } from "./firefly.js";
 import { EntityType, type Access } from "./types.js";
 import {
   WrongAccessSurfaceError,
+  PermissionDeniedError,
   EntityNotAvailableError,
   OperationNotFoundError,
   ReadOnlyModeError,
@@ -116,15 +117,28 @@ export class Registry {
    */
   private visibleOperations(module: EntityModule): [string, Operation][] {
     return Object.entries(module.operations)
-      .filter(([, op]) => !this.isWriteBlocked(op))
+      .filter(([, op]) => this.blockedReason(module.entity, op) === undefined)
       .sort(([a], [b]) => a.localeCompare(b));
   }
 
-  private isWriteBlocked(operation: Operation): boolean {
+  /** Why this operation is unavailable, or undefined if it is available.
+   *
+   * Read-only mode is checked first and separately from the permission policy,
+   * even though it is the stricter of the two: an operator who set
+   * FIREFLY_READ_ONLY should be told that, not sent to look at a permissions
+   * string they may not have written.
+   */
+  private blockedReason(entity: EntityType, operation: Operation): string | undefined {
     // Blocks anything that is not a read, rather than naming what to block: a
     // new access level then arrives closed in read-only mode instead of
     // silently callable, which is the failure this field exists to prevent.
-    return this.config.readOnly && operation.access !== "read";
+    if (this.config.readOnly && operation.access !== "read") {
+      return "writes to Firefly III and the server is running with FIREFLY_READ_ONLY enabled";
+    }
+    if (!permits(this.config.permissions, entity, operation.access)) {
+      return `needs ${operation.access} access on '${entity}', which FIREFLY_PERMISSIONS does not grant`;
+    }
+    return undefined;
   }
 
   private lookup(entity: string, operation: string, allowed?: readonly Access[]): [EntityModule, Operation] {
@@ -135,10 +149,12 @@ export class Registry {
     const found = module.operations[operation];
     if (!found) throw new OperationNotFoundError(`Unknown operation: ${entity}.${operation}`);
 
-    if (this.isWriteBlocked(found)) {
-      throw new ReadOnlyModeError(
-        `'${entity}.${operation}' writes to Firefly III and the server is running with FIREFLY_READ_ONLY enabled.`,
-      );
+    const blocked = this.blockedReason(entityType, found);
+    if (blocked !== undefined) {
+      const message = `'${entity}.${operation}' ${blocked}.`;
+      throw blocked.includes("FIREFLY_READ_ONLY")
+        ? new ReadOnlyModeError(message)
+        : new PermissionDeniedError(message);
     }
     // The surfaces advertise different risk annotations, so the gate has to
     // hold them apart here. Checking in the tool handler instead would leave

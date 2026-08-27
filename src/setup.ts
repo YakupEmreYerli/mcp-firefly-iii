@@ -237,6 +237,7 @@ async function verifyConnection(apiUrl: string, apiToken: string): Promise<strin
     apiUrl,
     apiToken,
     readOnly: true,
+    permissions: { fallback: "read", byEntity: new Map() },
     directMode: false,
     enabledEntities: new Set(),
     disableSslVerify: false,

@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `FIREFLY_PERMISSIONS`, for the ground between "reads only" and "may do
+  anything". Either a preset (`read`, `safe`, `full`) or a per-entity list such
+  as `transaction:safe;account:read;rule:none;*:read`. `safe` is the level that
+  had no name before: reads, creates and updates, but nothing that cannot be
+  undone. Whichever of this and `FIREFLY_READ_ONLY` is stricter wins, and a
+  refusal names the setting the operator actually wrote. An unparseable clause
+  is dropped rather than widened, so a typo fails closed.
 - A `destructive` access level, separating what cannot be undone — deletes, and
   the two bulk operations that rewrite a field across many records at once —
   from an ordinary write. Read-only mode is unchanged, but a host can now raise

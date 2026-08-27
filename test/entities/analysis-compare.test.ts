@@ -55,6 +55,7 @@ function makeRegistry(client: FireflyClient): Registry {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "token",
     readOnly: false,
+    permissions: { fallback: "destructive", byEntity: new Map() },
     directMode: false,
     enabledEntities: new Set(Object.values(EntityType)),
     disableSslVerify: false,

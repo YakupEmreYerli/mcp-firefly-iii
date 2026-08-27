@@ -85,6 +85,35 @@ as a read-only error rather than a generic failure — so the caller can tell
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `FIREFLY_DIRECT_MODE` | `false` | How operations are presented as tools |
+| `FIREFLY_PERMISSIONS` | unset (full) | Finer access control than the read-only switch |
+
+### `FIREFLY_PERMISSIONS`
+
+Either a preset:
+
+| Value | Allows |
+|-------|--------|
+| `read` | Reads only — the same reach as `FIREFLY_READ_ONLY=true` |
+| `safe` | Reads, creates and updates; nothing that cannot be undone |
+| `full` | Everything. This is the default when the variable is unset |
+
+or a per-entity list, where `*` sets the fallback for entities it does not name:
+
+```
+FIREFLY_PERMISSIONS=transaction:safe;account:read;rule:none;*:read
+```
+
+The levels are `none`, `read`, `write` and `destructive`; the preset names are
+accepted in a list too, so `transaction:full` means `transaction:destructive`.
+
+Whichever of this and `FIREFLY_READ_ONLY` is stricter wins, and a refusal names
+the one the operator actually set. A clause that cannot be parsed is dropped
+rather than widened — a misspelt entity or level fails closed, so a typo never
+grants access nobody asked for.
+
+Operations the policy refuses are hidden from the catalogue as well as blocked,
+for the same reason writes are hidden in read-only mode: advertising an
+operation that can only fail sends the model down a dead end.
 
 **Consolidated mode (default)** exposes five meta-tools: `firefly_query`,
 `firefly_mutate`, `firefly_destructive`, `firefly_list_operations` and

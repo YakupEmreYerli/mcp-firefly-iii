@@ -10,6 +10,10 @@ export class ReadOnlyModeError extends FireflyMcpError {}
  * not cover it — a delete reached through the read-only surface, say. Without
  * this the annotation would be a claim the server does not keep. */
 export class WrongAccessSurfaceError extends FireflyMcpError {}
+/** Raised when FIREFLY_PERMISSIONS does not grant an entity the level an
+ * operation needs. Distinct from ReadOnlyModeError so the message can name the
+ * setting the operator would actually have to change. */
+export class PermissionDeniedError extends FireflyMcpError {}
 
 /** An error response from Firefly III.
  *
