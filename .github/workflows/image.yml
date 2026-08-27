@@ -1,0 +1,103 @@
+name: image
+
+# Builds and pushes a multi-arch container image to ghcr.io. Split out of
+# release.yml so that each platform is built on a native runner instead of one
+# ubuntu-latest runner emulating arm64 under QEMU (which took 15+ minutes).
+#
+# Tags v* trigger it from a release; `workflow_dispatch` lets you (re)build an
+# image for an already-released tag without re-running the npm publish job.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image version tag, e.g. v0.3.2 (not the bare 0.3.2)"
+        required: true
+        default: "v0.3.2"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    # One platform per runner. Each lands under a per-arch tag; the merge job
+    # stitches them into a single multi-arch manifest below.
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            suffix: amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            suffix: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the image version tag
+        id: ver
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            v="$GITHUB_REF_NAME"
+          else
+            v="${{ inputs.version }}"
+          fi
+          echo "version=${v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ghcr.io/yakupemreyerli/mcp-firefly-iii:${{ steps.ver.outputs.version }}-${{ matrix.suffix }}
+          provenance: false
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+          cache-to: type=gha,scope=${{ matrix.suffix }},mode=max
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the image version tag
+        id: ver
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            v="$GITHUB_REF_NAME"
+          else
+            v="${{ inputs.version }}"
+          fi
+          echo "version=${v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Create and push the multi-arch manifest
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          image="ghcr.io/yakupemreyerli/mcp-firefly-iii"
+          tags=( -t "${image}:${v}" )
+          if [ "$v" != "latest" ]; then
+            tags+=( -t "${image}:latest" )
+          fi
+          docker buildx imagetools create "${tags[@]}" \
+            "${image}:${v}-amd64" \
+            "${image}:${v}-arm64"
