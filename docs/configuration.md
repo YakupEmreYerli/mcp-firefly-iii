@@ -57,6 +57,27 @@ FIREFLY_API_URL=https://your-server:8080/firefly/api/v1  # taken as written
 self-signed certificate. Do not turn it on for a publicly reachable instance: it
 disables certificate verification completely.
 
+## Remote HTTP and embedded OAuth
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MCP_RESOURCE_URL` | *(required for OAuth)* | Public MCP hostname, for example `https://mcp.example.com` |
+| `MCP_AUTH_PASSWORD` | empty | Enables the embedded OAuth 2.1 login and consent flow |
+| `MCP_AUTH_STATE_DIR` | `/data/firefly-mcp-auth` | Persistent key, client and refresh-token state directory |
+
+`MCP_RESOURCE_URL` has to be a bare origin: `mcp.example.com` or
+`https://mcp.example.com`. A subpath such as `/mcp` is not supported. Firefly
+III's Laravel Passport already owns `/oauth/authorize`, `/oauth/token` and
+`/oauth/clients` on its own hostname, so giving the MCP server a separate
+hostname avoids the collision. The connection endpoint itself answers on both
+`https://mcp.example.com/` and `https://mcp.example.com/mcp`, the latter kept
+for backwards compatibility.
+
+With embedded auth, back the state directory with a Docker volume, and do not
+set `MCP_AUTH_PASSWORD` and `MCP_AUTHORIZATION_SERVERS` together. For HTTPS
+reverse proxy recipes see
+[Remote access with embedded OAuth](oauth.md).
+
 ## Read-only mode
 
 Read-only is a permission level, not a separate switch:

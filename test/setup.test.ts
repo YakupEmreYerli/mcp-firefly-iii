@@ -8,9 +8,21 @@ import {
   describeConnectionFailure,
   mergeServerEntry,
   normalizeApiUrl,
+  normalizeMcpResourceUrl,
   serverEntry,
 } from "../src/setup.js";
 import { FireflyApiError } from "../src/errors.js";
+
+describe("normalizeMcpResourceUrl", () => {
+  it("accepts a bare domain and root URL", () => {
+    expect(normalizeMcpResourceUrl("mcp.example.com")).toBe("https://mcp.example.com");
+    expect(normalizeMcpResourceUrl("https://mcp.example.com/")).toBe("https://mcp.example.com");
+  });
+
+  it("rejects a subpath owned by Firefly Passport", () => {
+    expect(normalizeMcpResourceUrl("https://mcp.example.com/mcp")).toBe("");
+  });
+});
 
 describe("normalizeApiUrl", () => {
   it("appends the API path a person will not think to type", () => {

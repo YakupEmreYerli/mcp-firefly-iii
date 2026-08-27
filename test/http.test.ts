@@ -114,6 +114,15 @@ describe("authentication", () => {
 });
 
 describe("routing", () => {
+  it("answers CORS preflight without credentials", async () => {
+    const base = await start();
+    const response = await fetch(`${base}/mcp`, { method: "OPTIONS", headers: { Origin: "https://chatgpt.com", "Access-Control-Request-Headers": "Authorization" } });
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-credentials")).toBeNull();
+    expect(response.headers.get("access-control-allow-headers")).toContain("Mcp-Session-Id");
+  });
+
   it("answers /health without a token, for container probes", async () => {
     const base = await start();
     const response = await fetch(`${base}/health`);
@@ -124,9 +133,15 @@ describe("routing", () => {
 
   it("does not leak the tool surface on an unknown path", async () => {
     const base = await start();
-    const response = await fetch(`${base}/`, mcpRequest(INITIALIZE, TOKEN));
+    const response = await fetch(`${base}/unknown`, mcpRequest(INITIALIZE, TOKEN));
 
     expect(response.status).toBe(404);
+  });
+
+  it("serves MCP through both the root and legacy /mcp alias", async () => {
+    const base = await start();
+    expect((await fetch(`${base}/`, mcpRequest(INITIALIZE, TOKEN))).status).toBe(200);
+    expect((await fetch(`${base}/mcp`, mcpRequest(INITIALIZE, TOKEN))).status).toBe(200);
   });
 
   it("ignores a query string when matching the path", async () => {
@@ -239,14 +254,14 @@ async function issue(scope?: string, audience?: string): Promise<string> {
 let oauthResource = "";
 
 async function startOauth(overrides: Partial<Config> = {}): Promise<string> {
-  const server = createHttpServer(makeConfig({ httpToken: "", authorizationServers: [ISSUER], resourceUrl: "http://placeholder/mcp", ...overrides }));
+  const server = createHttpServer(makeConfig({ httpToken: "", authorizationServers: [ISSUER], resourceUrl: "http://placeholder", ...overrides }));
   running = server;
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as AddressInfo;
   // The resource identifier has to be the address a client actually reaches,
   // because that is what a token's audience will be bound to.
   await new Promise<void>((resolve) => server.close(() => resolve()));
-  oauthResource = `http://127.0.0.1:${port}/mcp`;
+  oauthResource = `http://127.0.0.1:${port}`;
   const real = createHttpServer(makeConfig({ httpToken: "", authorizationServers: [ISSUER], resourceUrl: oauthResource, ...overrides }));
   running = real;
   await new Promise<void>((resolve) => real.listen(port, "127.0.0.1", resolve));
@@ -299,7 +314,7 @@ describe("OAuth resource server", () => {
     // A client reads this precisely because it has no token yet.
     await startIssuer();
     const base = await startOauth();
-    const response = await fetch(`${base}/.well-known/oauth-protected-resource/mcp`);
+    const response = await fetch(`${base}/.well-known/oauth-protected-resource`);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       resource: oauthResource,
@@ -343,18 +358,16 @@ describe("OAuth resource server", () => {
     await startIssuer();
     const base = await startOauth();
     const response = await oauthPost(base, toolCall("firefly_mutate"), await issue("firefly:read"));
-    expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ error: "insufficient_scope", scope: "firefly:write" });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ result: { isError: true, _meta: { "mcp/www_authenticate": [expect.stringContaining('scope="firefly:write"')] } } });
   });
 
   it("says in the challenge which scope would have worked", async () => {
     await startIssuer();
     const base = await startOauth();
     const response = await oauthPost(base, toolCall("firefly_destructive"), await issue("firefly:write"));
-    expect(response.status).toBe(403);
-    const header = response.headers.get("www-authenticate") ?? "";
-    expect(header).toContain('error="insufficient_scope"');
-    expect(header).toContain('scope="firefly:destructive"');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ result: { isError: true, _meta: { "mcp/www_authenticate": [expect.stringContaining('scope="firefly:destructive"')] } } });
   });
 
   it("lets a broader scope through a narrower request", async () => {
@@ -382,8 +395,8 @@ describe("OAuth resource server", () => {
     await startIssuer();
     const base = await startOauth();
     const response = await oauthPost(base, [toolCall("firefly_query"), toolCall("firefly_destructive")], await issue("firefly:read"));
-    expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ error: "insufficient_scope", scope: "firefly:destructive" });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ result: { isError: true, _meta: { "mcp/www_authenticate": [expect.stringContaining('scope="firefly:destructive"')] } } });
   });
 
   it("lets a batch of reads through on a read token", async () => {

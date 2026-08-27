@@ -108,6 +108,12 @@ type ToolResult = {
   structuredContent?: Record<string, unknown>;
 };
 
+type OAuthSecurityScheme = { type: "oauth2"; scopes: string[] };
+
+function securityMetadata(scope: string): { securitySchemes: OAuthSecurityScheme[] } {
+  return { securitySchemes: [{ type: "oauth2", scopes: [scope] }] };
+}
+
 /** Wrap a payload as MCP tool-call content.
  *
  * Two shapes, never both. The spec suggests mirroring `structuredContent` into
@@ -207,36 +213,48 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
     const catalogue = registry.operationCatalogue(surface.access, surface.hints);
     if (catalogue === "") continue;
 
+    const security = securityMetadata(
+      surface.tool === "firefly_query"
+        ? "firefly:read"
+        : surface.tool === "firefly_mutate"
+          ? "firefly:write"
+          : "firefly:destructive",
+    );
+    // The installed SDK does not type this newer top-level descriptor field.
+    // Keep the compatibility copy in _meta while also publishing the field hosts expect.
+    const descriptor = {
+      description: executeDescription(registry, surface),
+      annotations: annotationsFor(surface.access[0]!),
+      ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
+      ...security,
+      _meta: security,
+      inputSchema: {
+        entity: z.string().describe("Entity type (account, transaction, budget, ...)"),
+        operation: z.string().describe("Operation name (list, get, create, ...)"),
+        params: z.record(z.unknown()).optional().describe("Operation parameters"),
+        fields: z.array(z.string()).optional().describe("Attribute allow-list for the response"),
+        ...(surface.access.includes("read")
+          ? {}
+          : {
+              dry_run: z
+                .boolean()
+                .optional()
+                .describe(
+                  "Preview instead of applying: returns the exact request that would be sent, " +
+                    "plus warnings such as a possible duplicate transaction. Nothing is written.",
+                ),
+            }),
+      } as never,
+    } as never;
     server.registerTool(
       surface.tool,
-      {
-        description: executeDescription(registry, surface),
-        annotations: annotationsFor(surface.access[0]!),
-        ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
-        inputSchema: {
-          entity: z.string().describe("Entity type (account, transaction, budget, ...)"),
-          operation: z.string().describe("Operation name (list, get, create, ...)"),
-          params: z.record(z.unknown()).optional().describe("Operation parameters"),
-          fields: z.array(z.string()).optional().describe("Attribute allow-list for the response"),
-          ...(surface.access.includes("read")
-            ? {}
-            : {
-                dry_run: z
-                  .boolean()
-                  .optional()
-                  .describe(
-                    "Preview instead of applying: returns the exact request that would be sent, " +
-                      "plus warnings such as a possible duplicate transaction. Nothing is written.",
-                  ),
-              }),
-        },
-      },
-      async ({ entity, operation, params, fields, dry_run }) => {
+      descriptor,
+      (async ({ entity, operation, params, fields, dry_run }: { entity: string; operation: string; params?: Record<string, unknown>; fields?: string[]; dry_run?: boolean }) => {
         const payload = await registry
           .execute(entity, operation, params, fields, surface.access, dry_run === true)
           .catch((caught: unknown) => asError(caught));
         return toolResult(payload, config.structuredOutput);
-      },
+      }) as never,
     );
   }
 
@@ -245,6 +263,8 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
     {
       description: "List available Firefly III operations, optionally filtered by entity.",
       annotations: annotationsFor("read"),
+      ...securityMetadata("firefly:read"),
+      _meta: securityMetadata("firefly:read"),
       ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
       inputSchema: { entity: z.nativeEnum(EntityType).optional() },
     },
@@ -258,6 +278,8 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
     {
       description: "Get the parameter schema for a specific operation.",
       annotations: annotationsFor("read"),
+      ...securityMetadata("firefly:read"),
+      _meta: securityMetadata("firefly:read"),
       ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
       inputSchema: { entity: z.string(), operation: z.string() },
     },

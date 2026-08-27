@@ -24,3 +24,6 @@ exports/
 # Local working notes and throwaway maintainer scripts, deliberately not shared
 PLAN.md
 scripts/_*.mjs
+
+# Planning artefacts from the superpowers skill, not published docs.
+docs/superpowers/

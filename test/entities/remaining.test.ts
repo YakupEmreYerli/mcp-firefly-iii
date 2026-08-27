@@ -19,7 +19,7 @@ function setup(): { registry: Registry; calls: Call[] } {
     postBinary: async () => null,
   };
   const config: Config = {
-    apiUrl: "https://firefly.example/api/v1", apiToken: "", permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+    apiUrl: "https://firefly.example/api/v1", apiToken: "", permissions: { fallback: "destructive", byEntity: new Map() },
     structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const registry = new Registry(config, client);
@@ -157,7 +157,7 @@ function overviewClient(handlers: Record<string, () => Promise<unknown>>): Firef
 
 async function overview(client: FireflyClient, query: Record<string, unknown>): Promise<Record<string, unknown>> {
   const config: Config = {
-    apiUrl: "https://firefly.example/api/v1", apiToken: "",     permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+    apiUrl: "https://firefly.example/api/v1", apiToken: "",     permissions: { fallback: "destructive", byEntity: new Map() },
     structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const registry = new Registry(config, client);

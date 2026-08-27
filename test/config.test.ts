@@ -87,12 +87,44 @@ describe("a domain is enough", () => {
 
   it("builds the MCP resource url from a bare domain", () => {
     expect(loadConfig({ MCP_RESOURCE_URL: "mcp.example.com" }).resourceUrl).toBe(
-      "https://mcp.example.com/mcp",
+      "https://mcp.example.com",
     );
   });
 
   it("leaves an empty url empty rather than inventing one", () => {
     expect(loadConfig({}).apiUrl).toBe("");
     expect(loadConfig({}).resourceUrl).toBe("");
+  });
+
+  it("rejects a resource URL with a path because Firefly Passport owns OAuth paths", () => {
+    expect(() => loadConfig({ MCP_RESOURCE_URL: "https://mcp.example.com/mcp" })).toThrow(/clean domain|Passport|subpath/i);
+  });
+
+  it("normalizes a root path away", () => {
+    expect(loadConfig({ MCP_RESOURCE_URL: "https://mcp.example.com/" }).resourceUrl).toBe("https://mcp.example.com");
+  });
+});
+
+describe("embedded authorization server settings", () => {
+  it("reads the password and state directory", () => {
+    const config = loadConfig({ MCP_AUTH_PASSWORD: "a-password-longer-than-12", MCP_AUTH_STATE_DIR: "/tmp/firefly-auth", MCP_RESOURCE_URL: "https://mcp.example" });
+    expect(config.authPassword).toBe("a-password-longer-than-12");
+    expect(config.authStateDir).toBe("/tmp/firefly-auth");
+  });
+
+  it("rejects a short embedded auth password", () => {
+    expect(() => loadConfig({ MCP_AUTH_PASSWORD: "too-short" })).toThrow(/12 characters/);
+  });
+
+  it("rejects embedded auth together with external authorization servers", () => {
+    expect(() => loadConfig({
+      MCP_AUTH_PASSWORD: "a-password-longer-than-12",
+      MCP_AUTHORIZATION_SERVERS: "https://idp.example",
+      MCP_RESOURCE_URL: "https://mcp.example",
+    })).toThrow(/MCP_AUTH_PASSWORD.*MCP_AUTHORIZATION_SERVERS|MCP_AUTHORIZATION_SERVERS.*MCP_AUTH_PASSWORD/);
+  });
+
+  it("requires a resource URL for embedded auth", () => {
+    expect(() => loadConfig({ MCP_AUTH_PASSWORD: "a-password-longer-than-12" })).toThrow(/MCP_RESOURCE_URL/);
   });
 });

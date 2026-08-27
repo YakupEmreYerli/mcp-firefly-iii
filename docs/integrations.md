@@ -2,6 +2,9 @@
 
 How to connect the Firefly III MCP server to common MCP clients.
 
+For a remote, OAuth-authenticated deployment see
+[Remote access with embedded OAuth](oauth.md).
+
 `npx -y @yakupemreyerli/firefly-mcp setup` does all of this interactively —
 including checking that your token works before writing anything. The pages
 below are the manual equivalent.
@@ -151,6 +154,29 @@ make check
 
 That last row is the most common one: a change to your configuration or to the
 code does not reach the running process until the MCP client reconnects.
+
+## ChatGPT and Claude custom connectors
+
+Both clients speak OAuth and have nowhere to put a static bearer token, so the
+server has to be reachable over HTTPS with `MCP_AUTH_PASSWORD` set. The full
+deployment recipes are in [Remote access with embedded OAuth](oauth.md); the
+short version is:
+
+1. Publish the server over HTTPS and set `MCP_AUTH_PASSWORD` to a strong
+   password of at least 12 characters.
+2. In the client's custom connector screen, enter `https://mcp.example.com/mcp`
+   as the server URL. `/mcp` is a backwards-compatible alias for the root
+   endpoint.
+3. Choose **OAuth** as the authentication method. The client registers itself
+   through DCR and runs PKCE on its own; no token is typed in by hand.
+4. Complete the password and consent screens in the browser. The operator's
+   `FIREFLY_PERMISSIONS` ceiling caps whatever scopes are approved there.
+
+`MCP_RESOURCE_URL` must be the externally visible origin exactly —
+`https://mcp.example.com`, with no path. The connection URL may end in `/mcp`;
+the two are different values. Writing the internal `http://firefly-mcp:3000`
+address, or a path, into the resource value fails the audience check, and the
+client only sees "invalid token".
 
 ## n8n and remote HTTP use
 

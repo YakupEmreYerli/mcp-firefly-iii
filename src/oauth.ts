@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, customFetch, decodeJwt, jwtVerify, type JWTPayload } from "jose";
-import type { EntityType } from "./types.js";
+import type { KeyObject } from "node:crypto";
+import { EntityType } from "./types.js";
 import type { Access } from "./types.js";
 import type { PermissionLevel, PermissionPolicy } from "./config.js";
 
@@ -47,7 +48,7 @@ export function allowedBy(scopes: Iterable<string>): Set<Access> {
  * This is the second gate behind it: enforcement then does not depend on that
  * parsing being right, and it runs through the path that is already tested.
  */
-export function policyForScopes(scopes: Iterable<string>): PermissionPolicy {
+export function policyForScopes(scopes: Iterable<string>, ceiling?: PermissionPolicy): PermissionPolicy {
   const allowed = allowedBy(scopes);
   const fallback: PermissionLevel = allowed.has("destructive")
     ? "destructive"
@@ -56,7 +57,22 @@ export function policyForScopes(scopes: Iterable<string>): PermissionPolicy {
       : allowed.has("read")
         ? "read"
         : "none";
-  return { fallback, byEntity: new Map<EntityType, PermissionLevel>() };
+  if (!ceiling) return { fallback, byEntity: new Map<EntityType, PermissionLevel>() };
+  const rank: Record<PermissionLevel, number> = { none: 0, read: 1, write: 2, destructive: 3 };
+  const minimum = (left: PermissionLevel, right: PermissionLevel): PermissionLevel => rank[left] < rank[right] ? left : right;
+  const byEntity = new Map<EntityType, PermissionLevel>();
+  for (const entity of Object.values(EntityType)) {
+    const value = minimum(ceiling.byEntity.get(entity) ?? ceiling.fallback, fallback);
+    if (value !== fallback) byEntity.set(entity, value);
+  }
+  return { fallback: minimum(fallback, ceiling.fallback), byEntity };
+}
+
+/** Intersect requested scopes with the operator's permission ceiling. */
+export function grantedScopes(scopes: Iterable<string>, ceiling: PermissionPolicy): string[] {
+  const rank: Record<string, number> = { [SCOPES.read]: 1, [SCOPES.write]: 2, [SCOPES.destructive]: 3 };
+  const ceilingRank = { none: 0, read: 1, write: 2, destructive: 3 }[ceiling.fallback];
+  return [...new Set(scopes)].filter((scope) => (rank[scope] ?? 0) > 0 && rank[scope]! <= ceilingRank);
 }
 
 /** Which surface a tool name belongs to, in the default meta-tool mode. */
@@ -146,12 +162,7 @@ export function resourceMetadata(resource: string, authorizationServers: string[
   };
 }
 
-/** Where a client discovers the document above, by RFC 9728 path insertion.
- *
- * A resource with a path keeps it after the well-known segment, so
- * `https://host/mcp` publishes at `https://host/.well-known/…-resource/mcp`.
- * The paths this can produce are also the ones the server has to answer on.
- */
+/** Where a client discovers the protected-resource document at the clean origin. */
 export function metadataUrlFor(resource: string): string {
   let url: URL;
   try {
@@ -161,21 +172,7 @@ export function metadataUrlFor(resource: string): string {
     // hunting through every setting to find which one.
     throw new Error(`MCP_RESOURCE_URL must be an absolute https:// URL; got ${JSON.stringify(resource)}`);
   }
-  const path = url.pathname === "/" ? "" : url.pathname;
-  return `${url.origin}/.well-known/oauth-protected-resource${path}`;
-}
-
-/** Every path the metadata document should answer on.
- *
- * Both the plain well-known path and the path-inserted one: a client that
- * followed `resource_metadata` uses the second, while one that guessed from
- * the origin alone tries the first, and answering only the first is a
- * discovery failure that reads as "this server has no authorization".
- */
-export function metadataPathsFor(resource: string): string[] {
-  const inserted = new URL(metadataUrlFor(resource)).pathname;
-  const bare = "/.well-known/oauth-protected-resource";
-  return inserted === bare ? [bare] : [inserted, bare];
+  return `${url.origin}/.well-known/oauth-protected-resource`;
 }
 
 /** A `WWW-Authenticate` challenge, per RFC 6750.
@@ -279,7 +276,7 @@ function scopesOf(payload: JWTPayload): Set<string> {
  */
 export async function verifyToken(
   token: string,
-  options: { resource: string; issuers: string[]; fetchImpl?: typeof fetch },
+  options: { resource: string; issuers: string[]; fetchImpl?: typeof fetch; local?: { issuer: string; publicKey: KeyObject } },
 ): Promise<TokenCheck> {
   const fetchImpl = options.fetchImpl ?? fetch;
   let issuer: string;
@@ -294,6 +291,15 @@ export async function verifyToken(
   // Checked before any network call: an unknown issuer must not become a
   // request to a host of the caller's choosing.
   if (!options.issuers.includes(issuer)) return { ok: false, reason: `issuer ${issuer} is not configured` };
+
+  if (options.local?.issuer === issuer) {
+    try {
+      const { payload } = await jwtVerify(token, options.local.publicKey, { issuer, audience: options.resource });
+      return { ok: true, scopes: scopesOf(payload), ...(typeof payload.sub === "string" ? { subject: payload.sub } : {}) };
+    } catch (error) {
+      return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    }
+  }
 
   try {
     const { jwks_uri } = await authorizationServerMetadata(issuer, fetchImpl);

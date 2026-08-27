@@ -1,0 +1,3 @@
+mcp.example.com {
+    reverse_proxy firefly-mcp:3000
+}

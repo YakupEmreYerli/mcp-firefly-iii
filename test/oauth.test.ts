@@ -5,7 +5,6 @@ import {
   SCOPES,
   allowedBy,
   challenge,
-  metadataPathsFor,
   metadataUrlFor,
   policyForScopes,
   resetOauthCaches,
@@ -17,7 +16,7 @@ import {
 } from "../src/oauth.js";
 
 const ISSUER = "https://as.example.com";
-const RESOURCE = "https://mcp.example.com/mcp";
+const RESOURCE = "https://mcp.example.com";
 
 describe("scope hierarchy", () => {
   it("lets a read scope read", () => {
@@ -130,25 +129,10 @@ describe("protected resource metadata", () => {
     expect(resourceMetadata(RESOURCE, [ISSUER]).scopes_supported).toEqual([MINIMUM_SCOPE]);
   });
 
-  it("keeps the resource path after the well-known segment", () => {
-    // RFC 9728 inserts the path; publishing at the bare path would leave a
-    // client that followed resource_metadata looking at a 404.
-    expect(metadataUrlFor("https://mcp.example.com/mcp")).toBe(
-      "https://mcp.example.com/.well-known/oauth-protected-resource/mcp",
-    );
-  });
-
   it("has no path to insert when the resource is an origin", () => {
     expect(metadataUrlFor("https://mcp.example.com")).toBe(
       "https://mcp.example.com/.well-known/oauth-protected-resource",
     );
-  });
-
-  it("answers on the bare path too, for a client that guessed from the origin", () => {
-    expect(metadataPathsFor(RESOURCE)).toEqual([
-      "/.well-known/oauth-protected-resource/mcp",
-      "/.well-known/oauth-protected-resource",
-    ]);
   });
 
   it("says which setting is wrong when the resource is not a URL", () => {
@@ -156,15 +140,12 @@ describe("protected resource metadata", () => {
     expect(() => metadataUrlFor("not-a-url")).toThrow(/MCP_RESOURCE_URL/);
   });
 
-  it("does not list the same path twice", () => {
-    expect(metadataPathsFor("https://mcp.example.com")).toEqual(["/.well-known/oauth-protected-resource"]);
-  });
 });
 
 describe("the WWW-Authenticate challenge", () => {
   it("carries where to discover authorization, which is what makes a 401 actionable", () => {
     const header = challenge({ resource: RESOURCE, scope: MINIMUM_SCOPE });
-    expect(header).toContain('resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/mcp"');
+    expect(header).toContain('resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource"');
     expect(header).toContain('scope="firefly:read"');
     expect(header.startsWith("Bearer ")).toBe(true);
   });

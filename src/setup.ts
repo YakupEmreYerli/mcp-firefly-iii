@@ -50,6 +50,20 @@ export function normalizeApiUrl(input: string): string {
   return url;
 }
 
+/** Normalize the public MCP address while refusing a path owned by Firefly Passport. */
+export function normalizeMcpResourceUrl(input: string): string {
+  const text = input.trim();
+  if (text === "") return "";
+  const candidate = text.includes("://") ? text : `https://${text}`;
+  try {
+    const url = new URL(candidate);
+    if (url.pathname !== "/" || url.search !== "" || url.hash !== "") return "";
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
