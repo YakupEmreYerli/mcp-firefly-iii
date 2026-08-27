@@ -4,7 +4,7 @@ Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ
 asistanının okuma — izin verirseniz yazma — erişimi kazanmasını sağlar. Model
 Context Protocol üzerinden çalışır.
 
-24 varlıkta 139 operasyon: işlemler, hesaplar, bütçeler, kategoriler, etiketler,
+25 varlıkta 140 operasyon: işlemler, hesaplar, bütçeler, kategoriler, etiketler,
 faturalar, kumbaralar, kurallar; ayrıca arama ve dönem analizi.
 
 > English: [README.md](README.md)
@@ -78,7 +78,7 @@ gizlenir, böylece asistan denemez bile.
 
 ## Asistanın gördüğü yüzey
 
-139 değil, üç araç:
+140 değil, üç araç:
 
 | Araç | Cevapladığı soru |
 | --- | --- |
@@ -131,7 +131,7 @@ arasındaki tek şey — portu doğrudan açmayın.
 | [Quickstart](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/quickstart.md) | Token alma, istemciyi bağlama, ilk denemeler, sorun giderme |
 | [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Tüm ortam değişkenleri, salt-okunur mod, varlık filtresi, HTTP modu |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n ve uzak HTTP |
-| [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | 139 operasyonun tamamı, yanıt kırpma, Firefly'ın tuzakları |
+| [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | 140 operasyonun tamamı, yanıt kırpma, Firefly'ın tuzakları |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, arama ve sekiz insight ucu |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Geliştirirken sunucuyu interaktif kurcalama |
 

@@ -14,6 +14,7 @@ import { rulesModule } from "./entities/rules.js";
 import { ruleGroupsModule } from "./entities/ruleGroups.js";
 import { insightModule } from "./entities/insight.js";
 import { summaryModule } from "./entities/summary.js";
+import { analysisModule } from "./entities/analysis.js";
 import { searchModule } from "./entities/search.js";
 import { currenciesModule, exchangeRatesModule, attachmentsModule, recurringModule, autocompleteModule } from "./entities/financial.js";
 import { availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModule, preferencesModule, configurationModule, dataExportModule } from "./entities/advanced.js";
@@ -22,7 +23,7 @@ import { availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModul
  *
  * Each entity migration plan appends its module here.
  */
-export const ENTITY_MODULES: EntityModule[] = [accountsModule, transactionsModule, budgetsModule, categoriesModule, tagsModule, insightModule, summaryModule, searchModule, billsModule, piggyBanksModule, rulesModule, ruleGroupsModule, currenciesModule, exchangeRatesModule, attachmentsModule, recurringModule, autocompleteModule, availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModule, preferencesModule, configurationModule, dataExportModule];
+export const ENTITY_MODULES: EntityModule[] = [accountsModule, transactionsModule, budgetsModule, categoriesModule, tagsModule, insightModule, summaryModule, searchModule, billsModule, piggyBanksModule, rulesModule, ruleGroupsModule, currenciesModule, exchangeRatesModule, attachmentsModule, recurringModule, autocompleteModule, availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModule, preferencesModule, configurationModule, dataExportModule, analysisModule];
 
 /** The catalogue is embedded here rather than fetched, so choosing an entity
  * and operation costs the model no extra tool call. */

@@ -244,6 +244,42 @@ describe("summary.overview", () => {
     expect(result.period).toEqual({ start: "2026-08-01", end: "2026-08-31", end_is_inclusive: true });
   });
 
+  it("still answers when Firefly refuses the balance query, as it does for a single day", async () => {
+    // /summary/basic returns 422 when start === end, while every insight endpoint
+    // accepts it. Losing the balances must not cost the whole period.
+    const client: FireflyClient = {
+      get: async (path, query) => {
+        if (path === "/summary/basic") throw new Error("422 - start must be before end");
+        if (path === "/insight/expense/total") return [row(-204.99)];
+        if (path === "/insight/expense/category") return [row(-204.99, "TRY", "Market")];
+        void query;
+        return [];
+      },
+      getText: async () => "", post: async () => ({}), put: async () => ({}),
+      del: async () => null, postBinary: async () => ({}),
+    };
+    const result = (await makeRegistry(client).execute("summary", "overview", {
+      start: "2026-08-26", end: "2026-08-26",
+    })) as Overview & { balances_unavailable?: string };
+    expect(result.totals.TRY?.expense).toBe(204.99);
+    expect(result.expense_by_category[0]?.name).toBe("Market");
+  });
+
+  it("says the balances are missing rather than letting them read as zero", async () => {
+    const client: FireflyClient = {
+      get: async (path) => {
+        if (path === "/summary/basic") throw new Error("422 - start must be before end");
+        return [];
+      },
+      getText: async () => "", post: async () => ({}), put: async () => ({}),
+      del: async () => null, postBinary: async () => ({}),
+    };
+    const result = (await makeRegistry(client).execute("summary", "overview", {
+      start: "2026-08-26", end: "2026-08-26",
+    })) as { balances_unavailable?: string };
+    expect(result.balances_unavailable).toMatch(/refused the balance query/);
+  });
+
   it("survives an insight endpoint answering with an unexpected shape", async () => {
     const { result } = await runOverview({ "/insight/expense/total": { unexpected: true } });
 

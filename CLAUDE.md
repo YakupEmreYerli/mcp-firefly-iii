@@ -81,8 +81,12 @@ yanlış cevap** üretmeleri — yazılı olmalarının sebebi bu.
 - **Tarih aralıklarında `end` dahildir.** `start=2026-08-25&end=2026-08-26` iki
   günü birden döndürür. "Tek gün" demek için `end`'i bir gün ileri almayın; ertesi
   günü içeri alır.
-- **`start == end` yalnızca `/accounts/{id}/transactions` ucunda reddedilir** (422).
-  Diğer işlem uçları kabul eder. `src/entities/accounts.ts` içinde geçici çözümü var.
+- **`start == end` bazı uçlarda reddedilir** (422). `/accounts/{id}/transactions`
+  ve `/summary/basic` reddeder; insight uçlarının hepsi kabul eder. İlkinin geçici
+  çözümü `src/entities/accounts.ts` içinde. İkincisi için aralığı genişletmek
+  **çözüm değil**: `balance-in-*` dönem hareketidir, anlık bakiye değil — canlı
+  ölçüldü, `start` değişince değer değişiyor. `buildOverview` bu yüzden bakiye
+  çağrısını ölümcül saymaz ve kaybı `balances_unavailable` ile açıkça bildirir.
 - **Bilinmeyen bir sarmalayıcı anahtarıyla yapılan PUT 200 döner ve hiçbir şeyi
   değiştirmez.** Firefly tanımadığı üst düzey anahtarları reddetmez; bozuk bir
   güncelleme başarılı görünür. Bu bir kez gerçek bir hata olarak yayınlandı,

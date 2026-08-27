@@ -24,6 +24,7 @@ export enum EntityType {
   Preference = "preference",
   Configuration = "configuration",
   DataExport = "data_export",
+  Analysis = "analysis",
 }
 
 /** Whether an operation reads from or writes to Firefly III.

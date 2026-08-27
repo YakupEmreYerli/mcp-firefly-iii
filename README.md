@@ -4,7 +4,7 @@ Give an AI assistant read — and, if you allow it, write — access to your own
 [Firefly III](https://www.firefly-iii.org/) instance over the Model Context
 Protocol.
 
-139 operations across 24 entities: transactions, accounts, budgets, categories,
+140 operations across 25 entities: transactions, accounts, budgets, categories,
 tags, bills, piggy banks, rules, plus search and period analysis.
 
 > Türkçe: [README.tr.md](README.tr.md)
@@ -77,7 +77,7 @@ hidden from the tool catalogue, so the assistant does not attempt one.
 
 ## What the assistant sees
 
-Three tools, not 139:
+Three tools, not 140:
 
 | Tool | Answers |
 | --- | --- |
@@ -130,7 +130,7 @@ access to your financial history — do not expose the port directly.
 | [Quickstart](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/quickstart.md) | Getting a token, wiring up your client, first things to try, troubleshooting |
 | [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Every environment variable, read-only mode, the entity filter, HTTP mode |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n and remote HTTP |
-| [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | All 139 operations, response trimming, the Firefly quirks that bite |
+| [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | All 140 operations, response trimming, the Firefly quirks that bite |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, search, and the eight insight endpoints |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Poking at the server interactively while developing |
 

@@ -100,14 +100,23 @@ export const searchModule: EntityModule = { entity: EntityType.Search, hint: "fi
   accounts: defineOperation({ description: "Which accounts match this search?", access: "read", input: z.object({ query: z.string().min(1), field: z.enum(["all", "iban", "name", "number", "id"]).default("all"), type: z.string().optional(), ...pagination }).strict(), handler: (q, c) => c.get("/search/accounts", q) }),
 } };
 
-async function buildOverview(query: z.infer<typeof analysisInput>, client: FireflyClient): Promise<unknown> {
+export async function buildOverview(query: z.infer<typeof analysisInput>, client: FireflyClient): Promise<unknown> {
   const period = { start: query.start, end: query.end };
+  // Firefly rejects start === end on /summary/basic with a 422 while every
+  // insight endpoint accepts it, so a single-day overview used to fail whole.
+  // Only the balances come from there, and widening the range is not a way out:
+  // balance-in-* moves with `start`, so it is period movement rather than a
+  // point-in-time figure, and a widened range would report a wrong balance.
+  // Losing the balances beats losing the period — and it is said out loud.
   const [income, expense, transfers, categories, basic] = await Promise.all([
     client.get("/insight/income/total", period),
     client.get("/insight/expense/total", period),
     client.get("/insight/transfer/total", period),
     client.get("/insight/expense/category", period),
-    client.get("/summary/basic", query),
+    client.get("/summary/basic", query).then(
+      (value) => ({ ok: true as const, value }),
+      () => ({ ok: false as const, value: undefined }),
+    ),
   ]);
   const totals: Record<string, Record<string, number>> = {};
   addInsightTotals(totals, income, "income", false);
@@ -129,7 +138,10 @@ async function buildOverview(query: z.infer<typeof analysisInput>, client: Firef
     totals,
     expense_by_category: expenseByCategory,
     expense_category_count: expenseByCategory.length,
-    balances: extractBalances(basic),
+    balances: basic.ok ? extractBalances(basic.value) : {},
+    // Said rather than left as an empty object: the model must not read missing
+    // balances as a net worth of nothing.
+    ...(basic.ok ? {} : { balances_unavailable: "Firefly refused the balance query for this period; the totals above are unaffected." }),
   };
 }
 

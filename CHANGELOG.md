@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `analysis.compare_periods`, answering "what changed since last month?" in one
+  call instead of two overviews plus arithmetic the caller has to get right.
+  Currencies stay separate, transfers stay out of net, a category spent in only
+  one of the two periods is reported as started or stopped rather than dropped,
+  and a percentage change is omitted rather than fabricated when the baseline is
+  zero. It opens a new `analysis` entity for figures the server computes rather
+  than fetches.
+
 ### Fixed
+
+- `summary.overview` failed outright for a single-day period. Firefly rejects
+  `start == end` on `/summary/basic` with a 422 while every insight endpoint
+  accepts it, and only the balances come from there. The balance query is no
+  longer fatal, and when it is refused the answer says so through
+  `balances_unavailable` instead of leaving balances to read as zero. Widening
+  the range is not a fix: `balance-in-*` moves with `start`, so it is period
+  movement rather than a point-in-time figure.
 
 - `transaction.bulk_categorize` and `transaction.bulk_tag` never worked.
   Firefly's `/data/bulk/transactions` only moves transactions between accounts;
