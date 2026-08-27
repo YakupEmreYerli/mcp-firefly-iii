@@ -55,7 +55,6 @@ function makeRegistry(client: FireflyClient): Registry {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "token",
         structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
-    logLevel: "INFO",
   };
   const registry = new Registry(config, client);
   registry.register(analysisModule);

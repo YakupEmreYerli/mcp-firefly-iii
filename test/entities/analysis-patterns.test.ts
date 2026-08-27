@@ -40,7 +40,7 @@ function client(splits: Split[], perPage = 100): { client: FireflyClient; querie
 function registry(c: FireflyClient): Registry {
   const config: Config = {
     apiUrl: "https://firefly.example/api/v1", apiToken: "",
-    structuredOutput: false,     resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    structuredOutput: false,     resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   };
   const result = new Registry(config, c);
   result.register(analysisModule);

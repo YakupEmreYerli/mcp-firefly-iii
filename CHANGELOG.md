@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- `FIREFLY_LOG_LEVEL`. It was read into the config and never consumed — this
+  layer has no logging — so the only thing it did was tell operators to set
+  something. Setting it now does nothing at all.
+
 - `FIREFLY_PERMISSIONS`, and with it every server-wide permission setting. What
   the assistant may do is now decided by the connection: a stdio client can do
   whatever its Firefly token can — issue a read-only token if that is the limit

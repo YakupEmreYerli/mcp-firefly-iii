@@ -15,7 +15,7 @@ function makeRegistry(): { registry: Registry; calls: string[] } {
     del: async (path) => { calls.push(`DELETE ${path}`); return null; },
     postBinary: async (path) => { calls.push(`POST_BINARY ${path}`); return null; },
   };
-  const config: Config = { apiUrl: "https://example.test/api/v1", apiToken: "", structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO" };
+  const config: Config = { apiUrl: "https://example.test/api/v1", apiToken: "", structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, };
   const registry = new Registry(config, client);
   for (const module of ENTITY_MODULES) registry.register(module);
   return { registry, calls };

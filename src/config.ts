@@ -12,8 +12,6 @@ export type Config = {
   apiUrl: string;
   apiToken: string;
   disableSslVerify: boolean;
-  /** Read but not yet consumed: this layer has no logging yet. */
-  logLevel: string;
   httpHost?: string;
   httpPort?: number;
   httpToken?: string;
@@ -145,7 +143,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     apiUrl: baseUrl(env.FIREFLY_API_URL, "/api/v1"),
     apiToken: env.FIREFLY_API_TOKEN ?? "",
     disableSslVerify: parseBool(env.FIREFLY_DISABLE_SSL_VERIFY),
-    logLevel: env.FIREFLY_LOG_LEVEL ?? "INFO",
     httpHost: env.MCP_HTTP_HOST ?? "127.0.0.1",
     httpPort: Number(env.MCP_HTTP_PORT ?? "3000"),
     httpToken: env.MCP_HTTP_TOKEN ?? "",

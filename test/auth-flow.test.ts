@@ -20,7 +20,7 @@ let server: Server | undefined;
 let stateDir: string;
 
 function config(resourceUrl: string): Config {
-  return { apiUrl: "https://firefly.example/api/v1", apiToken: "x", disableSslVerify: false, logLevel: "INFO", httpHost: "127.0.0.1", httpPort: 0, httpToken: "", resourceUrl, authorizationServers: [], authPassword: "correct-password-long", authStateDir: stateDir, structuredOutput: false };
+  return { apiUrl: "https://firefly.example/api/v1", apiToken: "x", disableSslVerify: false, httpHost: "127.0.0.1", httpPort: 0, httpToken: "", resourceUrl, authorizationServers: [], authPassword: "correct-password-long", authStateDir: stateDir, structuredOutput: false };
 }
 
 async function start(overrides: Partial<Config> = {}): Promise<{ base: string; resource: string }> {

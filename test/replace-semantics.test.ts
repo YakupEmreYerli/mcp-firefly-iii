@@ -13,7 +13,7 @@ const client: FireflyClient = {
 function registry(): Registry {
   const config: Config = {
     apiUrl: "https://firefly.example/api/v1", apiToken: "",
-    structuredOutput: false,     resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    structuredOutput: false,     resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   };
   const result = new Registry(config, client);
   for (const module of ENTITY_MODULES) result.register(module);

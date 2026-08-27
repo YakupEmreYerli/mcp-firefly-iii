@@ -41,7 +41,6 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "token",
         structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
-    logLevel: "INFO",
     ...overrides,
   };
 }

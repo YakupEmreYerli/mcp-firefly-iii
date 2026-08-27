@@ -7,7 +7,6 @@ const config: Config = {
   apiUrl: "https://firefly.example/api/v1",
   apiToken: "token",
   structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
-  logLevel: "INFO",
 };
 
 function mockFetch(status: number, body: unknown) {

@@ -46,7 +46,6 @@ function makeRegistry(client: FireflyClient, granted?: ReadonlySet<Access>): Reg
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "token",
         structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
-    logLevel: "INFO",
   };
   const registry = new Registry(config, client, granted);
   registry.register(transactionsModule);

@@ -26,7 +26,7 @@ function setup(existing: unknown[] = []): { registry: Registry; calls: Call[] } 
   };
   const config: Config = {
     apiUrl: "https://firefly.example/api/v1", apiToken: "",
-    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   };
   const registry = new Registry(config, client);
   registry.register(transactionsModule);
@@ -163,7 +163,7 @@ describe("the duplicate scan reads the whole day", () => {
     };
     const config: Config = {
       apiUrl: "https://firefly.example/api/v1", apiToken: "",
-      structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+      structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
     };
     const registry = new Registry(config, client);
     registry.register(transactionsModule);

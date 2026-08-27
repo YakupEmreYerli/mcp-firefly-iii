@@ -244,7 +244,6 @@ async function verifyConnection(apiUrl: string, apiToken: string): Promise<strin
     resourceUrl: "",
     authorizationServers: [],
     disableSslVerify: false,
-    logLevel: "INFO",
   };
   try {
     return versionOf(await createClient(config).get("/about"));

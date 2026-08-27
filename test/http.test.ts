@@ -13,7 +13,6 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "firefly-token",
         structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
-    logLevel: "INFO",
     httpHost: "127.0.0.1",
     httpPort: 0,
     httpToken: TOKEN,

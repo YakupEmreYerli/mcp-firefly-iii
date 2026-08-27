@@ -23,7 +23,7 @@ const module: EntityModule = {
 
 const config: Config = {
   apiUrl: "https://firefly.example/api/v1", apiToken: "",
-  structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+  structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
 };
 
 function registry(granted?: ReadonlySet<Access>): Registry {
