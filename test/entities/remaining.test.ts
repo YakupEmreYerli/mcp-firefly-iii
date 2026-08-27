@@ -4,6 +4,7 @@ import { EntityType } from "../../src/types.js";
 import type { Config } from "../../src/config.js";
 import type { FireflyClient, Query } from "../../src/firefly.js";
 import { ENTITY_MODULES } from "../../src/server.js";
+import { FireflyApiError } from "../../src/errors.js";
 
 type Call = { method: string; path: string; body?: unknown; query?: Query };
 
@@ -140,5 +141,87 @@ describe("entity parity surface", () => {
     // summary.overview is intentionally composed from five read endpoints,
     // matching the Python implementation rather than a Firefly endpoint.
     expect(calls).toHaveLength(90);
+  });
+});
+
+/** An overview over a client that answers each path from a table, so a single
+ * endpoint can fail while the rest succeed — which is the only situation the
+ * balance rescue is reached in. */
+function overviewClient(handlers: Record<string, () => Promise<unknown>>): FireflyClient {
+  return {
+    get: async (path) => (handlers[path] ?? (async () => ({ data: [] })))(),
+    getText: async () => "", post: async () => ({}), put: async () => ({}),
+    del: async () => null, postBinary: async () => null,
+  };
+}
+
+async function overview(client: FireflyClient, query: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const config: Config = {
+    apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
+    permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+    enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, disableSslVerify: false, logLevel: "INFO",
+  };
+  const registry = new Registry(config, client);
+  for (const module of ENTITY_MODULES) registry.register(module);
+  return (await registry.execute("summary", "overview", query)) as Record<string, unknown>;
+}
+
+const range = { start: "2026-08-01", end: "2026-08-31" };
+
+describe("overview balance rescue", () => {
+  it("names the period when Firefly refused the range", async () => {
+    const client = overviewClient({
+      "/summary/basic": () => Promise.reject(new FireflyApiError(422, "The given data was invalid.")),
+    });
+    const result = await overview(client, range);
+    expect(String(result.balances_unavailable)).toContain("this period");
+  });
+
+  it("does not report a broken connection as a refused period", async () => {
+    // An expired token or a 500 is a property of the instance, not the dates.
+    // Reporting it as "Firefly refused the balance query for this period" sends
+    // the model to look at the range while the instance is the problem — and
+    // the totals it is told are unaffected came from that same instance.
+    const client = overviewClient({
+      "/summary/basic": () => Promise.reject(new FireflyApiError(401, "Unauthenticated.")),
+    });
+    const result = await overview(client, range);
+    expect(String(result.balances_unavailable)).toContain("Unauthenticated");
+    expect(String(result.balances_unavailable)).not.toContain("this period");
+  });
+});
+
+describe("overview currency filter", () => {
+  const insight = (rows: unknown[]) => () => Promise.resolve(rows);
+
+  it("restricts totals and categories to the currency asked for", async () => {
+    const client = overviewClient({
+      "/insight/income/total": insight([
+        { currency_code: "TRY", difference_float: 100 },
+        { currency_code: "EUR", difference_float: 50 },
+      ]),
+      "/insight/expense/total": insight([
+        { currency_code: "TRY", difference_float: -40 },
+        { currency_code: "EUR", difference_float: -10 },
+      ]),
+      "/insight/expense/category": insight([
+        { name: "Market", currency_code: "TRY", difference_float: -30 },
+        { name: "Reise", currency_code: "EUR", difference_float: -10 },
+      ]),
+    });
+    const result = await overview(client, { ...range, currency_code: "TRY" });
+    expect(Object.keys(result.totals as object)).toEqual(["TRY"]);
+    expect((result.expense_by_category as { currency_code: string }[]).map((e) => e.currency_code)).toEqual(["TRY"]);
+  });
+
+  it("leaves every currency in place when none was asked for", async () => {
+    const client = overviewClient({
+      "/insight/income/total": insight([
+        { currency_code: "TRY", difference_float: 100 },
+        { currency_code: "EUR", difference_float: 50 },
+      ]),
+    });
+    const result = await overview(client, range);
+    expect(Object.keys(result.totals as object).sort()).toEqual(["EUR", "TRY"]);
   });
 });

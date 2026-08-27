@@ -58,18 +58,40 @@ function splitsOf(body: unknown): Record<string, unknown>[] {
   return body.transactions.filter(isRecord);
 }
 
-/** Existing transactions on a day, flattened to one row per split. */
+/** How far the day scan pages before it stops.
+ *
+ * A day holding more than this many transactions is not a day whose duplicates
+ * a person is trying to recall, so the bound costs nothing real — but it has to
+ * exist, since an unbounded loop here would run on a broken pagination reply.
+ */
+const PAGE_SIZE = 100;
+const MAX_PAGES = 10;
+
+/** Existing transactions on a day, flattened to one row per split.
+ *
+ * Paged. The first page alone was enough to miss the duplicate on any day with
+ * more than Firefly's default page size of transactions, and a miss here is
+ * worse than a miss on a read: the write goes ahead with no warning, which is
+ * the exact failure this check exists to prevent.
+ */
 async function transactionsOn(day: string, client: FireflyClient): Promise<Record<string, unknown>[]> {
-  // `end` is inclusive, so start === end is exactly that day. /transactions
-  // accepts it, unlike /accounts/{id}/transactions and /summary/basic.
-  const payload = await client.get("/transactions", { start: day, end: day });
-  if (!isRecord(payload) || !Array.isArray(payload.data)) return [];
-  return payload.data.flatMap((record) => {
-    if (!isRecord(record)) return [];
-    const attributes = isRecord(record.attributes) ? record.attributes : record;
-    const splits = Array.isArray(attributes.transactions) ? attributes.transactions.filter(isRecord) : [];
-    return splits.map((split) => ({ ...split, id: record.id }));
-  });
+  const rows: Record<string, unknown>[] = [];
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    // `end` is inclusive, so start === end is exactly that day. /transactions
+    // accepts it, unlike /accounts/{id}/transactions and /summary/basic.
+    const payload = await client.get("/transactions", { start: day, end: day, limit: PAGE_SIZE, page });
+    if (!isRecord(payload) || !Array.isArray(payload.data)) break;
+    for (const record of payload.data) {
+      if (!isRecord(record)) continue;
+      const attributes = isRecord(record.attributes) ? record.attributes : record;
+      const splits = Array.isArray(attributes.transactions) ? attributes.transactions.filter(isRecord) : [];
+      for (const split of splits) rows.push({ ...split, id: record.id });
+    }
+    const meta = isRecord(payload.meta) && isRecord(payload.meta.pagination) ? payload.meta.pagination : {};
+    const total = Number(meta.total_pages);
+    if (!Number.isFinite(total) || page >= total) break;
+  }
+  return rows;
 }
 
 /** Transactions already recorded that look like the one about to be created.
@@ -88,6 +110,18 @@ export async function duplicateWarnings(plan: PlannedWrite[], client: FireflyCli
   if (creates.length === 0) return [];
 
   const warnings: Warning[] = [];
+  // One read per day, not one per split. A three-split create on one day asked
+  // Firefly the same question three times, and now that the question is paged
+  // that would be three times the pages too.
+  const byDay = new Map<string, Record<string, unknown>[]>();
+  const dayOf = async (day: string): Promise<Record<string, unknown>[]> => {
+    const cached = byDay.get(day);
+    if (cached !== undefined) return cached;
+    const fetched = await transactionsOn(day, client);
+    byDay.set(day, fetched);
+    return fetched;
+  };
+
   for (const create of creates) {
     for (const split of splitsOf(create.body)) {
       const day = text(split.date).slice(0, 10);
@@ -96,7 +130,7 @@ export async function duplicateWarnings(plan: PlannedWrite[], client: FireflyCli
       const destination = text(split.destination_name);
       if (day === "" || amount === undefined || source === "" || destination === "") continue;
 
-      const existing = await transactionsOn(day, client);
+      const existing = await dayOf(day);
       const matches = existing
         .filter(
           (row) =>

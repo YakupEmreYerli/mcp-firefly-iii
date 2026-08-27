@@ -79,6 +79,18 @@ function sharesStem(left: string, right: string): boolean {
 
 export type Scored = { score: number; kind: MatchKind };
 
+/** How much of the name the caller actually wrote, as a fraction of it.
+ *
+ * Clamped at 1 because the ratio is otherwise unbounded above: a caller who
+ * repeats a word ("Nakit Nakit") supplies more tokens than a one-word name
+ * holds, and the raw ratio would push a `contains` score past the 1.0 an exact
+ * match scores — inverting the tier order rather than blurring it. Coverage
+ * cannot exceed the whole name, so the clamp is the honest reading.
+ */
+function coverage(queryTokens: string[], candidateTokens: string[]): number {
+  return Math.min(1, queryTokens.length / candidateTokens.length);
+}
+
 /** Score one candidate name against what the caller wrote.
  *
  * The tiers are ordered by how much interpretation each one takes:
@@ -109,14 +121,14 @@ export function score(query: string, candidate: string): Scored | undefined {
   if (everyWordAppears) {
     // Nearer to 1 the more of the name the caller actually wrote, so "Nakit"
     // loses to an account literally called "Nakit" but still beats a typo.
-    return { score: 0.75 + 0.2 * (queryTokens.length / candidateTokens.length), kind: "contains" };
+    return { score: 0.75 + 0.2 * coverage(queryTokens, candidateTokens), kind: "contains" };
   }
 
   // A shared stem, in either direction: the caller's word may be the longer
   // one. Ranked below `contains` because it is a guess about morphology.
   const everyWordShares = queryTokens.every((word) => candidateTokens.some((other) => sharesStem(word, other)));
   if (everyWordShares) {
-    return { score: 0.6 + 0.15 * (queryTokens.length / candidateTokens.length), kind: "stem" };
+    return { score: 0.6 + 0.15 * coverage(queryTokens, candidateTokens), kind: "stem" };
   }
 
   const longest = Math.max(left.length, right.length);

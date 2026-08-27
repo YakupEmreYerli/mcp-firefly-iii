@@ -7,8 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- `firefly_execute`. **This is a breaking change** and needs a major version
+  when it ships. One tool that could both list a balance and delete a
+  transaction left the host nothing to annotate, so it is replaced by
+  `firefly_query`, `firefly_mutate` and `firefly_destructive` — see Changed
+  below. A caller that named `firefly_execute` must pick the surface matching
+  what it is doing; the `entity`, `operation`, `params` and `fields` arguments
+  are unchanged.
+
+### Fixed
+
+- `transaction.bulk_tag` no longer erases the tags a transaction already
+  carries. Firefly rewrites the whole tag set on a journal update rather than
+  merging into it, so tagging an already-tagged transaction dropped every other
+  tag and reported `{updated: n}` — a silent loss on real data. The existing
+  tags are now read back and merged.
+- `MCP_STRUCTURED_OUTPUT` responses validate against the schema they advertise.
+  The declared output schema named a single optional `result` property, which
+  compiles to `additionalProperties: false`, while object payloads travel
+  unwrapped — so every object response, which is nearly all of them, was
+  rejected client-side with "data must NOT have additional properties". The
+  schema is now an open object, as the payload always was.
+- `FIREFLY_PERMISSIONS=write` and `=destructive` grant what they name. A bare
+  level name fell through the clause parser and left the fallback at `none`, so
+  asking for full access silently blocked every operation including reads.
+- `analysis.compare_periods` honours `currency_code`. It was accepted,
+  forwarded only to the balance endpoint, and then discarded with that
+  endpoint's result, so a multi-currency ledger came back unfiltered while the
+  schema promised one currency.
+- `analysis.recurring_expenses` and `analysis.uncategorized` report `truncated`
+  when a period holds more transactions than the scan reads. The counts and
+  totals were presented as complete figures when they were lower bounds.
+- The duplicate warning shown before a transaction write reads every page of
+  the day, not just the first. On a busy day the existing transaction sat on
+  page two and the write went ahead unwarned.
+- A failed balance query is no longer reported as a refused period.
+  `summary.overview` rescues the 422 Firefly returns for a single-day range,
+  but the rescue caught every error, so an expired token or a 500 came back as
+  a property of the date range.
+
 ### Changed
 
+- `transaction.bulk_categorize` and `transaction.bulk_tag` return a per-id
+  record — `updated`, `failed`, `skipped` and a `results` list — instead of a
+  bare `{updated: n}`. A failure part-way through used to throw, discarding the
+  list of ids already rewritten, and a caller of a destructive operation could
+  not tell whether none or nearly all of them had changed. Remaining ids are
+  now still attempted and each outcome is named.
+- A tool surface with an empty catalogue is not registered. Only
+  `FIREFLY_READ_ONLY` used to skip the writing surfaces; `FIREFLY_PERMISSIONS`
+  narrowing to reads left `firefly_mutate` and `firefly_destructive` advertised
+  with no operations and every call failing.
 - `firefly_execute` is replaced by three tools split by risk: `firefly_query`,
   `firefly_mutate` and `firefly_destructive`. One tool that could both list a
   balance and delete a transaction gave the host nothing to annotate. The split

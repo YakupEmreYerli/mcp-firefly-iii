@@ -106,7 +106,12 @@ function parsePermissions(raw: string | undefined): PermissionPolicy {
   const text = raw?.trim().toLowerCase() ?? "";
   if (text === "") return { fallback: "destructive", byEntity: new Map() };
 
-  const preset = ALIASES[text];
+  // Both vocabularies, not just the aliases: the docs offer `none|read|write|
+  // destructive` as level names, and a bare one used to fall through to the
+  // clause parser, where it parsed to nothing and left fallback "none" —
+  // `FIREFLY_PERMISSIONS=destructive` asked for everything and blocked
+  // everything, silently.
+  const preset = resolveLevel(text);
   if (preset) return { fallback: preset, byEntity: new Map() };
 
   const byEntity = new Map<EntityType, PermissionLevel>();

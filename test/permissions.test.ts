@@ -120,3 +120,21 @@ describe("the registry enforces the policy", () => {
     await expect(registry("full", true).execute("transaction", "delete", {})).rejects.toBeInstanceOf(ReadOnlyModeError);
   });
 });
+
+describe("whole-value levels", () => {
+  // docs/configuration.md lists none|read|write|destructive as the level
+  // vocabulary and says the preset names are interchangeable with it, so an
+  // operator writing a bare level is writing something the docs offered.
+  it("accepts a bare level name as a preset", () => {
+    expect(policy("write").fallback).toBe("write");
+    expect(policy("destructive").fallback).toBe("destructive");
+    expect(policy("read").fallback).toBe("read");
+    expect(policy("none").fallback).toBe("none");
+  });
+
+  it("does not turn a request for everything into a block on everything", () => {
+    // The failure this guards is silent: `destructive` fell through the clause
+    // parser to fallback "none", so asking for full access closed every read.
+    expect(policy("destructive").fallback).not.toBe("none");
+  });
+});

@@ -129,15 +129,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Every transaction in a period, one row per split.
+/** How far the scan will page before it gives up.
+ *
+ * A bound has to exist — an unbounded loop against a large ledger is a request
+ * that never returns — but reaching it is reported rather than absorbed, which
+ * is the whole difference between a lower bound and a wrong number.
+ */
+const PAGE_SIZE = 100;
+const MAX_PAGES = 20;
+
+/** Every transaction in a period, one row per split, and whether that is all
+ * of them.
  *
  * Paged rather than taking the first page: a pattern is a claim about all the
- * payments, and one silently left on page two would change the answer.
+ * payments, and one silently left on page two would change the answer. The
+ * same reasoning is why `truncated` comes back: stopping at the cap makes the
+ * claim false in exactly the way paging was added to prevent, so the caller is
+ * told instead of being handed a count that looks complete.
  */
-async function spendingIn(start: string, end: string, client: FireflyClient): Promise<Spend[]> {
+type Scan = { rows: Spend[]; truncated: boolean };
+
+async function spendingIn(start: string, end: string, client: FireflyClient): Promise<Scan> {
   const rows: Spend[] = [];
-  for (let page = 1; page <= 20; page += 1) {
-    const payload = await client.get("/transactions", { start, end, limit: 100, page });
+  let truncated = false;
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const payload = await client.get("/transactions", { start, end, limit: PAGE_SIZE, page });
     if (!isRecord(payload) || !Array.isArray(payload.data)) break;
     for (const record of payload.data) {
       if (!isRecord(record)) continue;
@@ -160,8 +176,25 @@ async function spendingIn(start: string, end: string, client: FireflyClient): Pr
     const meta = isRecord(payload.meta) && isRecord(payload.meta.pagination) ? payload.meta.pagination : {};
     const total = Number(meta.total_pages);
     if (!Number.isFinite(total) || page >= total) break;
+    if (page === MAX_PAGES) truncated = true;
   }
-  return rows;
+  return { rows, truncated };
+}
+
+/** The caveat a truncated scan carries, or nothing at all.
+ *
+ * Phrased as "lower bounds" because that is precisely what the numbers become:
+ * every count and total below is at least this, and possibly more.
+ */
+function truncationNote(truncated: boolean): Record<string, unknown> {
+  if (!truncated) return {};
+  return {
+    truncated: true,
+    truncated_note:
+      `Only the first ${MAX_PAGES * PAGE_SIZE} transactions in this period were read, so every count ` +
+      "and total below is a lower bound rather than a complete figure. Ask again over a shorter period " +
+      "to get exact numbers.",
+  };
 }
 
 function median(values: number[]): number {
@@ -189,7 +222,7 @@ async function recurringExpenses(
 ): Promise<unknown> {
   if (query.end < query.start) throw new Error("end must not fall before start");
   const minimum = query.min_occurrences ?? 3;
-  const rows = await spendingIn(query.start, query.end, client);
+  const { rows, truncated } = await spendingIn(query.start, query.end, client);
 
   const groups = new Map<string, Spend[]>();
   for (const row of rows) {
@@ -227,6 +260,7 @@ async function recurringExpenses(
   found.sort((a, b) => b.total - a.total);
   return {
     period: { start: query.start, end: query.end, end_is_inclusive: true },
+    ...truncationNote(truncated),
     min_occurrences: minimum,
     recurring_count: found.length,
     recurring: found,
@@ -246,7 +280,8 @@ async function uncategorized(
   client: FireflyClient,
 ): Promise<unknown> {
   if (query.end < query.start) throw new Error("end must not fall before start");
-  const rows = (await spendingIn(query.start, query.end, client)).filter((row) => row.category === undefined);
+  const scan = await spendingIn(query.start, query.end, client);
+  const rows = scan.rows.filter((row) => row.category === undefined);
 
   const groups = new Map<string, Spend[]>();
   for (const row of rows) {
@@ -269,6 +304,7 @@ async function uncategorized(
   const shown = listed.slice(0, query.limit ?? 25);
   return {
     period: { start: query.start, end: query.end, end_is_inclusive: true },
+    ...truncationNote(scan.truncated),
     uncategorized_transactions: rows.length,
     payees_without_a_category: listed.length,
     payees_shown: shown.length,

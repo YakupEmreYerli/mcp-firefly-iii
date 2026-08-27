@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Registry } from "../../src/registry.js";
 import { insightModule, summaryModule } from "../../src/entities/remaining.js";
 import { EntityType } from "../../src/types.js";
-import { ValidationError } from "../../src/errors.js";
+import { FireflyApiError, ValidationError } from "../../src/errors.js";
 import type { Config } from "../../src/config.js";
 import type { FireflyClient, Query } from "../../src/firefly.js";
 
@@ -250,7 +250,7 @@ describe("summary.overview", () => {
     // accepts it. Losing the balances must not cost the whole period.
     const client: FireflyClient = {
       get: async (path, query) => {
-        if (path === "/summary/basic") throw new Error("422 - start must be before end");
+        if (path === "/summary/basic") throw new FireflyApiError(422, "start must be before end");
         if (path === "/insight/expense/total") return [row(-204.99)];
         if (path === "/insight/expense/category") return [row(-204.99, "TRY", "Market")];
         void query;
@@ -269,7 +269,7 @@ describe("summary.overview", () => {
   it("says the balances are missing rather than letting them read as zero", async () => {
     const client: FireflyClient = {
       get: async (path) => {
-        if (path === "/summary/basic") throw new Error("422 - start must be before end");
+        if (path === "/summary/basic") throw new FireflyApiError(422, "start must be before end");
         return [];
       },
       getText: async () => "", post: async () => ({}), put: async () => ({}),

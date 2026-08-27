@@ -119,3 +119,23 @@ describe("resolve", () => {
     expect(result.matched).toBe(true);
   });
 });
+
+describe("score ceilings", () => {
+  // The tier order is the whole contract of `score`: a caller reading `kind`
+  // trusts that an exact hit outranks a partial one. The ratio in each tier is
+  // unbounded above 1 when the caller writes more words than the name holds,
+  // which inverts that order instead of merely blurring it.
+  it("never lets a partial match outscore the exact name", () => {
+    expect(score("Nakit Nakit", "Nakit")!.score).toBeLessThan(score("Nakit Nakit", "Nakit Nakit")!.score);
+  });
+
+  it("keeps a repeated word from stealing the match from the literal name", () => {
+    expect(pick("Nakit Nakit", ["Nakit", "Nakit Nakit"])).toBe("Nakit Nakit");
+  });
+
+  it("keeps a stem match below the weakest contains match", () => {
+    // 0.75 is the contains floor, so a stem reaching past it would rank a
+    // guess about morphology above a name the caller actually wrote out.
+    expect(score("yemekler yemekler", "yeme")!.score).toBeLessThanOrEqual(0.75);
+  });
+});

@@ -111,8 +111,19 @@ function toolResult(payload: unknown, structured: boolean): ToolResult {
 /** Declared only when structured output is on, because the SDK requires
  * `structuredContent` from any tool that advertises a schema. The shape is
  * whatever Firefly returned for the operation the caller chose, so there is
- * nothing truer to promise than "an object". */
-const OUTPUT_SCHEMA = { result: z.unknown().optional().describe("Present only when Firefly answered with a list rather than an object") };
+ * nothing truer to promise than "an object".
+ *
+ * Passthrough, and that is the whole point. A schema that names its properties
+ * compiles to `additionalProperties: false`, and the SDK client caches a
+ * validator from `tools/list` and checks every `structuredContent` against it —
+ * so naming only `result` here rejected every object response, which is nearly
+ * all of them, with "data must NOT have additional properties". An open object
+ * is the only honest declaration for a payload this server does not shape.
+ */
+const OUTPUT_SCHEMA = z
+  .object({})
+  .passthrough()
+  .describe("Whatever Firefly returned. A list arrives under `result`, since structuredContent must be an object.");
 
 export function createServer(registry: Registry, config: Config): McpServer {
   // Read from package.json rather than written down here: a second copy is a
@@ -164,10 +175,16 @@ const SURFACES: Surface[] = [
 
 function registerMetaTools(server: McpServer, registry: Registry, config: Config): void {
   for (const surface of SURFACES) {
-    // Read-only mode leaves the writing surfaces with an empty catalogue.
-    // Registering a tool that can only refuse would send the model down a dead
-    // end, which is the same reason the operations themselves are hidden.
-    if (config.readOnly && !surface.access.includes("read")) continue;
+    // Asked of the registry rather than inferred from one setting. Read-only
+    // mode is not the only way a surface ends up with nothing on it —
+    // FIREFLY_PERMISSIONS=read empties the writing surfaces just as completely,
+    // and used to register them anyway: a tool whose description read
+    // "Available entities and their operations:" followed by nothing, and whose
+    // every call failed with PermissionDeniedError. Registering a tool that can
+    // only refuse sends the model down a dead end, which is the same reason the
+    // operations themselves are hidden.
+    const catalogue = registry.operationCatalogue(surface.access, surface.hints);
+    if (catalogue === "") continue;
 
     server.registerTool(
       surface.tool,

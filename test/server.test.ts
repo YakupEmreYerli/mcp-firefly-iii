@@ -43,16 +43,19 @@ const module: EntityModule = {
   },
 };
 
-function makeRegistry(): Registry {
-  const registry = new Registry(config, client);
-  registry.register(module);
+function makeRegistry(overrides: Partial<Config> = {}, register: EntityModule = module): Registry {
+  const registry = new Registry({ ...config, ...overrides }, client);
+  registry.register(register);
   return registry;
 }
 
 /** Ask the running server for its tool list over the SDK's own client, rather
  * than reaching into McpServer's private tool map. */
-async function registeredToolNames(overrides: Partial<Config> = {}): Promise<string[]> {
-  const server = createServer(makeRegistry(), { ...config, ...overrides });
+async function registeredToolNames(overrides: Partial<Config> = {}, register?: EntityModule): Promise<string[]> {
+  // The registry gets the overrides too: which operations are visible is a
+  // registry decision, and a server built over a registry that never saw the
+  // policy would answer about a different configuration than the one asked for.
+  const server = createServer(makeRegistry(overrides, register), { ...config, ...overrides });
   const mcpClient = new Client({ name: "test", version: "0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
@@ -160,6 +163,11 @@ async function callTool(
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
   try {
+    // A real client lists tools before calling one, and the SDK client caches
+    // a validator per advertised outputSchema at that moment. Skipping the
+    // list here would skip the validation every host actually performs, which
+    // is how a schema that rejects every object response went unnoticed.
+    await mcpClient.listTools();
     return (await mcpClient.callTool({ name, arguments: args })) as {
       content?: { type: string; text?: string }[];
       structuredContent?: Record<string, unknown>;
@@ -215,6 +223,19 @@ describe("structured output", () => {
   it("passes an object through unwrapped", async () => {
     const result = await callTool("firefly_get_schema", { entity: "insight", operation: "expense_total" }, { structuredOutput: true });
     expect(result.structuredContent).toMatchObject({ type: "object" });
+  });
+
+  it("survives the client-side schema validation a listed tool gets", async () => {
+    // The declared schema is what the host validates every response against.
+    // A schema naming one optional `result` property compiles to
+    // additionalProperties:false, so an object payload sent unwrapped — which
+    // is nearly every response — came back as
+    // "-32602 ... data must NOT have additional properties".
+    const objectResult = await callTool("firefly_get_schema", { entity: "insight", operation: "expense_total" }, { structuredOutput: true });
+    expect(objectResult.structuredContent).toMatchObject({ type: "object" });
+
+    const errorResult = await callTool("firefly_query", { entity: "insight", operation: "nope", params: {} }, { structuredOutput: true });
+    expect(errorResult.structuredContent).toHaveProperty("error");
   });
 
   it("advertises an output schema only in that mode, so the default costs no extra tokens", async () => {
@@ -275,7 +296,10 @@ describe("executeDescription", () => {
 
 describe("the meta-tools", () => {
   it("splits execution by risk instead of offering one tool that can do anything", async () => {
-    expect(await registeredToolNames()).toEqual([
+    // Registered over a module holding all three access levels: a surface with
+    // nothing on it is deliberately not offered, so a read-only module would
+    // show the split collapsing rather than existing.
+    expect(await registeredToolNames({}, accessModule)).toEqual([
       "firefly_destructive",
       "firefly_get_schema",
       "firefly_list_operations",
@@ -285,7 +309,7 @@ describe("the meta-tools", () => {
   });
 
   it("does not offer a writing surface that could only refuse, in read-only mode", async () => {
-    expect(await registeredToolNames({ readOnly: true })).toEqual([
+    expect(await registeredToolNames({ readOnly: true }, accessModule)).toEqual([
       "firefly_get_schema",
       "firefly_list_operations",
       "firefly_query",
@@ -446,5 +470,28 @@ describe("direct mode", () => {
     const { result } = await callDirectTool("transaction_list", { nonsense: "x" });
 
     expect(JSON.stringify(result)).toMatch(/nonsense|unrecognized/i);
+  });
+});
+
+
+describe("surfaces a permission policy has emptied", () => {
+  const readOnlyPolicy = { fallback: "read" as const, byEntity: new Map() };
+
+  it("does not register a write surface whose catalogue is empty", async () => {
+    // Registering it would advertise "Available entities and their operations:"
+    // followed by nothing, and every call would fail with PermissionDeniedError
+    // — the dead end docs/configuration.md says is avoided. FIREFLY_READ_ONLY
+    // was the only path that skipped them; FIREFLY_PERMISSIONS=read was not.
+    const names = await registeredToolNames({ permissions: readOnlyPolicy });
+    expect(names).toContain("firefly_query");
+    expect(names).not.toContain("firefly_mutate");
+    expect(names).not.toContain("firefly_destructive");
+  });
+
+  it("still registers a surface the policy left something on", async () => {
+    const names = await registeredToolNames({
+      permissions: { fallback: "write" as const, byEntity: new Map() },
+    });
+    expect(names).toContain("firefly_query");
   });
 });

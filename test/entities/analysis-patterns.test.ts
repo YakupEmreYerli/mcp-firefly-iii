@@ -219,3 +219,39 @@ describe("analysis.uncategorized", () => {
     await expect(runU([], { start: "2026-08-31", end: "2026-03-01" })).rejects.toThrow(/end must not fall before start/);
   });
 });
+
+describe("the page cap is reported, not hidden", () => {
+  /** 21 pages of 100, one past the 20-page cap the scan stops at. */
+  const overCap = Array.from({ length: 2100 }, (_unused, index) => ({
+    date: "2026-08-01",
+    amount: "1.00",
+    destination_name: `Payee ${index % 3}`,
+  }));
+
+  it("says so when recurring_expenses could not read the whole period", async () => {
+    // The counts are the answer to the question, and a truncated scan reports
+    // occurrences and totals that look like complete ones. Better a lower bound
+    // the caller can see than a wrong number they cannot.
+    const { client: c } = client(overCap);
+    const result = (await registry(c).execute("analysis", "recurring_expenses", {
+      start: "2026-08-01", end: "2026-08-31",
+    })) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+
+  it("says so when uncategorized could not read the whole period", async () => {
+    const { client: c } = client(overCap);
+    const result = (await registry(c).execute("analysis", "uncategorized", {
+      start: "2026-08-01", end: "2026-08-31",
+    })) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+
+  it("stays quiet when the whole period fitted", async () => {
+    const { client: c } = client([{ date: "2026-08-01", amount: "1.00", destination_name: "Payee" }]);
+    const result = (await registry(c).execute("analysis", "uncategorized", {
+      start: "2026-08-01", end: "2026-08-31",
+    })) as Record<string, unknown>;
+    expect(result.truncated).toBeUndefined();
+  });
+});

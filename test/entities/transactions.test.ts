@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Registry } from "../../src/registry.js";
 import { transactionOperations, transactionsModule } from "../../src/entities/transactions.js";
 import { EntityType } from "../../src/types.js";
-import { ValidationError } from "../../src/errors.js";
+import { FireflyApiError, ValidationError } from "../../src/errors.js";
 import type { Config } from "../../src/config.js";
 import type { FireflyClient, Query } from "../../src/firefly.js";
 
@@ -213,7 +213,10 @@ describe("bulk operations", () => {
         body: { transactions: [{ transaction_journal_id: "9", category_name: "Market" }] },
       },
     ]);
-    expect(result).toEqual({ updated: 2, category_name: "Market" });
+    expect(result).toMatchObject({
+      updated: 2, failed: 0, skipped: 0, category_name: "Market",
+      results: [{ id: 1, status: "updated" }, { id: 2, status: "updated" }],
+    });
   });
 
   it("accepts a category name with spaces and Turkish characters", async () => {
@@ -255,7 +258,10 @@ describe("bulk operations", () => {
       path: "/transactions/1",
       body: { transactions: [{ transaction_journal_id: "9", tags: ["market", "nakit"] }] },
     });
-    expect(result).toEqual({ updated: 1, tag_names: ["market", "nakit"] });
+    expect(result).toMatchObject({
+      updated: 1, failed: 0, skipped: 0, tag_names: ["market", "nakit"],
+      results: [{ id: 1, status: "updated" }],
+    });
   });
 
   it("accepts a tag containing a comma — tags are an array now, not a joined string", async () => {
@@ -343,5 +349,95 @@ describe("input schemas are idempotent", () => {
     const sample = samples[name];
     const once = operation.input.parse(sample);
     expect(operation.input.parse(once)).toEqual(once);
+  });
+});
+
+describe("bulk_tag preserves what is already there", () => {
+  /** A group whose split already carries tags, which is the ordinary case on a
+   * ledger anyone has been using. */
+  function taggedClient(existing: string[]) {
+    const puts: { path: string; body: unknown }[] = [];
+    const client: FireflyClient = {
+      get: async () => ({
+        data: { attributes: { transactions: [{ transaction_journal_id: "9", tags: existing }] } },
+      }),
+      getText: async () => "",
+      post: async () => ({ data: {} }),
+      put: async (path, body) => { puts.push({ path, body }); return { data: {} }; },
+      del: async () => null,
+      postBinary: async () => null,
+    };
+    return { client, puts };
+  }
+
+  it("adds to the existing tags instead of replacing them", async () => {
+    // Firefly replaces the whole tag set on a journal update; it does not
+    // merge. Sending only the new tag wiped every tag already on the
+    // transaction, reported it as {updated: n}, and left nothing to recover
+    // from — on real financial data.
+    const { client, puts } = taggedClient(["vacation", "reimbursable"]);
+    await makeRegistry(client).execute("transaction", "bulk_tag", {
+      transaction_ids: [1],
+      tag_names: ["2026"],
+    });
+    const body = puts[0]!.body as { transactions: { tags: string[] }[] };
+    expect(body.transactions[0]!.tags.sort()).toEqual(["2026", "reimbursable", "vacation"]);
+  });
+
+  it("does not duplicate a tag the transaction already carries", async () => {
+    const { client, puts } = taggedClient(["2026"]);
+    await makeRegistry(client).execute("transaction", "bulk_tag", {
+      transaction_ids: [1],
+      tag_names: ["2026", "food"],
+    });
+    const body = puts[0]!.body as { transactions: { tags: string[] }[] };
+    expect(body.transactions[0]!.tags.sort()).toEqual(["2026", "food"]);
+  });
+});
+
+describe("bulk operations report what they actually did", () => {
+  /** Fails on one id in the middle, succeeds on the rest. */
+  function flakyClient(failingId: string) {
+    const puts: string[] = [];
+    const client: FireflyClient = {
+      get: async (path) => {
+        if (path === `/transactions/${failingId}`) throw new FireflyApiError(404, "Not found");
+        return { data: { attributes: { transactions: [{ transaction_journal_id: "9", tags: [] }] } } };
+      },
+      getText: async () => "",
+      post: async () => ({ data: {} }),
+      put: async (path) => { puts.push(path); return { data: {} }; },
+      del: async () => null,
+      postBinary: async () => null,
+    };
+    return { client, puts };
+  }
+
+  it("keeps the record of the ids it already rewrote when one fails", async () => {
+    // Throwing out of the handler returned {error: …} and lost the list, so a
+    // caller of a destructive operation could not tell whether 0 or 9 of 10
+    // transactions had been changed.
+    const { client } = flakyClient("2");
+    const result = (await makeRegistry(client).execute("transaction", "bulk_categorize", {
+      transaction_ids: [1, 2, 3],
+      category_name: "Market",
+    })) as { updated: number; failed: number; results: { id: number; status: string }[] };
+
+    expect(result.updated).toBe(2);
+    expect(result.failed).toBe(1);
+    expect(result.results.map((r) => [r.id, r.status])).toEqual([
+      [1, "updated"],
+      [2, "failed"],
+      [3, "updated"],
+    ]);
+  });
+
+  it("names why an id failed", async () => {
+    const { client } = flakyClient("1");
+    const result = (await makeRegistry(client).execute("transaction", "bulk_tag", {
+      transaction_ids: [1],
+      tag_names: ["x"],
+    })) as { results: { reason?: string }[] };
+    expect(result.results[0]!.reason).toContain("404");
   });
 });

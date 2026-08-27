@@ -104,7 +104,9 @@ describe("the duplicate guard", () => {
     const { registry, calls } = setup([existing()]);
     await preview(registry, { transactions: [SPLIT] });
     const lookup = calls.find((call) => call.path === "/transactions" && call.method === "GET");
-    expect(lookup?.query).toEqual({ start: "2026-08-26", end: "2026-08-26" });
+    // start === end is the assertion; the paging parameters ride along.
+    expect(lookup?.query).toMatchObject({ start: "2026-08-26", end: "2026-08-26" });
+    expect(lookup?.query?.start).toBe(lookup?.query?.end);
   });
 
   it("stays quiet when the amount differs", async () => {
@@ -137,5 +139,58 @@ describe("the duplicate guard", () => {
     const { registry, calls } = setup([existing()]);
     await preview(registry, { id: "7" }, "delete");
     expect(calls.filter((call) => call.path === "/transactions" && call.method === "GET")).toHaveLength(0);
+  });
+});
+
+describe("the duplicate scan reads the whole day", () => {
+  /** Serves one day of transactions across pages, the way Firefly does. */
+  function pagedSetup(rows: unknown[], perPage: number): { registry: Registry; gets: Query[] } {
+    const gets: Query[] = [];
+    const groups = rows.map((attributes, index) => ({ id: String(index + 1), attributes }));
+    const client: FireflyClient = {
+      get: async (path, query) => {
+        if (path !== "/transactions") {
+          return { data: { attributes: { transactions: [{ transaction_journal_id: "9" }] } } };
+        }
+        gets.push(query ?? {});
+        const page = Number(query?.page ?? 1);
+        return {
+          data: groups.slice((page - 1) * perPage, page * perPage),
+          meta: { pagination: { total_pages: Math.max(1, Math.ceil(groups.length / perPage)) } },
+        };
+      },
+      getText: async () => "", post: async () => ({}), put: async () => ({}),
+      del: async () => null, postBinary: async () => null,
+    };
+    const config: Config = {
+      apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
+      permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+      enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, disableSslVerify: false, logLevel: "INFO",
+    };
+    const registry = new Registry(config, client);
+    registry.register(transactionsModule);
+    return { registry, gets };
+  }
+
+  it("finds a duplicate sitting past the first page", async () => {
+    // The point of the warning is to catch a repeat before it is written. A
+    // scan that stops at page one misses it silently on any busy day, which is
+    // worse than missing it on a read: the write goes ahead unwarned.
+    const filler = Array.from({ length: 3 }, () => existing({ amount: "1.00", description: "other" }));
+    const { registry } = pagedSetup([...filler, existing()], 2);
+    const result = (await registry.execute(
+      "transaction", "create", { transactions: [SPLIT] }, undefined, undefined, true,
+    )) as { warnings?: { kind: string }[] };
+    expect(result.warnings?.map((w) => w.kind)).toContain("possible_duplicate");
+  });
+
+  it("reads a day once however many splits are being created on it", async () => {
+    const { registry, gets } = pagedSetup([existing()], 100);
+    await registry.execute(
+      "transaction", "create",
+      { transactions: [SPLIT, { ...SPLIT, amount: "300.00" }, { ...SPLIT, amount: "400.00" }] },
+      undefined, undefined, true,
+    );
+    expect(gets).toHaveLength(1);
   });
 });

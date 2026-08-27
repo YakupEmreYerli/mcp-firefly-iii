@@ -3,6 +3,7 @@ import { defineOperation, type EntityModule, type Operation } from "../registry.
 import { dateRange, entityId, isoDate, pagination } from "../schemas/common.js";
 import { EntityType } from "../types.js";
 import type { FireflyClient } from "../firefly.js";
+import { FireflyApiError } from "../errors.js";
 
 const id = z.object({ id: entityId }).strict();
 const dates = { ...dateRange };
@@ -114,8 +115,8 @@ export async function buildOverview(query: z.infer<typeof analysisInput>, client
     client.get("/insight/transfer/total", period),
     client.get("/insight/expense/category", period),
     client.get("/summary/basic", query).then(
-      (value) => ({ ok: true as const, value }),
-      () => ({ ok: false as const, value: undefined }),
+      (value) => ({ ok: true as const, value, reason: "" }),
+      (error: unknown) => ({ ok: false as const, value: undefined, reason: balanceFailure(error) }),
     ),
   ]);
   const totals: Record<string, Record<string, number>> = {};
@@ -128,11 +129,18 @@ export async function buildOverview(query: z.infer<typeof analysisInput>, client
     values.transfers ??= 0;
     values.net = Math.round((values.income - values.expense) * 100) / 100;
   }
-  const expenseByCategory = insightEntries(categories).map((entry) => ({
+  // The filter is what makes `currency_code` mean anything here. It used to be
+  // accepted, forwarded only to /summary/basic, and then dropped with that
+  // endpoint's result — so a multi-currency ledger came back whole while the
+  // schema promised a single currency, with no sign the filter was ignored.
+  for (const code of Object.keys(totals)) {
+    if (query.currency_code !== undefined && code !== query.currency_code) delete totals[code];
+  }
+  const expenseByCategory = onlyCurrency(insightEntries(categories).map((entry) => ({
     name: stringValue(entry.name) ?? "unknown",
     amount: Math.abs(numberValue(entry.difference_float) ?? numberValue(entry.difference) ?? 0),
     currency_code: stringValue(entry.currency_code) ?? "unknown",
-  })).sort((a, b) => b.amount - a.amount);
+  })), query.currency_code).sort((a, b) => b.amount - a.amount);
   return {
     period: { start: query.start, end: query.end, end_is_inclusive: true },
     totals,
@@ -141,8 +149,37 @@ export async function buildOverview(query: z.infer<typeof analysisInput>, client
     balances: basic.ok ? extractBalances(basic.value) : {},
     // Said rather than left as an empty object: the model must not read missing
     // balances as a net worth of nothing.
-    ...(basic.ok ? {} : { balances_unavailable: "Firefly refused the balance query for this period; the totals above are unaffected." }),
+    ...(basic.ok ? {} : { balances_unavailable: basic.reason }),
   };
+}
+
+/** Why the balances are missing, in words that point at the actual cause.
+ *
+ * The single-day 422 is a property of the date range and nothing else is
+ * wrong, which is what the rescue was built for. Every other failure — an
+ * expired token, a 500, a TLS error — is a property of the instance, and
+ * reporting it as a refused period sends the model to check the dates while
+ * the connection is broken. Worse, it would keep calling the totals
+ * "unaffected" when they came from the same instance.
+ */
+function balanceFailure(error: unknown): string {
+  if (error instanceof FireflyApiError && error.status === 422) {
+    return "Firefly refused the balance query for this period; the totals above are unaffected.";
+  }
+  const detail = error instanceof Error ? error.message : String(error);
+  return `The balance query failed for a reason that is not about the date range: ${detail}. The totals above came from the same instance, so treat them with the same suspicion.`;
+}
+
+/** Keep only the currency the caller asked for.
+ *
+ * Applied here rather than left to the query parameter: the insight endpoints
+ * group by currency in their answer, and filtering what came back is true
+ * whatever the endpoint does with `currency_code`. An unmatched code yields an
+ * empty result, which is the honest answer to "how much did I spend in a
+ * currency I never used".
+ */
+function onlyCurrency<T extends { currency_code: string }>(entries: T[], code: string | undefined): T[] {
+  return code === undefined ? entries : entries.filter((entry) => entry.currency_code === code);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }

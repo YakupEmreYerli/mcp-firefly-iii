@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { defineOperation, type EntityModule, type Operation } from "../registry.js";
 import { EntityType } from "../types.js";
+import type { FireflyClient } from "../firefly.js";
 import { dateRange, entityId, pagination } from "../schemas/common.js";
 import {
   transactionSplitStore,
@@ -108,25 +109,16 @@ export const transactionOperations: Record<string, Operation> = {
         category_name: z.string().min(1),
       })
       .strict(),
-    handler: async ({ transaction_ids, category_name }, client) => {
-      let updated = 0;
-      for (const id of transaction_ids) {
-        const group = (await client.get(`/transactions/${id}`)) as {
-          data?: { attributes?: { transactions?: { transaction_journal_id: string }[] } };
-        };
-        const journals = group.data?.attributes?.transactions ?? [];
-        if (journals.length === 0) continue;
-        await client.put(`/transactions/${id}`, {
-          transactions: journals.map((j) => ({ transaction_journal_id: j.transaction_journal_id, category_name })),
-        });
-        updated++;
-      }
-      return { updated, category_name };
-    },
+    handler: async ({ transaction_ids, category_name }, client) =>
+      applyToEach(transaction_ids, client, (journal) => ({
+        transaction_journal_id: journal.transaction_journal_id,
+        category_name,
+      })).then((outcome) => ({ ...outcome, category_name })),
   }),
 
   bulk_tag: defineOperation({
-    description: "Assign one or more tags to several transactions at once.",
+    description:
+      "Add one or more tags to several transactions at once. Tags already on a transaction are kept.",
     access: "destructive",
     input: z
       .object({
@@ -134,23 +126,59 @@ export const transactionOperations: Record<string, Operation> = {
         tag_names: z.array(z.string().min(1)).min(1),
       })
       .strict(),
-    handler: async ({ transaction_ids, tag_names }, client) => {
-      let updated = 0;
-      for (const id of transaction_ids) {
-        const group = (await client.get(`/transactions/${id}`)) as {
-          data?: { attributes?: { transactions?: { transaction_journal_id: string }[] } };
-        };
-        const journals = group.data?.attributes?.transactions ?? [];
-        if (journals.length === 0) continue;
-        await client.put(`/transactions/${id}`, {
-          transactions: journals.map((j) => ({ transaction_journal_id: j.transaction_journal_id, tags: tag_names })),
-        });
-        updated++;
-      }
-      return { updated, tag_names };
-    },
+    handler: async ({ transaction_ids, tag_names }, client) =>
+      // Merged, not replaced. Firefly rewrites the whole tag set on a journal
+      // update, so sending only the new tags erased every tag the transaction
+      // already carried — and reported it as a successful update, on data
+      // nothing here can restore.
+      applyToEach(transaction_ids, client, (journal) => ({
+        transaction_journal_id: journal.transaction_journal_id,
+        tags: [...new Set([...(journal.tags ?? []), ...tag_names])],
+      })).then((outcome) => ({ ...outcome, tag_names })),
   }),
 };
+
+/** One split as the bulk operations need to read it back. */
+type Journal = { transaction_journal_id: string; tags?: string[] };
+
+/** What happened to one id. `skipped` is a group that came back with no
+ * splits, which is neither a success nor a failure worth aborting for. */
+type IdOutcome = { id: number; status: "updated" | "skipped" | "failed"; reason?: string };
+
+/** Rewrite one field across several transactions, and report each one.
+ *
+ * The per-id record is the point. These are `destructive` operations, and
+ * throwing out of the loop discarded the list of ids already rewritten — the
+ * caller got `{error: …}` and no way to tell whether none or nearly all of
+ * them had been changed. A failure on one id is recorded and the rest are
+ * still attempted, because the caller named each id deliberately and one stale
+ * entry is not a reason to abandon the other nine.
+ */
+async function applyToEach(
+  ids: number[],
+  client: FireflyClient,
+  rewrite: (journal: Journal) => Record<string, unknown>,
+): Promise<{ updated: number; failed: number; skipped: number; results: IdOutcome[] }> {
+  const results: IdOutcome[] = [];
+  for (const id of ids) {
+    try {
+      const group = (await client.get(`/transactions/${id}`)) as {
+        data?: { attributes?: { transactions?: Journal[] } };
+      };
+      const journals = group.data?.attributes?.transactions ?? [];
+      if (journals.length === 0) {
+        results.push({ id, status: "skipped", reason: "the group came back with no splits" });
+        continue;
+      }
+      await client.put(`/transactions/${id}`, { transactions: journals.map(rewrite) });
+      results.push({ id, status: "updated" });
+    } catch (error) {
+      results.push({ id, status: "failed", reason: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  const count = (status: IdOutcome["status"]) => results.filter((entry) => entry.status === status).length;
+  return { updated: count("updated"), failed: count("failed"), skipped: count("skipped"), results };
+}
 
 export const transactionsModule: EntityModule = {
   entity: EntityType.Transaction,
