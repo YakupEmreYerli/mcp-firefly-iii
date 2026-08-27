@@ -30,9 +30,13 @@ src/
   firefly    HTTP client and Firefly error translation
 ```
 
-Operasyonlar `defineOperation` ile tanımlanır ve üç meta-araç
-(`firefly_execute`, `firefly_list_operations`, `firefly_get_schema`) üzerinden
-sunulur — çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için.
+Operasyonlar `defineOperation` ile tanımlanır ve meta-araçlar üzerinden sunulur
+— çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için. Çalıştırma riske göre
+üçe bölünmüştür (`firefly_query`, `firefly_mutate`, `firefly_destructive`),
+yanına `firefly_list_operations` ve `firefly_get_schema` gelir. Bölme
+`Registry.execute` içinde **uygulanır**: yanlış yüzeyden çağrılan bir operasyon
+`WrongAccessSurfaceError` ile reddedilir, yoksa tool annotation'ı sunucunun
+tutmadığı bir iddia olurdu.
 
 ## Operasyon ekleme
 
@@ -43,20 +47,24 @@ sunulur — çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için.
 
 İki şeyi atlamak kolay:
 
-**Her operasyonu `read` veya `write` diye etiketleyin.** Salt-okunur mod bu
-etiketlere bakar. Etiketlenmemiş bir yazma operasyonu, salt-okunur modda sessizce
-çağrılabilir kalır — bu eksikliği yakalayacak ikinci bir isim listesi yok.
+**Her operasyonu `read`, `write` veya `destructive` diye etiketleyin.**
+Salt-okunur mod ve üç çalıştırma yüzeyi bu etiketlere bakar. `destructive`,
+çağıranın geri alamayacağı alt kümedir: kaydı siler, ya da tek çağrıda çok
+kaydın bir alanını yeniden yazar. Kapı `access !== "read"` diye bakar, yani
+sonradan eklenen bir seviye salt-okunur modda kapalı gelir — ama etiketi
+tamamen unutulmuş bir operasyonu yakalayacak ikinci bir isim listesi yok.
 
 **Açıklamaları, operasyonun cevapladığı soru olarak yazın.**
 `"Dönemde kategoriye göre ne kadar harcandı?"`, `"Gider kategori insight'ı"`ndan
 iyidir. Bu açıklamalar `firefly_list_operations` ve `firefly_get_schema`
 üzerinden görünür.
 
-`firefly_execute` açıklamasına gömülü katalog ise açıklamaları değil, yalnızca
-**operasyon adlarını** listeler — yanına `registry._ENTITY_HINTS`'ten gelen tek
-satırlık varlık ipucunu ekler. Model çoğu zaman varlığı bu ipuçlarına bakarak
-seçer, o yüzden yeni bir varlık eklerken ipucunu da ekleyin (bir test bunu
-zorunlu kılıyor).
+Çalıştırma araçlarının açıklamasına gömülü katalog ise açıklamaları değil,
+yalnızca **operasyon adlarını** listeler — yanına `EntityModule.hint`'ten gelen
+tek satırlık varlık ipucunu ekler. İpucu yalnızca `firefly_query` yüzeyinde
+tekrarlanır: üç yüzeyde birden tekrarlamak katalog metnini %55 büyütüyordu,
+ölçüldü. Model çoğu zaman varlığı bu ipuçlarına bakarak seçer, o yüzden yeni bir
+varlık eklerken ipucunu da ekleyin (tip sistemi zorunlu kılıyor).
 
 **Açıklamalar İngilizce kalır.** Türkçeye çevirmek, modelin gördüğü metinle
 Firefly'ın kendi alan adları (`category_id`, `source_name`) arasına bir çeviri

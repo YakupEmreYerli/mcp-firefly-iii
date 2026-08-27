@@ -27,13 +27,18 @@ import { availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModul
 export const ENTITY_MODULES: EntityModule[] = [accountsModule, transactionsModule, budgetsModule, categoriesModule, tagsModule, insightModule, summaryModule, searchModule, billsModule, piggyBanksModule, rulesModule, ruleGroupsModule, currenciesModule, exchangeRatesModule, attachmentsModule, recurringModule, autocompleteModule, availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModule, preferencesModule, configurationModule, dataExportModule, analysisModule];
 
 /** The catalogue is embedded here rather than fetched, so choosing an entity
- * and operation costs the model no extra tool call. */
-export function executeDescription(registry: Registry): string {
+ * and operation costs the model no extra tool call.
+ *
+ * Each surface carries only its own operations, and only the reading surface
+ * repeats the entity hints — see `Registry.operationCatalogue` for why.
+ */
+export function executeDescription(registry: Registry, surface?: Surface): string {
+  const allowed = surface?.access;
   return [
-    "Execute any Firefly III operation.",
+    surface?.summary ?? "Execute any Firefly III operation.",
     "",
     "Available entities and their operations:",
-    registry.operationCatalogue(),
+    registry.operationCatalogue(allowed, surface?.hints ?? true),
     "",
     "Call firefly_get_schema(entity, operation) for the parameters an operation accepts.",
     "",
@@ -97,29 +102,68 @@ export function createServer(registry: Registry, config: Config): McpServer {
   return server;
 }
 
+/** One execute tool per risk level.
+ *
+ * A single tool that could both list and delete gave the host nothing to
+ * annotate: it had to treat reading a balance and deleting a transaction
+ * alike. Each surface here admits only its own access level — enforced in
+ * `Registry.execute`, not just advertised — so `destructiveHint` means what it
+ * says.
+ */
+type Surface = { tool: string; access: readonly Access[]; summary: string; hints: boolean };
+
+const SURFACES: Surface[] = [
+  {
+    tool: "firefly_query",
+    access: ["read"],
+    hints: true,
+    summary: "Read from Firefly III. Never changes anything.",
+  },
+  {
+    tool: "firefly_mutate",
+    access: ["write"],
+    hints: false,
+    summary:
+      "Create or change records in Firefly III. Does not delete anything, and does not " +
+      "rewrite fields across many records at once — use firefly_destructive for those.",
+  },
+  {
+    tool: "firefly_destructive",
+    access: ["destructive"],
+    hints: false,
+    summary:
+      "Delete records, or rewrite one field across many records in a single call. " +
+      "None of this can be undone through this server; confirm with the user first.",
+  },
+];
+
 function registerMetaTools(server: McpServer, registry: Registry, config: Config): void {
-  server.registerTool(
-    "firefly_execute",
-    {
-      description: executeDescription(registry),
-      // One tool still reaches every operation, so the only honest annotation
-      // is the one read-only mode makes true. Splitting this into query,
-      // mutate and destructive surfaces is what makes it precise.
-      annotations: annotationsFor(config.readOnly ? "read" : "destructive"),
-      inputSchema: {
-        entity: z.string().describe("Entity type (account, transaction, budget, ...)"),
-        operation: z.string().describe("Operation name (list, get, create, ...)"),
-        params: z.record(z.unknown()).optional().describe("Operation parameters"),
-        fields: z.array(z.string()).optional().describe("Attribute allow-list for the response"),
+  for (const surface of SURFACES) {
+    // Read-only mode leaves the writing surfaces with an empty catalogue.
+    // Registering a tool that can only refuse would send the model down a dead
+    // end, which is the same reason the operations themselves are hidden.
+    if (config.readOnly && !surface.access.includes("read")) continue;
+
+    server.registerTool(
+      surface.tool,
+      {
+        description: executeDescription(registry, surface),
+        annotations: annotationsFor(surface.access[0]!),
+        inputSchema: {
+          entity: z.string().describe("Entity type (account, transaction, budget, ...)"),
+          operation: z.string().describe("Operation name (list, get, create, ...)"),
+          params: z.record(z.unknown()).optional().describe("Operation parameters"),
+          fields: z.array(z.string()).optional().describe("Attribute allow-list for the response"),
+        },
       },
-    },
-    async ({ entity, operation, params, fields }) => {
-      const payload = await registry
-        .execute(entity, operation, params, fields)
-        .catch((caught: unknown) => asError(caught));
-      return toolResult(payload);
-    },
-  );
+      async ({ entity, operation, params, fields }) => {
+        const payload = await registry
+          .execute(entity, operation, params, fields, surface.access)
+          .catch((caught: unknown) => asError(caught));
+        return toolResult(payload);
+      },
+    );
+  }
 
   server.registerTool(
     "firefly_list_operations",

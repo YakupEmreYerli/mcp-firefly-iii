@@ -78,19 +78,27 @@ gizlenir, böylece asistan denemez bile.
 
 ## Asistanın gördüğü yüzey
 
-140 değil, üç araç:
+140 değil, beş araç — ve çalıştırma riske göre bölünmüş, böylece istemci
+bakiye okumakla işlem silmeyi ayırt edebiliyor:
 
-| Araç | Cevapladığı soru |
-| --- | --- |
-| `firefly_execute` | Herhangi bir operasyonu çalıştır. Açıklaması tüm kataloğu taşır, seçim ek bir çağrıya mal olmaz. |
-| `firefly_list_operations` | Bu varlıkla ne yapabilirim? |
-| `firefly_get_schema` | Bu operasyon hangi parametreleri alıyor? |
+| Araç | Cevapladığı soru | Risk |
+| --- | --- | --- |
+| `firefly_query` | Her şeyi oku. Açıklaması kataloğu taşır, seçim ek bir çağrıya mal olmaz. | salt-okunur |
+| `firefly_mutate` | Kayıt oluştur veya değiştir. | yazar |
+| `firefly_destructive` | Kayıt sil, ya da tek çağrıda çok kaydın bir alanını değiştir. | geri alınamaz |
+| `firefly_list_operations` | Bu varlıkla ne yapabilirim? | salt-okunur |
+| `firefly_get_schema` | Bu operasyon hangi parametreleri alıyor? | salt-okunur |
+
+Her birinde MCP tool annotation'ları var (`readOnlyHint`, `destructiveHint`,
+`idempotentHint`) ve ayrım yalnızca ilan edilmiyor, **uygulanıyor**:
+`firefly_query` üzerinden çağrılan bir silme reddedilir. `FIREFLY_READ_ONLY=true`
+iken yazan iki araç hiç kaydedilmez.
 
 Çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için yüzey üç araçta tutuldu.
 Operasyon başına ayrı araç isterseniz `FIREFLY_DIRECT_MODE=true`.
 
 Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer,
-`firefly_execute` ise yalnızca adını verdiğiniz alanları tutan bir `fields`
+çalıştırma araçlarının hepsi, yalnızca adını verdiğiniz alanları tutan bir `fields`
 listesi alır — büyük bir işlem listesinde bu yaklaşık %90 küçülme demektir.
 
 ## Yapılandırma

@@ -86,9 +86,10 @@ as a read-only error rather than a generic failure — so the caller can tell
 |----------|---------|---------|
 | `FIREFLY_DIRECT_MODE` | `false` | How operations are presented as tools |
 
-**Consolidated mode (default)** exposes three meta-tools: `firefly_execute`,
-`firefly_list_operations`, `firefly_get_schema`. All 139 operations are reached
-through those three. This is the default because most MCP clients degrade past
+**Consolidated mode (default)** exposes five meta-tools: `firefly_query`,
+`firefly_mutate`, `firefly_destructive`, `firefly_list_operations` and
+`firefly_get_schema`. All 140 operations are reached through those, split by
+risk so a host can annotate them differently. This is the default because most MCP clients degrade past
 roughly 40 tools.
 
 **Direct mode** gives every operation its own tool (`account_list`,

@@ -4,6 +4,7 @@ import type { Config } from "./config.js";
 import type { FireflyClient } from "./firefly.js";
 import { EntityType, type Access } from "./types.js";
 import {
+  WrongAccessSurfaceError,
   EntityNotAvailableError,
   OperationNotFoundError,
   ReadOnlyModeError,
@@ -126,7 +127,7 @@ export class Registry {
     return this.config.readOnly && operation.access !== "read";
   }
 
-  private lookup(entity: string, operation: string): [EntityModule, Operation] {
+  private lookup(entity: string, operation: string, allowed?: readonly Access[]): [EntityModule, Operation] {
     const entityType = toEntityType(entity);
     const module = this.modules.get(entityType);
     if (!module) throw new EntityNotAvailableError(`No entity module for: ${entity}`);
@@ -137,6 +138,15 @@ export class Registry {
     if (this.isWriteBlocked(found)) {
       throw new ReadOnlyModeError(
         `'${entity}.${operation}' writes to Firefly III and the server is running with FIREFLY_READ_ONLY enabled.`,
+      );
+    }
+    // The surfaces advertise different risk annotations, so the gate has to
+    // hold them apart here. Checking in the tool handler instead would leave
+    // the annotation as a claim rather than a guarantee.
+    if (allowed && !allowed.includes(found.access)) {
+      throw new WrongAccessSurfaceError(
+        `'${entity}.${operation}' is a ${found.access} operation and cannot be called through this tool. ` +
+          `Use firefly_${found.access === "read" ? "query" : found.access === "write" ? "mutate" : "destructive"} instead.`,
       );
     }
     return [module, found];
@@ -160,12 +170,28 @@ export class Registry {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  operationCatalogue(): string {
+  /** The catalogue, optionally narrowed to one access level.
+   *
+   * An entity with nothing at this level is dropped rather than listed empty.
+   *
+   * `includeHints` exists for cost. Splitting one catalogue into three repeats
+   * every entity hint three times, which measured at +55% over the combined
+   * text. The hint is there to help the model pick an entity while exploring,
+   * which is the reading surface's job; by the time a caller is deleting, the
+   * entity is already settled. Dropping it from the writing surfaces brings
+   * the overhead to +12%.
+   */
+  operationCatalogue(allowed?: readonly Access[], includeHints = true): string {
     return this.entityModules()
       .map((module) => {
-        const names = this.visibleOperations(module).map(([name]) => name);
-        return `  ${module.entity}: ${names.join(", ")} — ${module.hint}`;
+        const names = this.visibleOperations(module)
+          .filter(([, op]) => !allowed || allowed.includes(op.access))
+          .map(([name]) => name);
+        if (names.length === 0) return "";
+        const line = `  ${module.entity}: ${names.join(", ")}`;
+        return includeHints ? `${line} — ${module.hint}` : line;
       })
+      .filter((line) => line !== "")
       .join("\n");
   }
 
@@ -179,8 +205,9 @@ export class Registry {
     operation: string,
     params?: unknown,
     fields?: string[],
+    allowed?: readonly Access[],
   ): Promise<unknown> {
-    const [, found] = this.lookup(entity, operation);
+    const [, found] = this.lookup(entity, operation, allowed);
 
     const parsed = found.input.safeParse(params ?? {});
     if (!parsed.success) {

@@ -11,7 +11,9 @@ are three meta-tools, and everything goes through them:
 
 | Tool | Purpose |
 |------|---------|
-| `firefly_execute` | Runs an operation |
+| `firefly_query` | Runs a read operation |
+| `firefly_mutate` | Runs a create or update |
+| `firefly_destructive` | Runs a delete, or a bulk rewrite |
 | `firefly_list_operations` | Lists the operations |
 | `firefly_get_schema` | Returns an operation's parameters |
 

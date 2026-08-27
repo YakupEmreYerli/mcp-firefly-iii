@@ -127,12 +127,8 @@ It verifies the environment variables, reachability of Firefly III, and that the
 MCP tools work against the live instance. It only reads; it writes nothing.
 
 ```
-✔ Environment: https://your-firefly.example/api/v1 (token: 1027 chars)
-✔ Firefly III 6.6.3 (API 6.6.3, mysql)
-✔ MCP server exposes 4 tool(s): firefly_execute, firefly_list_operations, ...
-✔ 139 Firefly operations reachable
-✔ Read 3 asset account(s) through MCP
-All checks passed.
+Firefly III 6.6.3 reachable at https://your-firefly.example/api/v1
+25 entities, 140 operations
 ```
 
 To poke at the tools interactively in a browser:

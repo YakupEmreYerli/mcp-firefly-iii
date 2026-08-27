@@ -6,6 +6,10 @@ export class EntityNotAvailableError extends FireflyMcpError {}
 export class OperationNotFoundError extends FireflyMcpError {}
 export class ValidationError extends FireflyMcpError {}
 export class ReadOnlyModeError extends FireflyMcpError {}
+/** Raised when an operation is called through a tool whose risk annotation does
+ * not cover it — a delete reached through the read-only surface, say. Without
+ * this the annotation would be a claim the server does not keep. */
+export class WrongAccessSurfaceError extends FireflyMcpError {}
 
 /** An error response from Firefly III.
  *

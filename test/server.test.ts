@@ -118,14 +118,11 @@ describe("tool annotations", () => {
     expect(annotations.firefly_get_schema).toMatchObject({ readOnlyHint: true, destructiveHint: false });
   });
 
-  it("does not call firefly_execute read-only while it can still delete", async () => {
+  it("annotates each execution surface with the risk it actually carries", async () => {
     const annotations = await toolAnnotations();
-    expect(annotations.firefly_execute).toMatchObject({ readOnlyHint: false, destructiveHint: true });
-  });
-
-  it("calls firefly_execute read-only exactly when read-only mode makes that true", async () => {
-    const annotations = await toolAnnotations({ readOnly: true });
-    expect(annotations.firefly_execute).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+    expect(annotations.firefly_query).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+    expect(annotations.firefly_mutate).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(annotations.firefly_destructive).toMatchObject({ readOnlyHint: false, destructiveHint: true });
   });
 
   it("annotates each direct-mode tool from its own access level", async () => {
@@ -144,7 +141,7 @@ describe("tool annotations", () => {
 
   it("tells hosts Firefly is a remote service", async () => {
     const annotations = await toolAnnotations();
-    expect(annotations.firefly_execute).toMatchObject({ openWorldHint: true });
+    expect(annotations.firefly_query).toMatchObject({ openWorldHint: true });
   });
 });
 
@@ -182,13 +179,105 @@ describe("executeDescription", () => {
   });
 });
 
-describe("the three meta-tools", () => {
-  it("registers exactly the names the migration promises to keep", async () => {
+describe("the meta-tools", () => {
+  it("splits execution by risk instead of offering one tool that can do anything", async () => {
     expect(await registeredToolNames()).toEqual([
-      "firefly_execute",
+      "firefly_destructive",
       "firefly_get_schema",
       "firefly_list_operations",
+      "firefly_mutate",
+      "firefly_query",
     ]);
+  });
+
+  it("does not offer a writing surface that could only refuse, in read-only mode", async () => {
+    expect(await registeredToolNames({ readOnly: true })).toEqual([
+      "firefly_get_schema",
+      "firefly_list_operations",
+      "firefly_query",
+    ]);
+  });
+});
+
+describe("access surfaces are enforced, not merely advertised", () => {
+  function accessRegistry(overrides: Partial<Config> = {}): Registry {
+    const registry = new Registry({ ...config, ...overrides }, client);
+    registry.register(accessModule);
+    return registry;
+  }
+
+  it("refuses a delete reached through the read-only surface", async () => {
+    // Without this the destructiveHint on firefly_query would be a claim the
+    // server does not keep.
+    await expect(
+      accessRegistry().execute("transaction", "delete", {}, undefined, ["read"]),
+    ).rejects.toThrow(/cannot be called through this tool/);
+  });
+
+  it("refuses a delete reached through the ordinary write surface", async () => {
+    await expect(
+      accessRegistry().execute("transaction", "create", {}, undefined, ["destructive"]),
+    ).rejects.toThrow(/cannot be called through this tool/);
+  });
+
+  it("names the surface that would have worked", async () => {
+    await expect(
+      accessRegistry().execute("transaction", "delete", {}, undefined, ["write"]),
+    ).rejects.toThrow(/firefly_destructive/);
+  });
+
+  it("still runs an operation reached through its own surface", async () => {
+    await expect(
+      accessRegistry().execute("transaction", "list", {}, undefined, ["read"]),
+    ).resolves.toBeDefined();
+  });
+
+  it("leaves an unrestricted call alone, which is how direct mode runs", async () => {
+    await expect(accessRegistry().execute("transaction", "delete", {})).resolves.toBeDefined();
+  });
+
+  it("reports read-only mode rather than the wrong surface, when both apply", async () => {
+    // The more useful complaint is the one the caller can act on: no surface
+    // would have worked here.
+    await expect(
+      accessRegistry({ readOnly: true }).execute("transaction", "delete", {}, undefined, ["destructive"]),
+    ).rejects.toThrow(/FIREFLY_READ_ONLY/);
+  });
+});
+
+describe("each surface carries only its own catalogue", () => {
+  const registry = (): Registry => {
+    const result = new Registry(config, client);
+    result.register(accessModule);
+    return result;
+  };
+
+  it("keeps writes out of the read-only surface's catalogue", () => {
+    const text = executeDescription(registry(), { tool: "firefly_query", access: ["read"], summary: "s", hints: true });
+    expect(text).toContain("list");
+    expect(text).not.toContain("delete");
+  });
+
+  it("keeps deletes out of the ordinary write surface's catalogue", () => {
+    const text = executeDescription(registry(), { tool: "firefly_mutate", access: ["write"], summary: "s", hints: false });
+    expect(text).toContain("create");
+    expect(text).not.toContain("delete");
+  });
+
+  it("repeats the entity hints only on the reading surface, where they guide the choice", () => {
+    // Repeating them on all three measured at +55% over the single catalogue;
+    // by the time a caller is deleting, the entity is already settled.
+    const read = executeDescription(registry(), { tool: "firefly_query", access: ["read"], summary: "s", hints: true });
+    const write = executeDescription(registry(), { tool: "firefly_mutate", access: ["write"], summary: "s", hints: false });
+    expect(read).toContain("one of each access level");
+    expect(write).not.toContain("one of each access level");
+  });
+
+  it("drops an entity that has nothing at this level instead of listing it empty", () => {
+    const result = new Registry(config, client);
+    result.register(module); // read-only fake module
+    const text = executeDescription(result, { tool: "firefly_destructive", access: ["destructive"], summary: "s", hints: false });
+    expect(text).not.toContain("insight");
   });
 });
 

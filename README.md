@@ -77,19 +77,27 @@ hidden from the tool catalogue, so the assistant does not attempt one.
 
 ## What the assistant sees
 
-Three tools, not 140:
+Five tools, not 140 — and execution is split by risk, so a host can tell
+reading a balance from deleting a transaction:
 
-| Tool | Answers |
-| --- | --- |
-| `firefly_execute` | Run any operation. Its description carries the full catalogue, so choosing one costs no extra call. |
-| `firefly_list_operations` | What can I do with this entity? |
-| `firefly_get_schema` | What parameters does this operation take? |
+| Tool | Answers | Risk |
+| --- | --- | --- |
+| `firefly_query` | Read anything. Its description carries the catalogue, so choosing an operation costs no extra call. | read-only |
+| `firefly_mutate` | Create or change a record. | writes |
+| `firefly_destructive` | Delete a record, or rewrite one field across many records at once. | cannot be undone |
+| `firefly_list_operations` | What can I do with this entity? | read-only |
+| `firefly_get_schema` | What parameters does this operation take? | read-only |
+
+Each carries MCP tool annotations (`readOnlyHint`, `destructiveHint`,
+`idempotentHint`), and the split is enforced, not merely advertised: a delete
+reached through `firefly_query` is refused. With `FIREFLY_READ_ONLY=true` the
+two writing tools are not registered at all.
 
 Most MCP clients degrade past roughly 40 tools, which is why the surface is
 three. Set `FIREFLY_DIRECT_MODE=true` to get one tool per operation instead.
 
 Responses are trimmed before they reach the model: empty and null attributes are
-always dropped, and `firefly_execute` takes a `fields` list that keeps only the
+always dropped, and every execution tool takes a `fields` list that keeps only the
 attributes you name — on a large transaction list that is roughly a 90% cut.
 
 ## Configuration

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `firefly_execute` is replaced by three tools split by risk: `firefly_query`,
+  `firefly_mutate` and `firefly_destructive`. One tool that could both list a
+  balance and delete a transaction gave the host nothing to annotate. The split
+  is enforced in `Registry.execute`, not merely advertised — a delete reached
+  through `firefly_query` is refused and told which tool to use — and in
+  read-only mode the two writing tools are not registered at all. Each surface
+  carries only its own catalogue, and only the reading one repeats the entity
+  hints, which keeps the added description text to about 12%.
+
 ### Added
 
 - A `destructive` access level, separating what cannot be undone — deletes, and

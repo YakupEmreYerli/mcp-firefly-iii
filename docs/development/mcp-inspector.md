@@ -41,9 +41,11 @@ npm run build && npx @modelcontextprotocol/inspector node dist/index.js
 | **Resources** | Resources the server exposes (this server has none) |
 | **Server Info** | Capabilities, connection state, and the message log |
 
-In the default consolidated mode the Tools tab shows four tools:
-`firefly_execute`, `firefly_list_operations`, `firefly_get_schema` and
-`get_version`. All 139 operations are reached through them.
+In the default consolidated mode the Tools tab shows five tools:
+`firefly_query`, `firefly_mutate`, `firefly_destructive`,
+`firefly_list_operations` and `firefly_get_schema`. All 140 operations are
+reached through them. With `FIREFLY_READ_ONLY=true` the two writing tools are
+absent.
 
 ## Things to try first
 
@@ -62,7 +64,7 @@ In the default consolidated mode the Tools tab shows four tools:
 **Read something**
 
 ```json
-// Tool: firefly_execute
+// Tool: firefly_query
 {
   "entity": "account",
   "operation": "list",
