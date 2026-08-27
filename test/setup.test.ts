@@ -123,7 +123,7 @@ describe("mergeServerEntry", () => {
 });
 
 describe("serverEntry", () => {
-  const answers = { apiUrl: "https://f.example/api/v1", apiToken: "t" };
+  const answers = { apiUrl: "https://f.example/api/v1", apiToken: "t", readOnly: false };
 
   it("runs the published package through npx", () => {
     expect(serverEntry(answers)).toEqual({

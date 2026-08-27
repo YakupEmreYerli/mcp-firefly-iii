@@ -20,6 +20,19 @@ client has to be authorized again. `MCP_RESOURCE_URL` must match the URL the
 proxy publishes, character for character. Writing the internal Docker address
 there fails the audience check, and the client only sees "invalid token".
 
+## Scopes
+
+The three scopes map onto the three execution surfaces:
+
+| Scope | Surface |
+|-------|---------|
+| `firefly:read` | `firefly_query` |
+| `firefly:write` | + `firefly_mutate` |
+| `firefly:destructive` | + `firefly_destructive` |
+
+Broader implies narrower, so one scope is enough. Whatever is approved on the
+consent screen is still capped by the operator's `FIREFLY_PERMISSIONS`.
+
 ## ChatGPT
 
 1. Publish the server over HTTPS. For a home server, Cloudflare Tunnel is the
