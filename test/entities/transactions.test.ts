@@ -15,7 +15,15 @@ function spyClient(): { client: FireflyClient; calls: Record<string, Call[]> } {
     getText: async () => "",
     get: async (path, query) => {
       calls.get!.push({ path, query });
-      return { data: [] };
+      // A single-split transaction group — the shape bulk operations fetch
+      // before rewriting it.
+      return {
+        data: {
+          type: "transactions",
+          id: "7",
+          attributes: { transactions: [{ transaction_journal_id: "9" }] },
+        },
+      };
     },
     post: async (path, body, query) => {
       calls.post!.push({ path, body, query });
@@ -179,33 +187,32 @@ describe("create", () => {
 });
 
 describe("bulk operations", () => {
-  it("sends the category through the query channel and the ids through the body", async () => {
+  // Firefly III's `/data/bulk/transactions` only moves transactions between
+  // accounts; it cannot set a category or tags. The earlier implementation
+  // sent `category_name=<name>` as the `query` string, which the endpoint
+  // rejected with 500 "Syntax error" — so it never worked on a live instance.
+  // The current implementation fans out into a GET + PUT per id, applying the
+  // field to every split.
+
+  it("fetches each group and rewrites every split with the category", async () => {
     const { client, calls } = spyClient();
-    await makeRegistry(client).execute("transaction", "bulk_categorize", {
+    const result = await makeRegistry(client).execute("transaction", "bulk_categorize", {
       transaction_ids: [1, 2],
       category_name: "Market",
     });
 
-    expect(calls.post![0]).toEqual({
-      path: "/data/bulk/transactions",
-      body: { transaction_ids: [1, 2] },
-      query: { query: "category_name=Market" },
-    });
-  });
-
-  it("refuses a category name that would break the query expression", async () => {
-    // The name is embedded into `category_name=<name>`, which Firefly parses as
-    // an expression. A name carrying `=` or `&` changes what that expression
-    // means, so the write would land on the wrong category rather than fail.
-    const { client } = spyClient();
-    for (const category_name of ["A=B", "A&B"]) {
-      await expect(
-        makeRegistry(client).execute("transaction", "bulk_categorize", {
-          transaction_ids: [1],
-          category_name,
-        }),
-      ).rejects.toBeInstanceOf(ValidationError);
-    }
+    expect(calls.get!.map((c) => c.path)).toEqual(["/transactions/1", "/transactions/2"]);
+    expect(calls.put).toEqual([
+      {
+        path: "/transactions/1",
+        body: { transactions: [{ transaction_journal_id: "9", category_name: "Market" }] },
+      },
+      {
+        path: "/transactions/2",
+        body: { transactions: [{ transaction_journal_id: "9", category_name: "Market" }] },
+      },
+    ]);
+    expect(result).toEqual({ updated: 2, category_name: "Market" });
   });
 
   it("accepts a category name with spaces and Turkish characters", async () => {
@@ -215,29 +222,55 @@ describe("bulk operations", () => {
       category_name: "Ulaşım gideri",
     });
 
-    expect(calls.post![0]!.query).toEqual({ query: "category_name=Ulaşım gideri" });
+    expect(calls.put![0]!.body).toEqual({
+      transactions: [{ transaction_journal_id: "9", category_name: "Ulaşım gideri" }],
+    });
   });
 
-  it("refuses a tag containing the separator it would be joined with", async () => {
-    // Tags travel as one comma-separated list. A tag with a comma in it would
-    // arrive as two different tags.
-    const { client } = spyClient();
-    await expect(
-      makeRegistry(client).execute("transaction", "bulk_tag", {
-        transaction_ids: [1],
-        tag_names: ["market", "a,b"],
-      }),
-    ).rejects.toBeInstanceOf(ValidationError);
-  });
-
-  it("joins tag names with commas", async () => {
+  it("accepts '=' and '&' in a category name — they are JSON now, not a query expression", async () => {
+    // The old implementation embedded the name into `category_name=<name>` and
+    // refused '='/'&' because they would re-shape the expression. With the
+    // field travelling as JSON, those characters are ordinary values.
     const { client, calls } = spyClient();
-    await makeRegistry(client).execute("transaction", "bulk_tag", {
+    for (const category_name of ["A=B", "A&B"]) {
+      await makeRegistry(client).execute("transaction", "bulk_categorize", {
+        transaction_ids: [1],
+        category_name,
+      });
+    }
+    expect(
+      calls.put!.map((c) => (c.body as { transactions: { category_name: string }[] }).transactions[0]!.category_name),
+    ).toEqual(["A=B", "A&B"]);
+  });
+
+  it("fetches each group and rewrites every split with the tags", async () => {
+    const { client, calls } = spyClient();
+    const result = await makeRegistry(client).execute("transaction", "bulk_tag", {
       transaction_ids: [1],
       tag_names: ["market", "nakit"],
     });
 
-    expect(calls.post![0]!.query).toEqual({ query: "tags=market,nakit" });
+    expect(calls.put![0]).toEqual({
+      path: "/transactions/1",
+      body: { transactions: [{ transaction_journal_id: "9", tags: ["market", "nakit"] }] },
+    });
+    expect(result).toEqual({ updated: 1, tag_names: ["market", "nakit"] });
+  });
+
+  it("accepts a tag containing a comma — tags are an array now, not a joined string", async () => {
+    // The old implementation joined tags with commas and refused a comma in a
+    // tag because it would split into two. With tags travelling as a JSON
+    // array, a comma is an ordinary character.
+    const { client, calls } = spyClient();
+    await makeRegistry(client).execute("transaction", "bulk_tag", {
+      transaction_ids: [1],
+      tag_names: ["market", "a,b"],
+    });
+
+    expect((calls.put![0]!.body as { transactions: { tags: string[] }[] }).transactions[0]!.tags).toEqual([
+      "market",
+      "a,b",
+    ]);
   });
 });
 

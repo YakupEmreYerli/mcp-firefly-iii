@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `transaction.bulk_categorize` and `transaction.bulk_tag` never worked.
+  Firefly's `/data/bulk/transactions` only moves transactions between accounts;
+  it cannot set a category or tags, and it answered the old `category_name=<name>`
+  query with a 500 "Syntax error". Both now fan out into a per-group PUT, which
+  is the only API path that sets these fields on existing transactions.
+
 ## [0.3.2] - 2026-08-27
 
 ### Added

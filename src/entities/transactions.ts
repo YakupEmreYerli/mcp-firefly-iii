@@ -8,21 +8,6 @@ import {
   transactionTypeFilter,
 } from "../schemas/transactions.js";
 
-/** A name safe to embed in Firefly's bulk-update query expression.
- *
- * The bulk endpoint takes its instruction as a single `query` value shaped
- * `category_name=<name>`, which Firefly parses on the far side. A name
- * carrying `=` or `&` changes what that expression means, so the update would
- * land somewhere other than where the caller asked — a wrong write that
- * answers 200. Refusing here is the only place it can still be caught.
- */
-const bulkSafeName = z
-  .string()
-  .min(1)
-  .refine((value) => !/[=&]/.test(value), {
-    message: "must not contain '=' or '&' — Firefly parses the bulk query as an expression",
-  });
-
 export const transactionOperations: Record<string, Operation> = {
   list: defineOperation({
     description:
@@ -107,22 +92,36 @@ export const transactionOperations: Record<string, Operation> = {
     },
   }),
 
+  // Firefly III's `/data/bulk/transactions` only moves transactions between
+  // accounts (a `{where,update}` JSON over `account_id`); it cannot set a
+  // category or tags. The earlier implementation sent `category_name=<name>`
+  // as the `query` string, which the endpoint rejects with 500 "Syntax error"
+  // — it never worked. The only API path that sets a category or tags on
+  // existing transactions is a per-group PUT, so these operations fan out
+  // into a GET + PUT per id.
   bulk_categorize: defineOperation({
     description: "Assign one category to several transactions at once.",
     access: "write",
     input: z
       .object({
         transaction_ids: z.array(z.number().int().positive()).min(1),
-        category_name: bulkSafeName,
+        category_name: z.string().min(1),
       })
       .strict(),
     handler: async ({ transaction_ids, category_name }, client) => {
-      await client.post(
-        "/data/bulk/transactions",
-        { transaction_ids },
-        { query: `category_name=${category_name}` },
-      );
-      return { updated: transaction_ids.length, category_name };
+      let updated = 0;
+      for (const id of transaction_ids) {
+        const group = (await client.get(`/transactions/${id}`)) as {
+          data?: { attributes?: { transactions?: { transaction_journal_id: string }[] } };
+        };
+        const journals = group.data?.attributes?.transactions ?? [];
+        if (journals.length === 0) continue;
+        await client.put(`/transactions/${id}`, {
+          transactions: journals.map((j) => ({ transaction_journal_id: j.transaction_journal_id, category_name })),
+        });
+        updated++;
+      }
+      return { updated, category_name };
     },
   }),
 
@@ -132,22 +131,23 @@ export const transactionOperations: Record<string, Operation> = {
     input: z
       .object({
         transaction_ids: z.array(z.number().int().positive()).min(1),
-        // Tags travel as one comma-separated list, so a tag containing a comma
-        // would arrive as two tags.
-        tag_names: z
-          .array(bulkSafeName.refine((value) => !value.includes(","), {
-            message: "must not contain a comma — tags are sent as one comma-separated list",
-          }))
-          .min(1),
+        tag_names: z.array(z.string().min(1)).min(1),
       })
       .strict(),
     handler: async ({ transaction_ids, tag_names }, client) => {
-      await client.post(
-        "/data/bulk/transactions",
-        { transaction_ids },
-        { query: `tags=${tag_names.join(",")}` },
-      );
-      return { updated: transaction_ids.length, tag_names };
+      let updated = 0;
+      for (const id of transaction_ids) {
+        const group = (await client.get(`/transactions/${id}`)) as {
+          data?: { attributes?: { transactions?: { transaction_journal_id: string }[] } };
+        };
+        const journals = group.data?.attributes?.transactions ?? [];
+        if (journals.length === 0) continue;
+        await client.put(`/transactions/${id}`, {
+          transactions: journals.map((j) => ({ transaction_journal_id: j.transaction_journal_id, tags: tag_names })),
+        });
+        updated++;
+      }
+      return { updated, tag_names };
     },
   }),
 };
