@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Every execution surface now states that record content is data and never
+  instruction, naming the fields that carry third-party text. Descriptions,
+  notes, tags and counterparty account names are written by whoever moved the
+  money, which on an incoming payment is not the account holder, and that text
+  reaches the model alongside tools that can write. The split between query,
+  mutate and destructive is the structural half of the answer; this is the half
+  that says which part of the payload is trusted.
+- The arrays Firefly replaces wholesale rather than merging into — transaction
+  tags, rule triggers and actions, piggy bank accounts, recurrence repetitions
+  — now say so in their schema, with what to do instead. Measured against 6.6.3:
+  omitting the field preserves what is there, sending a partial list destroys
+  the rest. This is the class of defect that made `bulk_tag` erase tags.
+
 ### Removed
 
 - `firefly_execute`. **This is a breaking change** and needs a major version

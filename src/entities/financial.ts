@@ -15,7 +15,9 @@ const recurrenceTransaction = z.object({
   foreign_amount: z.string().optional(), foreign_currency_code: z.string().optional(),
   foreign_currency_id: entityId.optional(), budget_id: entityId.optional(),
   category_id: entityId.optional(), piggy_bank_id: entityId.optional(), bill_id: entityId.optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional().describe(
+    "Sent as a complete list: Firefly REPLACES the whole set rather than merging into it, so any value already there and not repeated here is removed. To add one, read the current values first and send them all back.",
+  ),
 }).strict();
 const recurrenceRepetition = z.object({
   type: z.enum(["daily", "weekly", "ndom", "monthly", "yearly"]),
@@ -25,7 +27,8 @@ const recurrenceData = z.object({
   type: z.enum(["withdrawal", "deposit", "transfer"]), title: z.string().min(1), first_date: isoDate,
   repeat_until: isoDate.optional(), nr_of_repetitions: z.number().int().positive().optional(),
   apply_rules: z.boolean().optional(), active: z.boolean().optional(), description: z.string().optional(), notes: z.string().optional(),
-  repetitions: z.array(recurrenceRepetition).min(1), transactions: z.array(recurrenceTransaction).min(1),
+  repetitions: z.array(recurrenceRepetition).min(1).describe("Sent as a complete list: Firefly REPLACES the whole set rather than merging into it, so any value already there and not repeated here is removed. To add one, read the current values first and send them all back."),
+  transactions: z.array(recurrenceTransaction).min(1).describe("Sent as a complete list: Firefly REPLACES the whole set rather than merging into it, so any value already there and not repeated here is removed. To add one, read the current values first and send them all back."),
 }).strict();
 
 export const currencyOperations: Record<string, Operation> = {

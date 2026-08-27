@@ -106,7 +106,28 @@ yanlış cevap** üretmeleri — yazılı olmalarının sebebi bu.
   açılış bakiyesi olduğu gibi kalır. `"0.01"` uygulanır, `null` ise alanı
   gerçekten temizler. Yani bir açılış bakiyesini sıfırlamak isteyen kod, `"0"`
   gönderdiğinde başarılı görünüp hiçbir şey değiştirmez — canlı ölçüldü.
+- **Diziler baştan yazılır, skalerler birleşir.** Bir `PUT`'ta göndermediğiniz
+  skaler alan korunur (kategori notu ölçüldü), ama gönderdiğiniz dizi kümenin
+  tamamının yerine geçer: iki trigger'lı bir kurala tek trigger göndermek onu
+  tek trigger'lı bırakır, iki etiketli bir işleme tek etiket göndermek diğerini
+  siler. `bulk_tag` bu yüzden bir kez veri sildi. Etiket/trigger/action/accounts
+  gibi alanların şemasında bu yazılıdır, `test/replace-semantics.test.ts`
+  düşmesini engeller.
 - **Insight giderleri negatiftir**; gelir ve transferler pozitif.
+
+## Kayıt içeriği güvenilmezdir
+
+İşlem açıklaması, notlar, etiketler ve karşı taraf hesap adları parayı hareket
+ettiren kişi tarafından yazılır — gelen bir ödemede bu, hesap sahibi değildir.
+Bu metin `firefly_query` sonucuyla modelin context'ine girer ve aynı oturumda
+`firefly_mutate` ile `firefly_destructive` hazırdır.
+
+Yapısal savunma yüzey ayrımıdır: enjekte edilmiş bir talimatın işe yaraması için
+host'un annotation'la işaretlediği ve onay isteyebildiği bir aracı çağırması
+gerekir. Metinsel savunma ise `UNTRUSTED_CONTENT_NOTICE` — üç çalıştırma
+yüzeyinin ve direct mode'un her aracının açıklamasında durur. Araç açıklaması
+sunucunun yazdığı, dolayısıyla güvenilir metindir; araç **sonucu** değildir.
+Yeni bir çalıştırma yüzeyi eklerseniz bu notu da taşıyın.
 
 **Yazma işlemlerini bağımsız bir okumayla doğrulayın.** Firefly'dan gelen 200,
 bir şeyin değiştiğinin kanıtı değildir.

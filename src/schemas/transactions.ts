@@ -52,7 +52,9 @@ const splitCommon = {
   currency_code: z.string().optional(),
   foreign_amount: z.string().optional(),
   foreign_currency_code: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional().describe(
+    "Sent as a complete list: Firefly REPLACES the whole set rather than merging into it, so any value already there and not repeated here is removed. To add one, read the current values first and send them all back.",
+  ),
   notes: z.string().optional(),
   reconciled: z.boolean().optional(),
 };
