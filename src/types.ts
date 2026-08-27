@@ -27,9 +27,15 @@ export enum EntityType {
   Analysis = "analysis",
 }
 
-/** Whether an operation reads from or writes to Firefly III.
+/** What an operation does to Firefly III.
  *
  * Required on every operation: read-only mode keys off this field, and a
  * missing one would leave a write silently callable.
+ *
+ * `destructive` is the subset the caller cannot undo — it removes a record, or
+ * rewrites a field across many records in one call. It is split out from
+ * `write` so a host can raise confirmation exactly where it matters, and so
+ * "may write but may not delete" becomes expressible instead of being folded
+ * into the same permission as creating a transaction.
  */
-export type Access = "read" | "write";
+export type Access = "read" | "write" | "destructive";

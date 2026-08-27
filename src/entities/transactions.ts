@@ -81,7 +81,7 @@ export const transactionOperations: Record<string, Operation> = {
 
   delete: defineOperation({
     description: "Delete a transaction.",
-    access: "write",
+    access: "destructive",
     input: z.object({ id: entityId }).strict(),
     handler: async ({ id }, client) => {
       // Firefly answers 204 with no body. Reporting the id back is a fact;
@@ -101,7 +101,7 @@ export const transactionOperations: Record<string, Operation> = {
   // into a GET + PUT per id.
   bulk_categorize: defineOperation({
     description: "Assign one category to several transactions at once.",
-    access: "write",
+    access: "destructive",
     input: z
       .object({
         transaction_ids: z.array(z.number().int().positive()).min(1),
@@ -127,7 +127,7 @@ export const transactionOperations: Record<string, Operation> = {
 
   bulk_tag: defineOperation({
     description: "Assign one or more tags to several transactions at once.",
-    access: "write",
+    access: "destructive",
     input: z
       .object({
         transaction_ids: z.array(z.number().int().positive()).min(1),

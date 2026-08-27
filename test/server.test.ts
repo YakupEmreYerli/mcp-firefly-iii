@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -62,6 +64,111 @@ async function registeredToolNames(overrides: Partial<Config> = {}): Promise<str
     await server.close();
   }
 }
+
+/** A module covering all three access levels, so direct-mode annotations have
+ * something to be right or wrong about. Kept separate from `module` so the
+ * tool-name expectations elsewhere in this file stay untouched. */
+const accessModule: EntityModule = {
+  entity: EntityType.Transaction,
+  hint: "one of each access level",
+  operations: {
+    list: defineOperation({
+      description: "Which transactions are there?",
+      access: "read",
+      input: z.object({}).strict(),
+      handler: (_params, api) => api.get("/transactions"),
+    }),
+    create: defineOperation({
+      description: "Create a transaction.",
+      access: "write",
+      input: z.object({}).strict(),
+      handler: (_params, api) => api.post("/transactions", {}),
+    }),
+    delete: defineOperation({
+      description: "Delete a transaction.",
+      access: "destructive",
+      input: z.object({}).strict(),
+      handler: (_params, api) => api.del("/transactions/1"),
+    }),
+  },
+};
+
+/** Tool annotations as the client receives them, keyed by tool name. */
+async function toolAnnotations(overrides: Partial<Config> = {}): Promise<Record<string, unknown>> {
+  const registry = new Registry({ ...config, ...overrides }, client);
+  registry.register(module);
+  registry.register(accessModule);
+  const server = createServer(registry, { ...config, ...overrides });
+  const mcpClient = new Client({ name: "test", version: "0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+  try {
+    const { tools } = await mcpClient.listTools();
+    return Object.fromEntries(tools.map((tool) => [tool.name, tool.annotations]));
+  } finally {
+    await mcpClient.close();
+    await server.close();
+  }
+}
+
+describe("tool annotations", () => {
+  it("marks the two catalogue tools read-only", async () => {
+    const annotations = await toolAnnotations();
+    expect(annotations.firefly_list_operations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+    expect(annotations.firefly_get_schema).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+  });
+
+  it("does not call firefly_execute read-only while it can still delete", async () => {
+    const annotations = await toolAnnotations();
+    expect(annotations.firefly_execute).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+  });
+
+  it("calls firefly_execute read-only exactly when read-only mode makes that true", async () => {
+    const annotations = await toolAnnotations({ readOnly: true });
+    expect(annotations.firefly_execute).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+  });
+
+  it("annotates each direct-mode tool from its own access level", async () => {
+    const annotations = await toolAnnotations({ directMode: true });
+    expect(annotations.transaction_list).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+  });
+
+  it("flags a delete as destructive and idempotent, and a create as neither", async () => {
+    const annotations = await toolAnnotations({ directMode: true });
+    expect(annotations.transaction_delete).toMatchObject({ destructiveHint: true, idempotentHint: true });
+    // Repeating a create makes a second transaction, so it must not claim to
+    // be idempotent — that is the hint a host would use to retry safely.
+    expect(annotations.transaction_create).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(annotations.transaction_create).not.toHaveProperty("idempotentHint");
+  });
+
+  it("tells hosts Firefly is a remote service", async () => {
+    const annotations = await toolAnnotations();
+    expect(annotations.firefly_execute).toMatchObject({ openWorldHint: true });
+  });
+});
+
+describe("server identity", () => {
+  it("introduces itself with the published package version, not a second copy", async () => {
+    // It shipped as 0.1.0 through three releases because the version was
+    // written down twice. Bind it to the manifest so it cannot drift again.
+    const manifest: unknown = JSON.parse(
+      readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"),
+    );
+    const expected = (manifest as { version: string }).version;
+
+    const server = createServer(makeRegistry(), config);
+    const mcpClient = new Client({ name: "test", version: "0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+    try {
+      expect(mcpClient.getServerVersion()?.version).toBe(expected);
+    } finally {
+      await mcpClient.close();
+      await server.close();
+    }
+  });
+});
 
 describe("executeDescription", () => {
   it("embeds the operation catalogue so the model can choose without an extra call", () => {

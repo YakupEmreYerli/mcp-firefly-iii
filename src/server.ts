@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { Config } from "./config.js";
+import { packageVersion } from "./cli.js";
 import type { EntityModule, Registry } from "./registry.js";
-import { EntityType } from "./types.js";
+import { EntityType, type Access } from "./types.js";
 import { transactionsModule } from "./entities/transactions.js";
 import { accountsModule } from "./entities/accounts.js";
 import { categoriesModule } from "./entities/categories.js";
@@ -48,6 +49,31 @@ function asError(caught: unknown): { error: string } {
   return { error: caught instanceof Error ? caught.message : String(caught) };
 }
 
+/** MCP tool annotations for an operation's access level.
+ *
+ * These are hints a host uses to decide what to confirm with the user, so they
+ * are stated from what the registry already knows rather than guessed. Firefly
+ * is a remote service in every case, hence `openWorldHint`.
+ *
+ * `idempotentHint` is claimed only for `destructive`, where it is true and
+ * useful: deleting the same record twice leaves the same end state. It is left
+ * off `write`, because `create` is the opposite of idempotent — repeating it
+ * makes a second transaction.
+ */
+function annotationsFor(access: Access): {
+  readOnlyHint: boolean;
+  destructiveHint: boolean;
+  idempotentHint?: boolean;
+  openWorldHint: boolean;
+} {
+  return {
+    readOnlyHint: access === "read",
+    destructiveHint: access === "destructive",
+    ...(access === "destructive" ? { idempotentHint: true } : {}),
+    openWorldHint: true,
+  };
+}
+
 /** Wrap a JSON payload as MCP tool-call content.
  *
  * A type-annotated helper (rather than inline object literals) so the
@@ -59,20 +85,27 @@ function toolResult(payload: unknown): { content: [{ type: "text"; text: string 
 }
 
 export function createServer(registry: Registry, config: Config): McpServer {
-  const server = new McpServer({ name: "Firefly MCP Server", version: "0.1.0" });
+  // Read from package.json rather than written down here: a second copy is a
+  // copy that goes stale, and this one did — the server introduced itself as
+  // 0.1.0 while the package shipped 0.3.2.
+  const server = new McpServer({ name: "Firefly MCP Server", version: packageVersion() });
 
   // Either/or, as in the Python version: direct mode replaces the meta-tools.
   if (config.directMode) registerDirectModeTools(server, registry);
-  else registerMetaTools(server, registry);
+  else registerMetaTools(server, registry, config);
 
   return server;
 }
 
-function registerMetaTools(server: McpServer, registry: Registry): void {
+function registerMetaTools(server: McpServer, registry: Registry, config: Config): void {
   server.registerTool(
     "firefly_execute",
     {
       description: executeDescription(registry),
+      // One tool still reaches every operation, so the only honest annotation
+      // is the one read-only mode makes true. Splitting this into query,
+      // mutate and destructive surfaces is what makes it precise.
+      annotations: annotationsFor(config.readOnly ? "read" : "destructive"),
       inputSchema: {
         entity: z.string().describe("Entity type (account, transaction, budget, ...)"),
         operation: z.string().describe("Operation name (list, get, create, ...)"),
@@ -92,6 +125,7 @@ function registerMetaTools(server: McpServer, registry: Registry): void {
     "firefly_list_operations",
     {
       description: "List available Firefly III operations, optionally filtered by entity.",
+      annotations: annotationsFor("read"),
       inputSchema: { entity: z.nativeEnum(EntityType).optional() },
     },
     // `entity` is already a validated EntityType and listOperations filters a
@@ -103,6 +137,7 @@ function registerMetaTools(server: McpServer, registry: Registry): void {
     "firefly_get_schema",
     {
       description: "Get the parameter schema for a specific operation.",
+      annotations: annotationsFor("read"),
       inputSchema: { entity: z.string(), operation: z.string() },
     },
     ({ entity, operation }) => {
@@ -136,6 +171,7 @@ function registerDirectModeTools(server: McpServer, registry: Registry): void {
         `${module.entity}_${info.operation}`,
         {
           description: operation.description,
+          annotations: annotationsFor(operation.access),
           // The whole strict schema, not `.shape`. A raw shape is rebuilt by
           // the SDK as a strip-mode object: an unknown key would be deleted
           // before `Registry.execute` ever saw it, and an operation whose

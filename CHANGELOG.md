@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A `destructive` access level, separating what cannot be undone — deletes, and
+  the two bulk operations that rewrite a field across many records at once —
+  from an ordinary write. Read-only mode is unchanged, but a host can now raise
+  confirmation exactly where it matters instead of gating every write.
+- MCP tool annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`,
+  `openWorldHint`) on every tool, stated from the access level the registry
+  already carries. In direct mode each tool is annotated exactly; the single
+  `firefly_execute` still reaches everything, so it claims read-only only when
+  read-only mode makes that true.
+
 - `analysis.compare_periods`, answering "what changed since last month?" in one
   call instead of two overviews plus arithmetic the caller has to get right.
   Currencies stay separate, transfers stay out of net, a category spent in only
@@ -19,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The server introduced itself to MCP clients as `0.1.0` regardless of the
+  published version, because the version was written down a second time next to
+  the one in `package.json`. It now reports the manifest version.
 - `summary.overview` failed outright for a single-day period. Firefly rejects
   `start == end` on `/summary/basic` with a 422 while every insight endpoint
   accepts it, and only the balances come from there. The balance query is no

@@ -71,7 +71,7 @@ describe("entity parity surface", () => {
   it("gives every migrated operation a strict input schema and access tag", () => {
     for (const module of ENTITY_MODULES) {
       for (const [name, operation] of Object.entries(module.operations)) {
-        expect(["read", "write"], `${module.entity}.${name}`).toContain(operation.access);
+        expect(["read", "write", "destructive"], `${module.entity}.${name}`).toContain(operation.access);
         expect(operation.description.length, `${module.entity}.${name} description`).toBeGreaterThan(0);
         const result = operation.input.safeParse({ __unknown_test_key__: true });
         expect(result.success, `${module.entity}.${name} must reject unknown keys`).toBe(false);

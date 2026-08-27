@@ -47,7 +47,7 @@ export const accountOperations: Record<string, Operation> = {
     handler: ({ id, account_update }, client) => client.put(`/accounts/${id}`, account_update),
   }),
   delete: defineOperation({
-    description: "Delete an account.", access: "write", input: z.object({ id: entityId }).strict(),
+    description: "Delete an account.", access: "destructive", input: z.object({ id: entityId }).strict(),
     handler: async ({ id }, client) => { await client.del(`/accounts/${id}`); return { deleted: true, id }; },
   }),
   list_transactions: defineOperation({

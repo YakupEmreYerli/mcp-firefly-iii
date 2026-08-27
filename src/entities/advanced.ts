@@ -21,7 +21,7 @@ export const linksModule: EntityModule = {
     get: defineOperation({ description: "What is this transaction link?", access: "read", input: id, handler: ({ id }, c) => c.get(`/transaction-links/${id}`) }),
     create: defineOperation({ description: "Link two transactions.", access: "write", input: linkData, handler: (b, c) => c.post("/transaction-links", b) }),
     update: defineOperation({ description: "Change a transaction link; Firefly requires the complete link identity on update.", access: "write", input: z.object({ id: entityId, transaction_link_update: linkUpdate }).strict(), handler: ({ id, transaction_link_update }, c) => c.put(`/transaction-links/${id}`, transaction_link_update) }),
-    delete: defineOperation({ description: "Delete a transaction link.", access: "write", input: id, handler: async ({ id }, c) => { await c.del(`/transaction-links/${id}`); return { deleted: true, id }; } }),
+    delete: defineOperation({ description: "Delete a transaction link.", access: "destructive", input: id, handler: async ({ id }, c) => { await c.del(`/transaction-links/${id}`); return { deleted: true, id }; } }),
   },
 };
 

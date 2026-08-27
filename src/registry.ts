@@ -120,7 +120,10 @@ export class Registry {
   }
 
   private isWriteBlocked(operation: Operation): boolean {
-    return this.config.readOnly && operation.access === "write";
+    // Blocks anything that is not a read, rather than naming what to block: a
+    // new access level then arrives closed in read-only mode instead of
+    // silently callable, which is the failure this field exists to prevent.
+    return this.config.readOnly && operation.access !== "read";
   }
 
   private lookup(entity: string, operation: string): [EntityModule, Operation] {

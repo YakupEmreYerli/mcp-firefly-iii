@@ -291,7 +291,19 @@ describe("access tagging", () => {
       .map(([name]) => name)
       .sort();
 
-    expect(writes).toEqual(["bulk_categorize", "bulk_tag", "create", "delete", "update"]);
+    expect(writes).toEqual(["create", "update"]);
+  });
+
+  it("separates what cannot be undone from an ordinary write", () => {
+    // A delete removes the record; a bulk call rewrites one field across many
+    // records at once. Neither is recoverable through this server, so a host
+    // can raise confirmation on exactly these without gating every write.
+    const destructive = Object.entries(transactionOperations)
+      .filter(([, op]) => op.access === "destructive")
+      .map(([name]) => name)
+      .sort();
+
+    expect(destructive).toEqual(["bulk_categorize", "bulk_tag", "delete"]);
   });
 
   it("hides all of them in read-only mode", () => {
