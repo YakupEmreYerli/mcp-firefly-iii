@@ -7,7 +7,7 @@ import { AuthState } from "./state.js";
 import { findClient, registerClient } from "./clients.js";
 import { AuthorizationCodes } from "./codes.js";
 import { issueAccessToken, issueRefreshToken, rotateRefreshToken } from "./tokens.js";
-import { consentPage, loginPage } from "./pages.js";
+import { loginPage } from "./pages.js";
 
 const ALL_SCOPES = [SCOPES.read, SCOPES.write, SCOPES.destructive];
 
@@ -16,12 +16,9 @@ type FormClaims = {
   redirectUri: string;
   state?: string;
   codeChallenge: string;
-  /** Every scope the consent screen offers — always all of them. */
+  /** What the password grants: every scope, whatever the client asked for. */
   scopes: string[];
-  /** What the client itself asked for; those boxes start ticked. */
-  requested: string[];
   ip: string;
-  stage: "login" | "consent";
 };
 
 function issuer(config: Config): string {
@@ -205,12 +202,10 @@ export class BuiltinAuth {
       return true;
     }
 
-    // The screen offers all three whatever the client asked for. ChatGPT asks
-    // for firefly:read and nothing else, and a screen limited to the request
-    // would leave a person who wants to record a transaction no way to say so.
-    // RFC 6749 §3.3 allows a grant that differs from the request as long as the
-    // token response says what was granted, which /oauth/token does.
-    const requested = grantedScopes((params.get("scope") ?? scopesWithin().join(" ")).split(" "));
+    // Every scope, whatever the client asked for. ChatGPT asks for firefly:read
+    // alone, so a grant limited to the request left the assistant unable to
+    // record a transaction. RFC 6749 §3.3 allows a grant wider than the request
+    // as long as the token response reports it, which /oauth/token does.
     const scopes = scopesWithin();
     const formToken = await this.formToken({
       clientId: client.client_id,
@@ -218,9 +213,7 @@ export class BuiltinAuth {
       state,
       codeChallenge: params.get("code_challenge")!,
       scopes,
-      requested: requested.length > 0 ? requested : scopes,
       ip,
-      stage: "login",
     });
 
     if (req.method === "GET") {
@@ -242,28 +235,20 @@ export class BuiltinAuth {
       this.responseError(res, redirectUri, state, "slow_down", "Please wait before trying again.");
       return true;
     }
-    if (claims.stage === "login") {
-      if (!this.passwordOk(ip, first(values.password) ?? "")) {
-        const next = await this.formToken(claims);
-        send(res, 401, loginPage(next, "Incorrect password."), "text/html; charset=utf-8");
-        return true;
-      }
-      const consent = await this.formToken({ ...claims, stage: "consent" });
-      send(res, 200, consentPage(consent, claims.scopes, claims.requested), "text/html; charset=utf-8");
+    if (!this.passwordOk(ip, first(values.password) ?? "")) {
+      const next = await this.formToken(claims);
+      send(res, 401, loginPage(next, "Incorrect password."), "text/html; charset=utf-8");
       return true;
     }
 
-    const selected = (Array.isArray(values.scope) ? values.scope : [values.scope])
-      .filter((scope): scope is string => typeof scope === "string" && claims.scopes.includes(scope));
-    if (selected.length === 0) {
-      this.responseError(res, claims.redirectUri, claims.state, "access_denied", "At least one permission must be selected.");
-      return true;
-    }
+    // The password is the whole decision. A consent screen after it asked the
+    // same person the same question twice: they had just proved they hold the
+    // server's password, and every box on it was theirs to tick.
     const code = this.codes.issue({
       clientId: claims.clientId,
       redirectUri: claims.redirectUri,
       codeChallenge: claims.codeChallenge,
-      scopes: selected,
+      scopes: claims.scopes,
     });
     redirect(res, claims.redirectUri, {
       code,

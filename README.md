@@ -69,7 +69,7 @@ issue a read-only Personal Access Token in Firefly III, so the limit is enforced
 by Firefly rather than by a variable the same person can edit.
 
 Over HTTP with OAuth, access is decided per connection: `firefly:read`,
-`firefly:write` and `firefly:destructive` are approved on the consent screen,
+`firefly:write` and `firefly:destructive` are granted at the password screen,
 and a surface that was not granted is hidden as well as refused.
 
 ## What the assistant sees

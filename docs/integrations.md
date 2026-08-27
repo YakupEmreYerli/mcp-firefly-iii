@@ -168,8 +168,9 @@ short version is:
    endpoint.
 3. Choose **OAuth** as the authentication method. The client registers itself
    through DCR and runs PKCE on its own; no token is typed in by hand.
-4. Complete the password and consent screens in the browser. What you approve
-   there is what that connection can do, and nothing wider.
+4. Enter the password in the browser. That single screen is the whole
+   decision: the connection is then granted all three scopes, whatever the
+   client itself asked for.
 
 `MCP_RESOURCE_URL` must be the externally visible origin exactly —
 `https://mcp.example.com`, with no path. The connection URL may end in `/mcp`;

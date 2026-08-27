@@ -46,7 +46,7 @@ export function allowedBy(scopes: Iterable<string>): Set<Access> {
 /** Every scope worth asking for.
  *
  * What `scopes_supported` advertises and what a client that asks for nothing
- * is taken to want. The narrowing happens on the consent screen, by a person.
+ * is taken to want. Whoever enters the server's password holds all of it.
  */
 export function scopesWithin(): string[] {
   return [...ALL_SCOPE_VALUES];
@@ -133,7 +133,7 @@ export type ResourceMetadata = {
  *
  * `scopes_supported` lists all three, not the minimum: a client reads this to
  * decide what to ask for, and one that asks for `firefly:read` alone can never
- * be consented up to writing, however the consent screen is answered.
+ * be widened to writing later, whatever the person authorizing intended.
  */
 export function resourceMetadata(resource: string, authorizationServers: string[]): ResourceMetadata {
   return {

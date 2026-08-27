@@ -125,7 +125,7 @@ describe("protected resource metadata", () => {
 
   it("advertises all three, because a client can only be granted what it asked for", () => {
     // Advertising the minimum made every OAuth client request firefly:read and
-    // nothing else, and the consent screen then had nothing else to offer.
+    // nothing else, and a grant limited to the request could never write.
     expect(resourceMetadata(RESOURCE, [ISSUER]).scopes_supported).toEqual([
       "firefly:read",
       "firefly:write",

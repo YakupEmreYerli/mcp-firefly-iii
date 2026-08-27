@@ -63,10 +63,13 @@ review, that step is where you have chosen to remove the check.
   entirely.** It exists for local instances with self-signed certificates. On
   anything reachable over a network it makes the connection interceptable.
 - **Prefer a read-only Firefly token** for any session that only needs to answer
-  questions. This server has no permission setting of its own to fall back on:
-  the token is the boundary, and Firefly III enforces it. Over OAuth, withhold
-  `firefly:write` on the consent screen — the writing surfaces are then hidden
-  as well as refused, so the model does not attempt them.
+  questions. This server has no permission setting of its own to fall back on,
+  and the OAuth password grants all three scopes: the Firefly token is the
+  boundary, and Firefly III is what enforces it.
+- **`MCP_AUTH_PASSWORD` is full access.** Anyone who can reach the server and
+  knows it can register a client and obtain a token that reads, writes and
+  deletes. Give it the length you would give a banking password, and never the
+  one you use for Firefly III itself.
 - **Your MCP client's configuration file holds your token.** Those files are
   usually not git-ignored and do end up in backups.
 

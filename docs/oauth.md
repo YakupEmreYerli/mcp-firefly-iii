@@ -2,8 +2,8 @@
 
 When `MCP_AUTH_PASSWORD` is set, this server also acts as an OAuth 2.1
 authorization server, so no separate Keycloak or Authentik install is needed. It
-provides dynamic client registration, PKCE S256, a login screen, a consent
-screen, access tokens and rotating refresh tokens.
+provides dynamic client registration, PKCE S256, a password screen, access
+tokens and rotating refresh tokens.
 
 ## Common setup
 
@@ -30,15 +30,16 @@ The three scopes map onto the three execution surfaces:
 | `firefly:write` | + `firefly_mutate` |
 | `firefly:destructive` | + `firefly_destructive` |
 
-Broader implies narrower, so one scope is enough. What the consent screen
-approves is the whole of what that connection can do — there is no server-wide
-setting above it, and a surface it was not granted is hidden as well as refused.
+Broader implies narrower, so one scope is enough. Entering the password grants
+all three, whatever the client asked for — ChatGPT requests `firefly:read` alone
+and would otherwise never be able to record a transaction. RFC 6749 §3.3 allows
+a grant wider than the request as long as the token response reports it, and
+`/oauth/token` returns the granted `scope`.
 
-The screen always offers all three, whatever the client asked for. ChatGPT
-requests `firefly:read` alone; the other two boxes are there unticked, and
-ticking one grants more than the client asked for. That is allowed — the token
-response says what was actually granted — and it is the only way a client that
-only ever asks to read can be given permission to record a transaction.
+There is no second screen asking which of the three to allow. Whoever holds the
+password could have ticked every box on it, so the question only added a step.
+For a connection that cannot write, give this server a read-only Firefly
+Personal Access Token — that limit is Firefly's to enforce, not this server's.
 
 ## ChatGPT
 
@@ -47,16 +48,16 @@ only ever asks to read can be given permission to record a transaction.
 2. In ChatGPT's plugin / custom connector screen, enter
    `https://mcp.example.com/mcp` as the MCP endpoint.
 3. Choose OAuth as the authentication method.
-4. On the Firefly screen that opens, enter the `MCP_AUTH_PASSWORD` password and
-   approve the read, write or destructive scopes.
+4. On the Firefly screen that opens, enter the `MCP_AUTH_PASSWORD` password.
+   That grants the connection all three scopes.
 
 ChatGPT handles client registration, PKCE and the token exchange by itself.
 
 ## Claude web and Desktop
 
 Add the same `/mcp` address as a custom connector and start the OAuth flow, then
-complete the password and consent screens. Claude also registers as a public
-client and uses PKCE; there is no static bearer token to enter.
+enter the password. Claude also registers as a public client and uses PKCE;
+there is no static bearer token to enter.
 
 ## HTTPS options
 

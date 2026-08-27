@@ -43,7 +43,7 @@ function parseBool(raw: string | undefined): boolean {
  * editing the same file the Firefly token sits in — so they read as boundaries
  * without being ones. Access now belongs to the connection: a stdio client can
  * do whatever its token can, and an OAuth client carries the scopes a person
- * approved on the consent screen.
+ * granted at the password screen.
  *
  * The refusal is narrow on purpose. Only a value that would have *restricted*
  * something stops the server: silently dropping it would leave a deployment
@@ -56,7 +56,7 @@ function refuseRetiredSettings(env: NodeJS.ProcessEnv): void {
   if (parseBool(env.FIREFLY_READ_ONLY)) {
     throw new ConfigurationError(
       "FIREFLY_READ_ONLY is no longer supported. Withhold the firefly:write scope on the " +
-        "consent screen instead, or point the client at a read-only Firefly token. " +
+        "OAuth password, or point the client at a read-only Firefly token. " +
         "Remove FIREFLY_READ_ONLY to start.",
     );
   }
@@ -66,7 +66,7 @@ function refuseRetiredSettings(env: NodeJS.ProcessEnv): void {
     throw new ConfigurationError(
       `FIREFLY_PERMISSIONS is no longer supported, and ${JSON.stringify(permissions)} would have narrowed access. ` +
         "What the assistant may do is now decided per connection: a stdio client gets everything, " +
-        "and an OAuth client gets what was approved on the consent screen. Remove FIREFLY_PERMISSIONS to start.",
+        "and an OAuth client gets what its password grant carries. Remove FIREFLY_PERMISSIONS to start.",
     );
   }
 

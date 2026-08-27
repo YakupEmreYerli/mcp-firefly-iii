@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FIREFLY_PERMISSIONS`, and with it every server-wide permission setting. What
   the assistant may do is now decided by the connection: a stdio client can do
   whatever its Firefly token can — issue a read-only token if that is the limit
-  you want — and an OAuth client carries the scopes approved on the consent
-  screen, with a surface it was not granted hidden as well as refused. The
+  you want — and an OAuth client carries the scopes its password grant gave it,
+  with a surface it was not granted hidden as well as refused. The
   setting narrowed a token its own operator had issued at full scope, and could
   be widened by editing the same file the token sits in, so it read as a
   boundary without being one.
@@ -50,6 +50,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Setting the variable now does nothing.
 
 ### Changed
+
+- The OAuth consent screen is gone. Entering `MCP_AUTH_PASSWORD` now grants the
+  connection all three scopes and redirects straight back to the client. The
+  screen asked the same person the same question twice: they had just proved
+  they hold the server's password, and every box on it was theirs to tick.
+  Clients that request `firefly:read` alone — ChatGPT does — are granted more
+  than they asked for, which RFC 6749 §3.3 allows as long as the token response
+  reports what was granted.
+
+
 
 - `FIREFLY_API_URL` and `MCP_RESOURCE_URL` accept a bare domain.
   `FIREFLY_API_URL=firefly.example.com` becomes

@@ -129,7 +129,7 @@ export class Registry {
    *
    * Only a connection's own grant can withhold an operation now. There is no
    * server-wide policy to consult: a stdio client has every surface, and an
-   * OAuth one has what the consent screen approved.
+   * OAuth one has what the password screen granted.
    */
   private blockedReason(entity: EntityType, operation: Operation): string | undefined {
     if (this.granted && !this.granted.has(operation.access)) {

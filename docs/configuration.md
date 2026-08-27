@@ -59,7 +59,7 @@ disables certificate verification completely.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `MCP_RESOURCE_URL` | *(required for OAuth)* | Public MCP hostname, for example `https://mcp.example.com` |
-| `MCP_AUTH_PASSWORD` | empty | Enables the embedded OAuth 2.1 login and consent flow |
+| `MCP_AUTH_PASSWORD` | empty | Enables the embedded OAuth 2.1 login flow |
 | `MCP_AUTH_STATE_DIR` | `/data/firefly-mcp-auth` | Persistent key, client and refresh-token state directory |
 
 `MCP_RESOURCE_URL` has to be a bare origin: `mcp.example.com` or
@@ -89,7 +89,7 @@ Two things decide access instead, and both belong to whoever is connecting:
   here, enforced by Firefly III rather than by this server. This is the
   guarantee worth having for a shared screen or a demo.
 - **The OAuth scopes**, in HTTP mode. `firefly:read`, `firefly:write` and
-  `firefly:destructive` are approved per connection on the consent screen; a
+  `firefly:destructive` are granted per connection at the password screen; a
   surface the connection was not granted is refused *and* hidden — from the
   catalogue, from schema lookups, and from the tool list, since advertising an
   operation that can only fail sends the model down a dead end.
