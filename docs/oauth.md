@@ -32,8 +32,13 @@ The three scopes map onto the three execution surfaces:
 
 Broader implies narrower, so one scope is enough. What the consent screen
 approves is the whole of what that connection can do — there is no server-wide
-setting above it, and a surface it was not granted is hidden as well as
-refused.
+setting above it, and a surface it was not granted is hidden as well as refused.
+
+The screen always offers all three, whatever the client asked for. ChatGPT
+requests `firefly:read` alone; the other two boxes are there unticked, and
+ticking one grants more than the client asked for. That is allowed — the token
+response says what was actually granted — and it is the only way a client that
+only ever asks to read can be given permission to record a transaction.
 
 ## ChatGPT
 

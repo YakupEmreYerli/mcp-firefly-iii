@@ -177,14 +177,43 @@ describe("embedded authorization server", () => {
     expect(badResource.status).toBe(400);
   });
 
-  it("carries every scope a client asked for onto the consent screen", async () => {
-    // The person approving is the one who narrows now; a scope missing here
-    // could never be granted later, however the screen was answered.
+  it("offers every scope on the consent screen, ticking only what was asked for", async () => {
+    // ChatGPT asks for firefly:read and nothing else. A screen limited to the
+    // request would leave a person who wants the assistant to record a
+    // transaction no way to say so, and a scope never offered can never be
+    // granted — which is how the screen came to show one lonely checkbox.
     const { base, resource } = await start({});
     const registration = await (await fetch(`${base}/oauth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ redirect_uris: [redirectUri] }) })).json() as { client_id: string };
-    const params = new URLSearchParams({ response_type: "code", client_id: registration.client_id, redirect_uri: redirectUri, scope: "firefly:read firefly:write firefly:destructive", code_challenge: challenge, code_challenge_method: "S256", resource });
-    const html = await (await fetch(`${base}/oauth/authorize?${params}`)).text(); const form = /name="form_token" value="([^"]+)"/.exec(html)![1]!;
+    const params = new URLSearchParams({ response_type: "code", client_id: registration.client_id, redirect_uri: redirectUri, scope: "firefly:read", code_challenge: challenge, code_challenge_method: "S256", resource });
+    const authorizeUrl = `${base}/oauth/authorize?${params}`;
+    const login = await (await fetch(authorizeUrl)).text();
+    const loginToken = /name="form_token" value="([^"]+)"/.exec(login)![1]!;
+    const consent = await (await fetch(authorizeUrl, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ form_token: loginToken, password: "correct-password-long" }) })).text();
+    const boxes = [...consent.matchAll(/name="scope" value="([^"]+)"( checked)?/g)].map(([, scope, checked]) => [scope, checked !== undefined]);
 
-    expect(decodeJwt(form).scopes).toEqual(["firefly:read", "firefly:write", "firefly:destructive"]);
+    expect(boxes).toEqual([
+      ["firefly:read", true],
+      ["firefly:write", false],
+      ["firefly:destructive", false],
+    ]);
   });
+
+  it("grants a scope the person ticked but the client never requested", async () => {
+    // RFC 6749 §3.3 allows this as long as the token response says what was
+    // granted, and it is the only way a read-only client can be widened.
+    const { base, resource } = await start({});
+    const registration = await (await fetch(`${base}/oauth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ redirect_uris: [redirectUri] }) })).json() as { client_id: string };
+    const params = new URLSearchParams({ response_type: "code", client_id: registration.client_id, redirect_uri: redirectUri, scope: "firefly:read", code_challenge: challenge, code_challenge_method: "S256", resource });
+    const authorizeUrl = `${base}/oauth/authorize?${params}`;
+    const login = await (await fetch(authorizeUrl)).text();
+    const loginToken = /name="form_token" value="([^"]+)"/.exec(login)![1]!;
+    const consent = await (await fetch(authorizeUrl, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ form_token: loginToken, password: "correct-password-long" }) })).text();
+    const consentToken = /name="form_token" value="([^"]+)"/.exec(consent)![1]!;
+    const approved = await fetch(authorizeUrl, { method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams([["form_token", consentToken], ["scope", "firefly:read"], ["scope", "firefly:write"]]) });
+    const code = new URL(approved.headers.get("location")!).searchParams.get("code")!;
+    const token = await (await fetch(`${base}/oauth/token`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: redirectUri, client_id: registration.client_id, code_verifier: verifier, resource }) })).json() as { scope: string };
+
+    expect(token.scope).toBe("firefly:read firefly:write");
+  });
+
 });

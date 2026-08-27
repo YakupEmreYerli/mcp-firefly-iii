@@ -38,19 +38,30 @@ export function loginPage(formToken: string, error?: string): string {
   );
 }
 
-export function consentPage(formToken: string, scopes: string[], error?: string): string {
+/** `scopes` is everything on offer; `requested` is what the client asked for,
+ * and only those boxes start ticked. Anything else is there to be added by the
+ * person reading the screen, who is the only one who can widen a grant. */
+export function consentPage(
+  formToken: string,
+  scopes: string[],
+  requested: string[] = scopes,
+  error?: string,
+): string {
   const message = error ? `<p role="alert">${escapeHtml(error)}</p>` : "";
+  const wanted = new Set(requested);
   const choices = scopes
     .map(
       (scope) =>
         `<label class="scope">` +
-        `<input type="checkbox" name="scope" value="${escapeHtml(scope)}" checked> ` +
+        `<input type="checkbox" name="scope" value="${escapeHtml(scope)}"${wanted.has(scope) ? " checked" : ""}> ` +
         `${escapeHtml(SCOPE_LABELS[scope] ?? scope)}</label>`,
     )
     .join("");
   return page(
     "Approve Firefly access",
-    `${message}<h1>Approve access</h1><p>Select the access this client may use.</p>` +
+    `${message}<h1>Approve access</h1>` +
+      `<p>Tick everything this client may do. It asked for the boxes already ticked; ` +
+      `adding one grants more than it requested, and unticking one grants less.</p>` +
       `<form method="post">` +
       `<input type="hidden" name="form_token" value="${escapeHtml(formToken)}">` +
       `${choices}<button type="submit">Approve</button></form>`,

@@ -16,7 +16,10 @@ type FormClaims = {
   redirectUri: string;
   state?: string;
   codeChallenge: string;
+  /** Every scope the consent screen offers — always all of them. */
   scopes: string[];
+  /** What the client itself asked for; those boxes start ticked. */
+  requested: string[];
   ip: string;
   stage: "login" | "consent";
 };
@@ -202,18 +205,20 @@ export class BuiltinAuth {
       return true;
     }
 
-    // A client that names no scope is taken to want everything the operator
-    // allows; the consent screen is where that gets narrowed, by a person.
-    const requested = (params.get("scope") ?? scopesWithin().join(" "))
-      .split(" ")
-      .filter((scope) => ALL_SCOPES.includes(scope as typeof SCOPES.read));
-    const scopes = grantedScopes(requested);
+    // The screen offers all three whatever the client asked for. ChatGPT asks
+    // for firefly:read and nothing else, and a screen limited to the request
+    // would leave a person who wants to record a transaction no way to say so.
+    // RFC 6749 §3.3 allows a grant that differs from the request as long as the
+    // token response says what was granted, which /oauth/token does.
+    const requested = grantedScopes((params.get("scope") ?? scopesWithin().join(" ")).split(" "));
+    const scopes = scopesWithin();
     const formToken = await this.formToken({
       clientId: client.client_id,
       redirectUri,
       state,
       codeChallenge: params.get("code_challenge")!,
       scopes,
+      requested: requested.length > 0 ? requested : scopes,
       ip,
       stage: "login",
     });
@@ -244,7 +249,7 @@ export class BuiltinAuth {
         return true;
       }
       const consent = await this.formToken({ ...claims, stage: "consent" });
-      send(res, 200, consentPage(consent, claims.scopes), "text/html; charset=utf-8");
+      send(res, 200, consentPage(consent, claims.scopes, claims.requested), "text/html; charset=utf-8");
       return true;
     }
 
