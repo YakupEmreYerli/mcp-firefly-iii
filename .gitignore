@@ -20,3 +20,7 @@ exports/
 
 # Documentation toolchain virtualenv
 .venv-docs/
+
+# Local working notes and throwaway maintainer scripts, deliberately not shared
+PLAN.md
+scripts/_*.mjs
