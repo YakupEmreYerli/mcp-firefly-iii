@@ -154,11 +154,22 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
           operation: z.string().describe("Operation name (list, get, create, ...)"),
           params: z.record(z.unknown()).optional().describe("Operation parameters"),
           fields: z.array(z.string()).optional().describe("Attribute allow-list for the response"),
+          ...(surface.access.includes("read")
+            ? {}
+            : {
+                dry_run: z
+                  .boolean()
+                  .optional()
+                  .describe(
+                    "Preview instead of applying: returns the exact request that would be sent, " +
+                      "plus warnings such as a possible duplicate transaction. Nothing is written.",
+                  ),
+              }),
         },
       },
-      async ({ entity, operation, params, fields }) => {
+      async ({ entity, operation, params, fields, dry_run }) => {
         const payload = await registry
-          .execute(entity, operation, params, fields, surface.access)
+          .execute(entity, operation, params, fields, surface.access, dry_run === true)
           .catch((caught: unknown) => asError(caught));
         return toolResult(payload);
       },

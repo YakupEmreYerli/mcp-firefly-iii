@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { permits, type Config } from "./config.js";
+import { duplicateWarnings, previewClient, type PlannedWrite } from "./preview.js";
 import type { FireflyClient } from "./firefly.js";
 import { EntityType, type Access } from "./types.js";
 import {
@@ -222,6 +223,7 @@ export class Registry {
     params?: unknown,
     fields?: string[],
     allowed?: readonly Access[],
+    dryRun = false,
   ): Promise<unknown> {
     const [, found] = this.lookup(entity, operation, allowed);
 
@@ -239,6 +241,24 @@ export class Registry {
         `Invalid parameters for ${entity}.${operation}: ${complaints}. ` +
           `Expected schema: ${JSON.stringify(zodToJsonSchema(found.input, { $refStrategy: "none" }))}`,
       );
+    }
+
+    // A preview runs the handler against a client that reads for real and only
+    // records writes, so the plan comes back with ids resolved and the payload
+    // shaped as Firefly would receive it — not an echo of the parameters. A
+    // read has nothing to preview, so it simply runs.
+    if (dryRun && found.access !== "read") {
+      const plan: PlannedWrite[] = [];
+      await found.handler(parsed.data, previewClient(this.client, plan));
+      const warnings = await duplicateWarnings(plan, this.client);
+      return {
+        dry_run: true,
+        entity,
+        operation,
+        would_send: plan,
+        ...(warnings.length > 0 ? { warnings } : {}),
+        note: "Nothing was written. Call again without dry_run to apply this.",
+      };
     }
 
     const result = await found.handler(parsed.data, this.client);

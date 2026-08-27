@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `dry_run` on `firefly_mutate` and `firefly_destructive`. It runs the operation
+  against a client that reads for real but only records what it would write, so
+  the preview comes back with ids resolved and the payload shaped exactly as
+  Firefly would receive it, rather than an echo of the parameters. Nothing is
+  written, and the result says so.
+- A duplicate guard on previewed transaction creates: if the same amount already
+  moved between the same two accounts on that day, the preview carries a warning
+  with the matching records. It only ever warns — Firefly's
+  `error_if_duplicate_hash` is what blocks an exact repeat, and a threshold
+  invented here would block writes the caller meant to make.
 - `FIREFLY_PERMISSIONS`, for the ground between "reads only" and "may do
   anything". Either a preset (`read`, `safe`, `full`) or a per-entity list such
   as `transaction:safe;account:read;rule:none;*:read`. `safe` is the level that
