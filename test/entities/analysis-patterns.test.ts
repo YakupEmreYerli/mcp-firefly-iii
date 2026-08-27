@@ -42,7 +42,7 @@ function registry(c: FireflyClient): Registry {
     apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
     permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
     structuredOutput: false, enabledEntities: new Set(Object.values(EntityType)),
-    disableSslVerify: false, logLevel: "INFO",
+    resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const result = new Registry(config, c);
   result.register(analysisModule);

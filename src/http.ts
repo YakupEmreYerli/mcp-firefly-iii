@@ -9,6 +9,18 @@ import { loadConfig } from "./config.js";
 import { createClient } from "./firefly.js";
 import { Registry } from "./registry.js";
 import { ENTITY_MODULES, createServer } from "./server.js";
+import {
+  MINIMUM_SCOPE,
+  accessForRequest,
+  allowedBy,
+  challenge,
+  grantsAnything,
+  metadataPathsFor,
+  policyForScopes,
+  resourceMetadata,
+  scopeFor,
+  verifyToken,
+} from "./oauth.js";
 
 /** Bodies above this are refused unread. An MCP request is kilobytes; anything
  * larger is a mistake or an attempt to exhaust memory. */
@@ -53,10 +65,12 @@ function tokenMatches(presented: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-function authorized(req: IncomingMessage, expected: string): boolean {
+/** The presented bearer token, or undefined when none was offered. */
+function bearerToken(req: IncomingMessage): string | undefined {
   const header = req.headers.authorization;
-  if (typeof header !== "string" || !header.startsWith("Bearer ")) return false;
-  return tokenMatches(header.slice("Bearer ".length), expected);
+  if (typeof header !== "string" || !header.startsWith("Bearer ")) return undefined;
+  const token = header.slice("Bearer ".length).trim();
+  return token === "" ? undefined : token;
 }
 
 /** Build the HTTP listener for MCP over streamable HTTP.
@@ -69,34 +83,128 @@ function authorized(req: IncomingMessage, expected: string): boolean {
  * accumulate them.
  */
 export function createHttpServer(config: Config): Server {
-  const httpToken = config.httpToken ?? "";
-  if (httpToken.trim() === "") throw new Error("MCP_HTTP_TOKEN must be set for HTTP mode.");
+  const httpToken = (config.httpToken ?? "").trim();
+  const issuers = config.authorizationServers;
+  const oauth = issuers.length > 0;
 
-  const registry = new Registry(config, createClient(config));
+  // One of the two has to be there. Starting with neither would serve a
+  // stranger's financial history to anyone who found the address.
+  if (httpToken === "" && !oauth) {
+    throw new Error("HTTP mode needs MCP_HTTP_TOKEN, or MCP_AUTHORIZATION_SERVERS for OAuth.");
+  }
+  // A resource identifier is what a token is bound to. Without it the audience
+  // check has nothing to compare against, and an unbound bearer token is one
+  // any other service could have issued.
+  if (oauth && config.resourceUrl === "") {
+    throw new Error("MCP_RESOURCE_URL must be set when MCP_AUTHORIZATION_SERVERS is.");
+  }
+
+  const client = createClient(config);
+  const registry = new Registry(config, client);
   for (const module of ENTITY_MODULES) registry.register(module);
+
+  const metadataPaths = oauth ? new Set(metadataPathsFor(config.resourceUrl)) : new Set<string>();
+
+  /** The registry a request runs against.
+   *
+   * A static token carries no scopes and keeps the configured permissions. An
+   * OAuth token is narrowed to what it was actually granted, so the gate the
+   * rest of the server already goes through does the enforcing.
+   */
+  function registryFor(scopes: Set<string> | undefined): Registry {
+    if (scopes === undefined) return registry;
+    const scoped = new Registry({ ...config, permissions: policyForScopes(scopes) }, client);
+    for (const module of ENTITY_MODULES) scoped.register(module);
+    return scoped;
+  }
 
   return createNodeServer((req, res) => {
     void handle(req, res);
   });
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const path = (req.url ?? "").split("?")[0];
+    const path = (req.url ?? "").split("?")[0] ?? "";
 
     if (path === "/health" && req.method === "GET") {
       writeJson(res, 200, { ok: true });
+      return;
+    }
+    // Discovery is deliberately unauthenticated: a client reads it precisely
+    // because it does not yet have a token, and RFC 9728 carries nothing
+    // secret — only where to go and ask.
+    if (metadataPaths.has(path) && req.method === "GET") {
+      writeJson(res, 200, resourceMetadata(config.resourceUrl, issuers));
       return;
     }
     if (path !== "/mcp" || !MCP_METHODS.has(req.method ?? "")) {
       writeJson(res, 404, { error: "Not found" });
       return;
     }
-    if (!authorized(req, httpToken)) {
-      res.setHeader("WWW-Authenticate", "Bearer");
+
+    const presented = bearerToken(req);
+    let scopes: Set<string> | undefined;
+
+    // The static token is tried first and answers with the bare challenge it
+    // always did, so an existing deployment sees no change.
+    if (httpToken !== "" && presented !== undefined && tokenMatches(presented, httpToken)) {
+      scopes = undefined;
+    } else if (oauth && presented !== undefined) {
+      const checked = await verifyToken(presented, { resource: config.resourceUrl, issuers });
+      if (!checked.ok) {
+        res.setHeader(
+          "WWW-Authenticate",
+          challenge({ resource: config.resourceUrl, scope: MINIMUM_SCOPE, error: "invalid_token", description: checked.reason }),
+        );
+        writeJson(res, 401, { error: "invalid_token", error_description: checked.reason });
+        return;
+      }
+      // A token carrying nothing this server understands is refused with a
+      // challenge rather than let in to find every tool missing.
+      if (!grantsAnything(checked.scopes)) {
+        res.setHeader(
+          "WWW-Authenticate",
+          challenge({ resource: config.resourceUrl, scope: MINIMUM_SCOPE, error: "insufficient_scope" }),
+        );
+        writeJson(res, 403, { error: "insufficient_scope", scope: MINIMUM_SCOPE });
+        return;
+      }
+      scopes = checked.scopes;
+    } else {
+      if (oauth) {
+        res.setHeader("WWW-Authenticate", challenge({ resource: config.resourceUrl, scope: MINIMUM_SCOPE }));
+      } else {
+        res.setHeader("WWW-Authenticate", "Bearer");
+      }
       writeJson(res, 401, { error: "Unauthorized" });
       return;
     }
 
-    const mcp = createServer(registry, config);
+    // Read the body once, here, so an under-scoped call is refused before it
+    // reaches a tool rather than failing somewhere inside one.
+    let body: unknown;
+    if (req.method === "POST") {
+      try {
+        body = await readJson(req);
+      } catch (error) {
+        writeJson(res, 400, { error: error instanceof Error ? error.message : String(error) });
+        return;
+      }
+    }
+
+    if (scopes !== undefined) {
+      const needed = accessForRequest(body);
+      if (needed !== undefined && !allowedBy(scopes).has(needed)) {
+        const scope = scopeFor(needed);
+        res.setHeader(
+          "WWW-Authenticate",
+          challenge({ resource: config.resourceUrl, scope, error: "insufficient_scope" }),
+        );
+        writeJson(res, 403, { error: "insufficient_scope", scope });
+        return;
+      }
+    }
+
+    const mcp = createServer(registryFor(scopes), config);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
@@ -108,7 +216,6 @@ export function createHttpServer(config: Config): Server {
 
     try {
       await mcp.connect(transport);
-      const body = req.method === "POST" ? await readJson(req) : undefined;
       await transport.handleRequest(req, res, body);
     } catch (error) {
       if (!res.headersSent) {

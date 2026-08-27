@@ -58,6 +58,10 @@ export type Config = {
   httpHost?: string;
   httpPort?: number;
   httpToken?: string;
+  /** Canonical URI of this MCP server, as an OAuth resource identifier. */
+  resourceUrl: string;
+  /** Issuers whose tokens this server will accept. Empty disables OAuth. */
+  authorizationServers: string[];
   structuredOutput: boolean;
 };
 
@@ -148,5 +152,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     httpPort: Number(env.MCP_HTTP_PORT ?? "3000"),
     httpToken: env.MCP_HTTP_TOKEN ?? "",
     structuredOutput: parseBool(env.MCP_STRUCTURED_OUTPUT),
+    resourceUrl: (env.MCP_RESOURCE_URL ?? "").trim().replace(/\/$/, ""),
+    // Trailing slashes are stripped: an issuer is compared to a token's `iss`
+    // by exact string, and "…/realm/" would never match "…/realm".
+    authorizationServers: (env.MCP_AUTHORIZATION_SERVERS ?? "")
+      .split(",")
+      .map((issuer) => issuer.trim().replace(/\/$/, ""))
+      .filter(Boolean),
   };
 }

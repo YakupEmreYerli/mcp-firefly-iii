@@ -39,7 +39,7 @@ function registry(raw?: string, readOnly = false): Registry {
   const config: Config = {
     apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly,
     permissions: policy(raw), directMode: false,
-    enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, disableSslVerify: false, logLevel: "INFO",
+    enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const result = new Registry(config, client);
   result.register(module);

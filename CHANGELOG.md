@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- OAuth 2.1 support in HTTP mode, as a resource server. `MCP_AUTHORIZATION_SERVERS`
+  and `MCP_RESOURCE_URL` turn it on; leaving them empty keeps the bearer token
+  exactly as it was. The server publishes RFC 9728 protected resource metadata,
+  points an unauthenticated caller at it through `WWW-Authenticate`, and
+  verifies tokens against the issuer's published keys.
+- Scopes over the three execution surfaces: `firefly:read`, `firefly:write` and
+  `firefly:destructive`, with broader implying narrower. A call beyond the
+  token's reach is refused with 403 `insufficient_scope` before the tool runs,
+  naming the scope that would have worked, and the granted scopes also narrow
+  the permission policy so enforcement does not rest on that check alone.
+- Audience binding per RFC 8707: a token issued for another service is refused.
+  A bearer token is whoever holds it, so without this any token a client had
+  would have worked here.
+
 ## [1.0.0] - 2026-08-27
 
 First stable release. The tool surface is now covered by semantic versioning:

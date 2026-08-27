@@ -15,7 +15,7 @@ function registry(): Registry {
     apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
     permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
     structuredOutput: false, enabledEntities: new Set(Object.values(EntityType)),
-    disableSslVerify: false, logLevel: "INFO",
+    resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const result = new Registry(config, client);
   for (const module of ENTITY_MODULES) result.register(module);

@@ -10,7 +10,7 @@ const config: Config = {
   permissions: { fallback: "destructive", byEntity: new Map() },
   directMode: false,
   enabledEntities: new Set(),
-  structuredOutput: false, disableSslVerify: false,
+  structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   logLevel: "INFO",
 };
 

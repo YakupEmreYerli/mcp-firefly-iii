@@ -27,7 +27,7 @@ function setup(existing: unknown[] = []): { registry: Registry; calls: Call[] } 
   const config: Config = {
     apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
     permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
-    enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, disableSslVerify: false, logLevel: "INFO",
+    enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const registry = new Registry(config, client);
   registry.register(transactionsModule);
@@ -165,7 +165,7 @@ describe("the duplicate scan reads the whole day", () => {
     const config: Config = {
       apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
       permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
-      enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, disableSslVerify: false, logLevel: "INFO",
+      enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
     };
     const registry = new Registry(config, client);
     registry.register(transactionsModule);
