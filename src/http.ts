@@ -5,6 +5,7 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Config } from "./config.js";
+import { diagnostic } from "./cli.js";
 import { loadConfig } from "./config.js";
 import { createClient } from "./firefly.js";
 import { Registry } from "./registry.js";
@@ -258,7 +259,7 @@ function isEntryPoint(): boolean {
 
 if (isEntryPoint()) {
   main().catch((error: unknown) => {
-    console.error(error);
+    console.error(diagnostic(error));
     process.exit(1);
   });
 }

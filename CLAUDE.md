@@ -48,11 +48,17 @@ tutmadığı bir iddia olurdu.
 İki şeyi atlamak kolay:
 
 **Her operasyonu `read`, `write` veya `destructive` diye etiketleyin.**
-Salt-okunur mod ve üç çalıştırma yüzeyi bu etiketlere bakar. `destructive`,
-çağıranın geri alamayacağı alt kümedir: kaydı siler, ya da tek çağrıda çok
-kaydın bir alanını yeniden yazar. Kapı `access !== "read"` diye bakar, yani
-sonradan eklenen bir seviye salt-okunur modda kapalı gelir — ama etiketi
-tamamen unutulmuş bir operasyonu yakalayacak ikinci bir isim listesi yok.
+`FIREFLY_PERMISSIONS` ve üç çalıştırma yüzeyi bu etiketlere bakar.
+`destructive`, çağıranın geri alamayacağı alt kümedir: kaydı siler, ya da tek
+çağrıda çok kaydın bir alanını yeniden yazar. Kapı tek bir yerde, `permits` ile
+seviye karşılaştırarak çalışır — etiketi tamamen unutulmuş bir operasyonu
+yakalayacak ikinci bir isim listesi yok, ama `access` zorunlu alan olduğu için
+eksik etiket derleme hatası olur.
+
+İzin ayarı tektir: `FIREFLY_READ_ONLY` ve `FIREFLY_ENABLED_ENTITIES` 2.0.0'da
+kaldırıldı, ikisi de `FIREFLY_PERMISSIONS`'ın alt kümesiydi. Kısıtlayan bir
+değerle hâlâ tanımlıysalar sunucu **açılmayı reddeder** — sessizce yok saymak,
+operatörün yazdığından daha geniş bir sunucu bırakırdı.
 
 **Açıklamaları, operasyonun cevapladığı soru olarak yazın.**
 `"Dönemde kategoriye göre ne kadar harcandı?"`, `"Gider kategori insight'ı"`ndan

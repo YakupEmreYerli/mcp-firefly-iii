@@ -31,7 +31,7 @@ If you would rather do it by hand:
 
 ```bash
 claude mcp add firefly \
-  --env FIREFLY_API_URL=https://your-firefly.example/api/v1 \
+  --env FIREFLY_API_URL=your-firefly.example \
   --env FIREFLY_API_TOKEN=your-token \
   -- npx -y @yakupemreyerli/firefly-mcp
 ```
@@ -47,7 +47,7 @@ Add this to the client's MCP configuration file:
       "command": "npx",
       "args": ["-y", "@yakupemreyerli/firefly-mcp"],
       "env": {
-        "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
+        "FIREFLY_API_URL": "your-firefly.example",
         "FIREFLY_API_TOKEN": "your-token"
       }
     }
@@ -56,7 +56,9 @@ Add this to the client's MCP configuration file:
 ```
 
 Get the token from Firefly III → **Options → Profile → OAuth → Create New
-Personal Access Token**. The `/api/v1` suffix on the URL is required.
+Personal Access Token**. For the URL, your domain is enough — `https://` and
+`/api/v1` are filled in. Give the full URL if your instance sits behind a
+subpath, on a custom port, or on plain http.
 
 ## Read-only mode
 
@@ -64,14 +66,14 @@ Writes are on by default: you can ask the assistant to record a purchase or
 categorise a transaction and it will.
 
 If you want a session that can only answer questions, set
-`FIREFLY_READ_ONLY=true`. Every create, update and delete is then refused and
+`FIREFLY_PERMISSIONS=read`. Every create, update and delete is then refused and
 hidden from the tool catalogue, so the assistant does not attempt one.
 
 ```json
 "env": {
-  "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
+  "FIREFLY_API_URL": "your-firefly.example",
   "FIREFLY_API_TOKEN": "your-token",
-  "FIREFLY_READ_ONLY": "true"
+  "FIREFLY_PERMISSIONS": "read"
 }
 ```
 
@@ -90,7 +92,7 @@ reading a balance from deleting a transaction:
 
 Each carries MCP tool annotations (`readOnlyHint`, `destructiveHint`,
 `idempotentHint`), and the split is enforced, not merely advertised: a delete
-reached through `firefly_query` is refused. With `FIREFLY_READ_ONLY=true` the
+reached through `firefly_query` is refused. With `FIREFLY_PERMISSIONS=read` the
 two writing tools are not registered at all.
 
 Most MCP clients degrade past roughly 40 tools, which is why the surface is
@@ -104,11 +106,9 @@ attributes you name — on a large transaction list that is roughly a 90% cut.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `FIREFLY_API_URL` | — | Required. Base URL including `/api/v1`. |
+| `FIREFLY_API_URL` | — | Required. A bare domain, or a full base URL including `/api/v1`. |
 | `FIREFLY_API_TOKEN` | — | Required. Personal Access Token. |
-| `FIREFLY_READ_ONLY` | `false` | Refuse and hide every write operation. |
-| `FIREFLY_PERMISSIONS` | unset | Finer than the read-only switch: a preset, or a level per entity. |
-| `FIREFLY_ENABLED_ENTITIES` | `all` | Comma-separated entity names to expose. |
+| `FIREFLY_PERMISSIONS` | unset (everything) | How far the assistant may go: `read`, `safe`, `full`, or a level per entity. `entity:none` hides one. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Only for a local instance with a self-signed certificate. |
 
 ## Remote HTTP mode
@@ -136,7 +136,7 @@ access to your financial history — do not expose the port directly.
 | Page | What it covers |
 | --- | --- |
 | [Quickstart](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/quickstart.md) | Getting a token, wiring up your client, first things to try, troubleshooting |
-| [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Every environment variable, read-only mode, the entity filter, HTTP mode |
+| [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Every environment variable, the permission policy, HTTP mode |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n and remote HTTP |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | All 146 operations, response trimming, the Firefly quirks that bite |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, search, and the eight insight endpoints |
@@ -149,7 +149,7 @@ For the HTTP mode there is a prebuilt image, for `linux/amd64` and
 
 ```bash
 docker run -d \
-  -e FIREFLY_API_URL=https://your-firefly.example/api/v1 \
+  -e FIREFLY_API_URL=your-firefly.example \
   -e FIREFLY_API_TOKEN=your-token \
   -e MCP_HTTP_HOST=0.0.0.0 \
   -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \

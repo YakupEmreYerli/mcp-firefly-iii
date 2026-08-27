@@ -9,7 +9,6 @@ import {
   PermissionDeniedError,
   EntityNotAvailableError,
   OperationNotFoundError,
-  ReadOnlyModeError,
   ValidationError,
 } from "./errors.js";
 import { projectFields, stripEmpty, markThirdPartyText } from "./projection.js";
@@ -103,7 +102,6 @@ export class Registry {
   ) {}
 
   register(module: EntityModule): void {
-    if (!this.config.enabledEntities.has(module.entity)) return;
     this.modules.set(module.entity, module);
   }
 
@@ -124,18 +122,12 @@ export class Registry {
 
   /** Why this operation is unavailable, or undefined if it is available.
    *
-   * Read-only mode is checked first and separately from the permission policy,
-   * even though it is the stricter of the two: an operator who set
-   * FIREFLY_READ_ONLY should be told that, not sent to look at a permissions
-   * string they may not have written.
+   * One policy, one answer. FIREFLY_READ_ONLY used to be checked separately
+   * here, which meant two settings could each refuse a call and the message had
+   * to guess which one the operator had actually written. The permission policy
+   * expresses both — read-only is `FIREFLY_PERMISSIONS=read`.
    */
   private blockedReason(entity: EntityType, operation: Operation): string | undefined {
-    // Blocks anything that is not a read, rather than naming what to block: a
-    // new access level then arrives closed in read-only mode instead of
-    // silently callable, which is the failure this field exists to prevent.
-    if (this.config.readOnly && operation.access !== "read") {
-      return "writes to Firefly III and the server is running with FIREFLY_READ_ONLY enabled";
-    }
     if (!permits(this.config.permissions, entity, operation.access)) {
       // Names the setting and the value, because "not granted" alone leaves the
       // operator guessing at a syntax they may never have written.
@@ -158,10 +150,7 @@ export class Registry {
 
     const blocked = this.blockedReason(entityType, found);
     if (blocked !== undefined) {
-      const message = `'${entity}.${operation}' ${blocked}.`;
-      throw blocked.includes("FIREFLY_READ_ONLY")
-        ? new ReadOnlyModeError(message)
-        : new PermissionDeniedError(message);
+      throw new PermissionDeniedError(`'${entity}.${operation}' ${blocked}.`);
     }
     // The surfaces advertise different risk annotations, so the gate has to
     // hold them apart here. Checking in the tool handler instead would leave

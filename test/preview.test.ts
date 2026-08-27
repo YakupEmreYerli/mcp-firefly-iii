@@ -25,9 +25,8 @@ function setup(existing: unknown[] = []): { registry: Registry; calls: Call[] } 
     postBinary: async () => null,
   };
   const config: Config = {
-    apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
-    permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
-    enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    apiUrl: "https://firefly.example/api/v1", apiToken: "",     permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const registry = new Registry(config, client);
   registry.register(transactionsModule);
@@ -163,9 +162,8 @@ describe("the duplicate scan reads the whole day", () => {
       del: async () => null, postBinary: async () => null,
     };
     const config: Config = {
-      apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
-      permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
-      enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+      apiUrl: "https://firefly.example/api/v1", apiToken: "",       permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+      structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
     };
     const registry = new Registry(config, client);
     registry.register(transactionsModule);

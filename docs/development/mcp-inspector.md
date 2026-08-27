@@ -30,7 +30,7 @@ npm run build && npx @modelcontextprotocol/inspector node dist/index.js
 !!! danger "The Inspector talks to your live data"
 
     Every `create`, `update` and `delete` you try writes to your real Firefly III
-    data. If you are only exploring, set `FIREFLY_READ_ONLY=true` in `.env` —
+    data. If you are only exploring, set `FIREFLY_PERMISSIONS=read` in `.env` —
     write operations then never appear in the tool list at all.
 
 ## The interface
@@ -44,7 +44,7 @@ npm run build && npx @modelcontextprotocol/inspector node dist/index.js
 In the default consolidated mode the Tools tab shows five tools:
 `firefly_query`, `firefly_mutate`, `firefly_destructive`,
 `firefly_list_operations` and `firefly_get_schema`. All 146 operations are
-reached through them. With `FIREFLY_READ_ONLY=true` the two writing tools are
+reached through them. With `FIREFLY_PERMISSIONS=read` the two writing tools are
 absent.
 
 ## Things to try first

@@ -3,7 +3,7 @@
 ## What this software touches
 
 This server holds a Firefly III Personal Access Token and can read — and unless
-`FIREFLY_READ_ONLY=true` is set, modify — the full financial history of whoever
+`FIREFLY_PERMISSIONS=read` is set, modify — the full financial history of whoever
 configured it. Treat a vulnerability here as you would one in a banking client.
 
 ## Reporting a vulnerability
@@ -62,7 +62,7 @@ review, that step is where you have chosen to remove the check.
 - **`FIREFLY_DISABLE_SSL_VERIFY=true` disables certificate verification
   entirely.** It exists for local instances with self-signed certificates. On
   anything reachable over a network it makes the connection interceptable.
-- **Prefer `FIREFLY_READ_ONLY=true`** for any session that only needs to answer
+- **Prefer `FIREFLY_PERMISSIONS=read`** for any session that only needs to answer
   questions. Write operations are then refused before the request reaches
   Firefly III, and hidden from the tool catalogue so the model does not attempt
   them.

@@ -12,10 +12,8 @@ const client: FireflyClient = {
 
 function registry(): Registry {
   const config: Config = {
-    apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
-    permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
-    structuredOutput: false, enabledEntities: new Set(Object.values(EntityType)),
-    resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    apiUrl: "https://firefly.example/api/v1", apiToken: "",     permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+    structuredOutput: false,     resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const result = new Registry(config, client);
   for (const module of ENTITY_MODULES) result.register(module);

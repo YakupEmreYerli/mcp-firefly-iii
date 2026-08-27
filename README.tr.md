@@ -32,7 +32,7 @@ Elle yapmayı tercih ederseniz:
 
 ```bash
 claude mcp add firefly \
-  --env FIREFLY_API_URL=https://kendi-firefly-adresiniz/api/v1 \
+  --env FIREFLY_API_URL=kendi-firefly-adresiniz \
   --env FIREFLY_API_TOKEN=token-degeriniz \
   -- npx -y @yakupemreyerli/firefly-mcp
 ```
@@ -48,7 +48,7 @@ claude mcp add firefly \
       "command": "npx",
       "args": ["-y", "@yakupemreyerli/firefly-mcp"],
       "env": {
-        "FIREFLY_API_URL": "https://kendi-firefly-adresiniz/api/v1",
+        "FIREFLY_API_URL": "kendi-firefly-adresiniz",
         "FIREFLY_API_TOKEN": "token-degeriniz"
       }
     }
@@ -57,22 +57,24 @@ claude mcp add firefly \
 ```
 
 Token'ı Firefly III → **Options → Profile → OAuth → Create New Personal Access
-Token** yolundan alırsınız. URL'nin sonundaki `/api/v1` zorunludur.
+Token** yolundan alırsınız. URL için alan adınız yeterli — `https://` ve
+`/api/v1` tamamlanır. Örneğiniz bir alt yolda, özel bir portta ya da düz
+http üzerindeyse tam URL'i verin.
 
 ## Salt-okunur mod
 
 Yazma varsayılan olarak açık: asistandan bir harcamayı kaydetmesini veya bir
 işlemi kategorilendirmesini isteyebilirsiniz, yapar.
 
-Yalnızca soru cevaplayan bir oturum isterseniz `FIREFLY_READ_ONLY=true` verin.
+Yalnızca soru cevaplayan bir oturum isterseniz `FIREFLY_PERMISSIONS=read` verin.
 O zaman her oluşturma, güncelleme ve silme reddedilir ve araç kataloğundan
 gizlenir, böylece asistan denemez bile.
 
 ```json
 "env": {
-  "FIREFLY_API_URL": "https://kendi-firefly-adresiniz/api/v1",
+  "FIREFLY_API_URL": "kendi-firefly-adresiniz",
   "FIREFLY_API_TOKEN": "token-degeriniz",
-  "FIREFLY_READ_ONLY": "true"
+  "FIREFLY_PERMISSIONS": "read"
 }
 ```
 
@@ -91,7 +93,7 @@ bakiye okumakla işlem silmeyi ayırt edebiliyor:
 
 Her birinde MCP tool annotation'ları var (`readOnlyHint`, `destructiveHint`,
 `idempotentHint`) ve ayrım yalnızca ilan edilmiyor, **uygulanıyor**:
-`firefly_query` üzerinden çağrılan bir silme reddedilir. `FIREFLY_READ_ONLY=true`
+`firefly_query` üzerinden çağrılan bir silme reddedilir. `FIREFLY_PERMISSIONS=read`
 iken yazan iki araç hiç kaydedilmez.
 
 Çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için yüzey üç araçta tutuldu.
@@ -104,11 +106,9 @@ listesi alır — büyük bir işlem listesinde bu yaklaşık %90 küçülme dem
 
 | Değişken | Varsayılan | İşlevi |
 | --- | --- | --- |
-| `FIREFLY_API_URL` | — | Zorunlu. `/api/v1` dahil temel URL. |
+| `FIREFLY_API_URL` | — | Zorunlu. Yalnızca alan adı, ya da `/api/v1` dahil tam URL. |
 | `FIREFLY_API_TOKEN` | — | Zorunlu. Personal Access Token. |
-| `FIREFLY_READ_ONLY` | `false` | Tüm yazma operasyonlarını reddeder ve gizler. |
-| `FIREFLY_PERMISSIONS` | boş | Salt-okunur anahtarından ince ayar: hazır seviye ya da varlık başına seviye. |
-| `FIREFLY_ENABLED_ENTITIES` | `all` | Açılacak varlıklar, virgülle ayrılmış. |
+| `FIREFLY_PERMISSIONS` | boş (her şey) | Asistan nereye kadar gidebilir: `read`, `safe`, `full`, ya da varlık başına seviye. `varlık:none` onu tamamen gizler. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Yalnızca kendinden imzalı sertifikalı yerel örnek için. |
 
 ## Uzak HTTP modu
@@ -136,7 +136,7 @@ arasındaki tek şey — portu doğrudan açmayın.
 | Sayfa | İçeriği |
 | --- | --- |
 | [Quickstart](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/quickstart.md) | Token alma, istemciyi bağlama, ilk denemeler, sorun giderme |
-| [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Tüm ortam değişkenleri, salt-okunur mod, varlık filtresi, HTTP modu |
+| [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Tüm ortam değişkenleri, izin politikası, HTTP modu |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n ve uzak HTTP |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | 146 operasyonun tamamı, yanıt kırpma, Firefly'ın tuzakları |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, arama ve sekiz insight ucu |
@@ -150,7 +150,7 @@ HTTP modu için hazır imaj var, `linux/amd64` ve `linux/arm64` için:
 
 ```bash
 docker run -d \
-  -e FIREFLY_API_URL=https://kendi-firefly-adresiniz/api/v1 \
+  -e FIREFLY_API_URL=kendi-firefly-adresiniz \
   -e FIREFLY_API_TOKEN=token-degeriniz \
   -e MCP_HTTP_HOST=0.0.0.0 \
   -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \

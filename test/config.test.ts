@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../src/config.js";
-import { EntityType } from "../src/types.js";
 
 describe("loadConfig", () => {
   it("reads the API url and token", () => {
@@ -12,62 +11,88 @@ describe("loadConfig", () => {
     expect(config.apiToken).toBe("token");
   });
 
-  it("enables every entity when FIREFLY_ENABLED_ENTITIES is unset", () => {
-    const config = loadConfig({});
-    expect(config.enabledEntities.size).toBe(Object.values(EntityType).length);
-  });
-
-  it("enables only the named entities", () => {
-    const config = loadConfig({ FIREFLY_ENABLED_ENTITIES: "account, transaction" });
-    expect([...config.enabledEntities].sort()).toEqual([
-      EntityType.Account,
-      EntityType.Transaction,
-    ].sort());
-  });
-
-  it("ignores unknown entity names rather than failing to start", () => {
-    const config = loadConfig({ FIREFLY_ENABLED_ENTITIES: "account,nonsense" });
-    expect([...config.enabledEntities]).toEqual([EntityType.Account]);
-  });
-
-  it("treats 'all' as every entity", () => {
-    const config = loadConfig({ FIREFLY_ENABLED_ENTITIES: "all" });
-    expect(config.enabledEntities.size).toBe(Object.values(EntityType).length);
-  });
-
-  it("treats 'all' as every entity wherever it appears in the list", () => {
-    const config = loadConfig({ FIREFLY_ENABLED_ENTITIES: "account, ALL " });
-    expect(config.enabledEntities.size).toBe(Object.values(EntityType).length);
-  });
-
-  it("matches entity names case-insensitively, as Python does", () => {
-    const config = loadConfig({ FIREFLY_ENABLED_ENTITIES: "Account, TRANSACTION" });
-    expect([...config.enabledEntities].sort()).toEqual(
-      [EntityType.Account, EntityType.Transaction].sort(),
-    );
-  });
-
-  it("enables nothing when only unknown names are listed", () => {
-    // An empty set is honest: `make check` reports "0 entities". Falling back
-    // to everything would reward a typo by widening a safety knob.
-    const config = loadConfig({ FIREFLY_ENABLED_ENTITIES: "nonsense,typo" });
-    expect(config.enabledEntities.size).toBe(0);
-  });
-
   it("treats an unparseable boolean as false", () => {
-    const config = loadConfig({ FIREFLY_READ_ONLY: "evet" });
-    expect(config.readOnly).toBe(false);
+    const config = loadConfig({ FIREFLY_DISABLE_SSL_VERIFY: "evet" });
+    expect(config.disableSslVerify).toBe(false);
   });
 
   it("reads booleans case-insensitively", () => {
-    const config = loadConfig({ FIREFLY_READ_ONLY: "TRUE", });
-    expect(config.readOnly).toBe(true);
+    const config = loadConfig({ FIREFLY_DISABLE_SSL_VERIFY: "TRUE" });
+    expect(config.disableSslVerify).toBe(true);
   });
 
   it.each(["1", "yes", "on", "YES", " On "])(
     "accepts %s as a true boolean, like the Python version did",
     (raw) => {
-      expect(loadConfig({ FIREFLY_READ_ONLY: raw }).readOnly).toBe(true);
+      expect(loadConfig({ FIREFLY_DISABLE_SSL_VERIFY: raw }).disableSslVerify).toBe(true);
     },
   );
+});
+
+describe("settings that FIREFLY_PERMISSIONS replaced", () => {
+  // Both were subsets of FIREFLY_PERMISSIONS. Removing them is safe only if a
+  // deployment that still sets them cannot start with a *different* meaning
+  // than it had — a server that silently becomes writable is exactly the class
+  // of failure this project is built against.
+
+  it("refuses to start when FIREFLY_READ_ONLY would have restricted writes", () => {
+    expect(() => loadConfig({ FIREFLY_READ_ONLY: "true" })).toThrow(/FIREFLY_PERMISSIONS=read/);
+  });
+
+  it("names the replacement for every truthy spelling the old setting took", () => {
+    for (const value of ["true", "1", "yes", "on", "TRUE"]) {
+      expect(() => loadConfig({ FIREFLY_READ_ONLY: value }), value).toThrow(/FIREFLY_PERMISSIONS=read/);
+    }
+  });
+
+  it("starts normally when FIREFLY_READ_ONLY said false", () => {
+    // .env.example shipped FIREFLY_READ_ONLY=false, so most existing files
+    // carry it. It meant "no restriction", which is now the default — stopping
+    // for it would be friction with nothing gained.
+    expect(() => loadConfig({ FIREFLY_READ_ONLY: "false" })).not.toThrow();
+    expect(() => loadConfig({ FIREFLY_READ_ONLY: "" })).not.toThrow();
+  });
+
+  it("refuses to start when FIREFLY_ENABLED_ENTITIES would have hidden entities", () => {
+    expect(() => loadConfig({ FIREFLY_ENABLED_ENTITIES: "account,transaction" })).toThrow(
+      /FIREFLY_PERMISSIONS/,
+    );
+  });
+
+  it("starts normally when FIREFLY_ENABLED_ENTITIES said all", () => {
+    // Also shipped in .env.example, and 'all' is the new default.
+    expect(() => loadConfig({ FIREFLY_ENABLED_ENTITIES: "all" })).not.toThrow();
+    expect(() => loadConfig({ FIREFLY_ENABLED_ENTITIES: "" })).not.toThrow();
+  });
+});
+
+describe("a domain is enough", () => {
+  it("builds the Firefly API url from a bare domain", () => {
+    expect(loadConfig({ FIREFLY_API_URL: "firefly.example.com" }).apiUrl).toBe(
+      "https://firefly.example.com/api/v1",
+    );
+  });
+
+  it("leaves a full url alone, including a subpath and a port", () => {
+    // Self-hosted Firefly behind a subpath or on a custom port is common, and
+    // deriving from a domain would break exactly those installs.
+    for (const url of [
+      "https://firefly.example/api/v1",
+      "https://host:8080/firefly/api/v1",
+      "http://192.168.1.10:8080/api/v1",
+    ]) {
+      expect(loadConfig({ FIREFLY_API_URL: url }).apiUrl, url).toBe(url);
+    }
+  });
+
+  it("builds the MCP resource url from a bare domain", () => {
+    expect(loadConfig({ MCP_RESOURCE_URL: "mcp.example.com" }).resourceUrl).toBe(
+      "https://mcp.example.com/mcp",
+    );
+  });
+
+  it("leaves an empty url empty rather than inventing one", () => {
+    expect(loadConfig({}).apiUrl).toBe("");
+    expect(loadConfig({}).resourceUrl).toBe("");
+  });
 });

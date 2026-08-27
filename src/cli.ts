@@ -1,3 +1,4 @@
+import { ConfigurationError, SetupAborted } from "./errors.js";
 /** Argument handling for the stdio binary.
  *
  * An MCP client spawns this with no arguments, so "no arguments" must mean
@@ -69,4 +70,17 @@ export function usage(): string {
     "FIREFLY_API_TOKEN are required. See",
     "https://github.com/YakupEmreYerli/mcp-firefly-iii",
   ].join("\n");
+}
+
+/** What to print when a run ends in an error.
+ *
+ * Two kinds arrive here and they deserve different treatment. A configuration
+ * the server will not accept, or a setup the operator abandoned, is a
+ * situation they can fix — the one sentence saying which line to change is the
+ * whole value, and a stack trace above it buries that sentence. Anything else
+ * is a crash, where there is nothing to fix by hand and the trace is the
+ * useful part.
+ */
+export function diagnostic(caught: unknown): unknown {
+  return caught instanceof ConfigurationError || caught instanceof SetupAborted ? caught.message : caught;
 }

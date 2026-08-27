@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig, permits } from "../src/config.js";
 import { Registry } from "../src/registry.js";
-import { PermissionDeniedError, ReadOnlyModeError } from "../src/errors.js";
+import { PermissionDeniedError } from "../src/errors.js";
 import { EntityType } from "../src/types.js";
 import { defineOperation, type EntityModule } from "../src/registry.js";
 import type { Config } from "../src/config.js";
@@ -35,11 +35,11 @@ function policy(raw?: string): Config["permissions"] {
   return loadConfig({ FIREFLY_PERMISSIONS: raw } as NodeJS.ProcessEnv).permissions;
 }
 
-function registry(raw?: string, readOnly = false): Registry {
+function registry(raw?: string): Registry {
   const config: Config = {
-    apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly,
-    permissions: policy(raw), directMode: false,
-    enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    apiUrl: "https://firefly.example/api/v1", apiToken: "",
+    permissions: policy(raw),
+    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const result = new Registry(config, client);
   result.register(module);
@@ -113,11 +113,6 @@ describe("the registry enforces the policy", () => {
     const text = registry("transaction:full;*:read").operationCatalogue();
     expect(text).toContain("transaction: create, delete, list");
     expect(text).not.toContain("account: delete");
-  });
-
-  it("blames read-only mode, not permissions, when the operator set that", async () => {
-    // Both would refuse. The useful complaint is the one they actually wrote.
-    await expect(registry("full", true).execute("transaction", "delete", {})).rejects.toBeInstanceOf(ReadOnlyModeError);
   });
 });
 

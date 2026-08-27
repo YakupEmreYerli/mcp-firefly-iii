@@ -111,7 +111,7 @@ describe("mergeServerEntry", () => {
 });
 
 describe("serverEntry", () => {
-  const answers = { apiUrl: "https://f.example/api/v1", apiToken: "t", readOnly: false };
+  const answers = { apiUrl: "https://f.example/api/v1", apiToken: "t" };
 
   it("runs the published package through npx", () => {
     expect(serverEntry(answers)).toEqual({
@@ -121,12 +121,16 @@ describe("serverEntry", () => {
     });
   });
 
-  it("writes the read-only flag only when it was asked for", () => {
+  it("writes the permission policy the wizard's answer means", () => {
+    // The wizard still asks one yes/no question, but the setting it writes is
+    // the one this version honours. FIREFLY_READ_ONLY would now stop the
+    // server it just configured from starting at all.
     const readOnly = serverEntry({ ...answers, readOnly: true }) as { env: Record<string, string> };
 
-    expect(readOnly.env.FIREFLY_READ_ONLY).toBe("true");
+    expect(readOnly.env.FIREFLY_PERMISSIONS).toBe("read");
+    expect(readOnly.env).not.toHaveProperty("FIREFLY_READ_ONLY");
     expect((serverEntry(answers) as { env: Record<string, string> }).env).not.toHaveProperty(
-      "FIREFLY_READ_ONLY",
+      "FIREFLY_PERMISSIONS",
     );
   });
 });

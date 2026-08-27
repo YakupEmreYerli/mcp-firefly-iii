@@ -4,8 +4,8 @@ import { loadConfig } from "./config.js";
 import { createClient } from "./firefly.js";
 import { Registry } from "./registry.js";
 import { ENTITY_MODULES, createServer } from "./server.js";
-import { SetupAborted, runSetup } from "./setup.js";
-import { packageVersion, parseArgs, usage } from "./cli.js";
+import { runSetup } from "./setup.js";
+import { diagnostic, packageVersion, parseArgs, usage } from "./cli.js";
 
 async function serve(): Promise<void> {
   const config = loadConfig();
@@ -46,9 +46,9 @@ main()
     if (code !== 0) process.exit(code);
   })
   .catch((caught: unknown) => {
-    // stdout carries the MCP protocol; diagnostics must go to stderr.
-    // An aborted setup is a user situation, not a crash: say what happened
-    // rather than printing a stack trace at someone running an install command.
-    console.error(caught instanceof SetupAborted ? caught.message : caught);
+    // stdout carries the MCP protocol; diagnostics must go to stderr. An
+    // aborted setup or a refused configuration is a user situation, not a
+    // crash — `diagnostic` decides which gets a stack trace.
+    console.error(diagnostic(caught));
     process.exit(1);
   });

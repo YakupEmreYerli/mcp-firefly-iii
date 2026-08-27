@@ -22,10 +22,8 @@ const client: FireflyClient = {
 const config: Config = {
   apiUrl: "https://firefly.example/api/v1",
   apiToken: "token",
-  readOnly: false,
-  permissions: { fallback: "destructive", byEntity: new Map() },
-  enabledEntities: new Set(Object.values(EntityType)),
-  structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
+    permissions: { fallback: "destructive", byEntity: new Map() },
+    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   logLevel: "INFO",
 };
 
@@ -342,7 +340,7 @@ describe("the meta-tools", () => {
   });
 
   it("does not offer a writing surface that could only refuse, in read-only mode", async () => {
-    expect(await registeredToolNames({ readOnly: true }, accessModule)).toEqual([
+    expect(await registeredToolNames({ permissions: { fallback: "read", byEntity: new Map() } }, accessModule)).toEqual([
       "firefly_get_schema",
       "firefly_list_operations",
       "firefly_query",
@@ -387,12 +385,13 @@ describe("access surfaces are enforced, not merely advertised", () => {
     await expect(accessRegistry().execute("transaction", "delete", {})).resolves.toBeDefined();
   });
 
-  it("reports read-only mode rather than the wrong surface, when both apply", async () => {
+  it("reports the permission refusal rather than the wrong surface, when both apply", async () => {
     // The more useful complaint is the one the caller can act on: no surface
-    // would have worked here.
+    // would have worked here, so naming the surface would send them to retry
+    // through a tool that refuses just the same.
     await expect(
-      accessRegistry({ readOnly: true }).execute("transaction", "delete", {}, undefined, ["destructive"]),
-    ).rejects.toThrow(/FIREFLY_READ_ONLY/);
+      accessRegistry({ permissions: { fallback: "read", byEntity: new Map() } }).execute("transaction", "delete", {}, undefined, ["destructive"]),
+    ).rejects.toThrow(/FIREFLY_PERMISSIONS/);
   });
 });
 

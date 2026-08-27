@@ -104,7 +104,7 @@ The `/api/v1` suffix on the URL is required.
 !!! tip "Read-only mode"
 
     Writes are on by default. If you want a session that can only answer
-    questions, add `"FIREFLY_READ_ONLY": "true"` — write operations are then
+    questions, add `"FIREFLY_PERMISSIONS": "read"` — write operations are then
     hidden from the catalogue as well as refused, so the assistant does not
     attempt them.
 
@@ -200,7 +200,7 @@ Never turn this on for a publicly reachable instance.
 
 ### ❌ Writes are not working
 
-`FIREFLY_READ_ONLY=true` is probably on. Write operations then never appear in
+`FIREFLY_PERMISSIONS=read` is probably on. Write operations then never appear in
 the tool list, and are refused explicitly if called.
 
 ## What next?

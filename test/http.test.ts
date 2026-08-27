@@ -12,10 +12,8 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "firefly-token",
-    readOnly: false,
-    permissions: { fallback: "destructive", byEntity: new Map() },
-    enabledEntities: new Set(Object.values(EntityType)),
-    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
+        permissions: { fallback: "destructive", byEntity: new Map() },
+        structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
     logLevel: "INFO",
     httpHost: "127.0.0.1",
     httpPort: 0,

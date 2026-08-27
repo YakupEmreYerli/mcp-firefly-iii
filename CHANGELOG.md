@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- `FIREFLY_READ_ONLY` and `FIREFLY_ENABLED_ENTITIES`. Both said something
+  `FIREFLY_PERMISSIONS` already says — read-only is `FIREFLY_PERMISSIONS=read`,
+  and hiding entities is `<entity>:none` — and two settings for one decision is
+  how they drift apart. The read-only switch had its own branch in the registry,
+  so a refusal had to guess which of the two settings the operator had actually
+  written.
+
+  A deployment that still sets either one to a **restricting** value now refuses
+  to start, and the message names the replacement. Ignoring them silently would
+  leave a server more permissive than its operator wrote, which is the failure
+  this project is built against. A value that restricted nothing — `false`,
+  `all`, empty — is ignored in silence, because `.env.example` shipped exactly
+  those.
+
 - `FIREFLY_DIRECT_MODE`, which listed every operation as its own tool. It cost
   93.5% more of the model's context than the meta-tools — 154 KB against 10 KB,
   measured — and most clients degrade past roughly forty tools, so it made the
@@ -17,6 +31,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names there are `<entity>_<operation>` rather than surface names, so the
   OAuth scope check found nothing to match and read every call as a read.
   Setting the variable now does nothing.
+
+### Changed
+
+- `FIREFLY_API_URL` and `MCP_RESOURCE_URL` accept a bare domain.
+  `FIREFLY_API_URL=firefly.example.com` becomes
+  `https://firefly.example.com/api/v1`, and `MCP_RESOURCE_URL=mcp.example.com`
+  becomes `https://mcp.example.com/mcp`. A value carrying a scheme or a path is
+  a URL and is taken as written, so an instance behind a subpath, on a custom
+  port, or on plain http keeps working exactly as before. Not a breaking change
+  — only a shorter spelling for the ordinary case.
 
 ### Added
 

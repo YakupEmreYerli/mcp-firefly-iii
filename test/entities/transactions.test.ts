@@ -41,14 +41,12 @@ function spyClient(): { client: FireflyClient; calls: Record<string, Call[]> } {
   return { client, calls };
 }
 
-function makeRegistry(client: FireflyClient, readOnly = false): Registry {
+function makeRegistry(client: FireflyClient, readsOnly = false): Registry {
   const config: Config = {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "token",
-    readOnly,
-    permissions: { fallback: "destructive", byEntity: new Map() },
-    enabledEntities: new Set(Object.values(EntityType)),
-    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
+    permissions: { fallback: readsOnly ? "read" : "destructive", byEntity: new Map() },
+        structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
     logLevel: "INFO",
   };
   const registry = new Registry(config, client);
@@ -312,7 +310,7 @@ describe("access tagging", () => {
     expect(destructive).toEqual(["bulk_categorize", "bulk_tag", "delete"]);
   });
 
-  it("hides all of them in read-only mode", () => {
+  it("hides all of them under a read-only policy", () => {
     const { client } = spyClient();
     const names = makeRegistry(client, true)
       .listOperations()

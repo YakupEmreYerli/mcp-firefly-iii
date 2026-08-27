@@ -17,7 +17,7 @@ assistant looks at your own instance and answers.
   thing; answering questions about them is another. `summary.overview` returns a
   whole period in a single call.
 - **Read-only mode when you want it.** Writes are on by default; with
-  `FIREFLY_READ_ONLY=true` they are both refused and hidden from the tool
+  `FIREFLY_PERMISSIONS=read` they are both refused and hidden from the tool
   catalogue. `FIREFLY_PERMISSIONS` sets a finer policy per entity.
 - **5 meta-tools, 146 operations.** Most MCP clients degrade past roughly 40
   tools, so operations are reached through meta-tools rather than exposed one by

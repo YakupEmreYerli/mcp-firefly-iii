@@ -13,7 +13,9 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { createClient } from "./firefly.js";
-import { FireflyApiError } from "./errors.js";
+import { FireflyApiError, SetupAborted } from "./errors.js";
+
+export { SetupAborted };
 import type { Config } from "./config.js";
 import { packageVersion } from "./cli.js";
 
@@ -111,7 +113,10 @@ export function serverEntry(answers: Answers): unknown {
     FIREFLY_API_URL: answers.apiUrl,
     FIREFLY_API_TOKEN: answers.apiToken,
   };
-  if (answers.readOnly) env.FIREFLY_READ_ONLY = "true";
+  // `read` rather than a separate read-only switch: one setting expresses the
+  // whole range, and the retired one would now stop the server this wizard is
+  // configuring from starting at all.
+  if (answers.readOnly) env.FIREFLY_PERMISSIONS = "read";
   return { command: "npx", args: ["-y", PACKAGE_NAME], env };
 }
 
@@ -146,17 +151,6 @@ function versionOf(payload: unknown): string {
   if (!isRecord(payload) || !isRecord(payload.data)) return "an unknown version";
   const { version } = payload.data;
   return typeof version === "string" ? version : "an unknown version";
-}
-
-/** Raised when stdin ends before setup has what it needs.
- *
- * Without this the pending question never settles and the process exits 0,
- * which reads as "setup succeeded" to anything running it non-interactively.
- */
-export class SetupAborted extends Error {
-  constructor() {
-    super("Setup needs an interactive terminal; input ended early.");
-  }
 }
 
 /** Ask a question, failing loudly if the input stream ends instead.
@@ -236,12 +230,10 @@ async function verifyConnection(apiUrl: string, apiToken: string): Promise<strin
   const config: Config = {
     apiUrl,
     apiToken,
-    readOnly: true,
     permissions: { fallback: "read", byEntity: new Map() },
     structuredOutput: false,
     resourceUrl: "",
     authorizationServers: [],
-    enabledEntities: new Set(),
     disableSslVerify: false,
     logLevel: "INFO",
   };
@@ -288,7 +280,7 @@ function addToClaudeCode(answers: Answers): boolean {
     "--env",
     `FIREFLY_API_TOKEN=${answers.apiToken}`,
   ];
-  if (answers.readOnly) args.push("--env", "FIREFLY_READ_ONLY=true");
+  if (answers.readOnly) args.push("--env", "FIREFLY_PERMISSIONS=read");
   args.push("--", "npx", "-y", PACKAGE_NAME);
   return spawnSync("claude", args, { stdio: "inherit" }).status === 0;
 }

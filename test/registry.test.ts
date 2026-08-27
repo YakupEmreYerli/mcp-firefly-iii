@@ -4,7 +4,7 @@ import { Registry, defineOperation, type EntityModule } from "../src/registry.js
 import { EntityType } from "../src/types.js";
 import type { Config } from "../src/config.js";
 import type { FireflyClient } from "../src/firefly.js";
-import { ReadOnlyModeError, ValidationError, OperationNotFoundError } from "../src/errors.js";
+import { PermissionDeniedError, ValidationError, OperationNotFoundError } from "../src/errors.js";
 
 const client: FireflyClient = {
   postBinary: vi.fn(async () => null),
@@ -40,10 +40,8 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     apiUrl: "https://firefly.example/api/v1",
     apiToken: "token",
-    readOnly: false,
-    permissions: { fallback: "destructive", byEntity: new Map() },
-    enabledEntities: new Set(Object.values(EntityType)),
-    structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
+        permissions: { fallback: "destructive", byEntity: new Map() },
+        structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
     logLevel: "INFO",
     ...overrides,
   };
@@ -100,37 +98,29 @@ describe("Registry.execute", () => {
 describe("read-only mode", () => {
   it("refuses a write operation", async () => {
     await expect(
-      makeRegistry({ readOnly: true }).execute("account", "create", { name: "x" }),
-    ).rejects.toBeInstanceOf(ReadOnlyModeError);
+      makeRegistry({ permissions: { fallback: "read", byEntity: new Map() } }).execute("account", "create", { name: "x" }),
+    ).rejects.toBeInstanceOf(PermissionDeniedError);
   });
 
   it("still allows reads", async () => {
-    await expect(makeRegistry({ readOnly: true }).execute("account", "list")).resolves.toBeTruthy();
+    await expect(makeRegistry({ permissions: { fallback: "read", byEntity: new Map() } }).execute("account", "list")).resolves.toBeTruthy();
   });
 
   it("hides write operations from the catalogue", () => {
-    expect(makeRegistry({ readOnly: true }).operationCatalogue()).not.toContain("create");
+    expect(makeRegistry({ permissions: { fallback: "read", byEntity: new Map() } }).operationCatalogue()).not.toContain("create");
   });
 
   it("hides write operations from listOperations", () => {
-    const names = makeRegistry({ readOnly: true })
+    const names = makeRegistry({ permissions: { fallback: "read", byEntity: new Map() } })
       .listOperations()
       .map((op) => op.name);
     expect(names).toEqual(["account.list"]);
   });
 
   it("refuses the schema for a hidden operation", () => {
-    expect(() => makeRegistry({ readOnly: true }).getSchema("account", "create")).toThrow(
-      ReadOnlyModeError,
+    expect(() => makeRegistry({ permissions: { fallback: "read", byEntity: new Map() } }).getSchema("account", "create")).toThrow(
+      PermissionDeniedError,
     );
-  });
-});
-
-describe("entity enablement", () => {
-  it("skips a provider whose entity is not enabled", () => {
-    const registry = new Registry(makeConfig({ enabledEntities: new Set() }), client);
-    registry.register(accountModule());
-    expect(registry.listOperations()).toEqual([]);
   });
 });
 
@@ -182,7 +172,7 @@ describe("defineOperation", () => {
   });
 
   it("still respects the read-only gate", async () => {
-    const registry = new Registry(makeConfig({ readOnly: true }), client);
+    const registry = new Registry(makeConfig({ permissions: { fallback: "read", byEntity: new Map() } }), client);
     registry.register({
       entity: EntityType.Account,
       hint: "accounts",
@@ -197,7 +187,7 @@ describe("defineOperation", () => {
     });
 
     await expect(registry.execute("account", "create", { name: "x" })).rejects.toBeInstanceOf(
-      ReadOnlyModeError,
+      PermissionDeniedError,
     );
   });
 });

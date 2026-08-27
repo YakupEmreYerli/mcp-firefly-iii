@@ -1,4 +1,5 @@
 import { EntityType, type Access } from "./types.js";
+import { ConfigurationError } from "./errors.js";
 
 /** How far a caller may go on one entity.
  *
@@ -48,9 +49,7 @@ export function permits(policy: PermissionPolicy, entity: EntityType, access: Ac
 export type Config = {
   apiUrl: string;
   apiToken: string;
-  readOnly: boolean;
   permissions: PermissionPolicy;
-  enabledEntities: Set<EntityType>;
   disableSslVerify: boolean;
   /** Read but not yet consumed: this layer has no logging yet. */
   logLevel: string;
@@ -75,23 +74,58 @@ function parseBool(raw: string | undefined): boolean {
   return TRUE_VALUES.has(raw?.trim().toLowerCase() ?? "");
 }
 
-/** `all` is a sentinel meaning every entity, as in the Python version — the
- * shipped `.env`, `.env.example` and `.env.test` all use it. Entity names are
- * matched lowercased, also as in the Python version, so `Account` resolves.
+/** Settings that FIREFLY_PERMISSIONS replaced, refused rather than ignored.
  *
- * A list naming only unknown entities yields an empty set rather than falling
- * back to everything: `make check` then reports "0 entities" instead of a typo
- * quietly widening a safety knob. */
-function parseEntities(raw: string | undefined): Set<EntityType> {
-  if (!raw || raw.trim() === "") {
-    return new Set(Object.values(EntityType));
+ * Both were subsets of the permission policy: `FIREFLY_READ_ONLY=true` is
+ * `FIREFLY_PERMISSIONS=read`, and a list of entities is the same as giving the
+ * rest `:none`. Two settings for one decision is how they drift apart, so they
+ * are gone.
+ *
+ * The refusal is narrow on purpose. Only a value that would have *restricted*
+ * something stops the server: silently dropping it would leave a deployment
+ * more permissive than its operator wrote, which is the failure this whole
+ * project is built against. A value that restricted nothing — `false`, `all`,
+ * empty — is ignored in silence, because `.env.example` shipped exactly those
+ * and stopping for them would be friction with nothing gained.
+ */
+function refuseRetiredSettings(env: NodeJS.ProcessEnv): void {
+  if (parseBool(env.FIREFLY_READ_ONLY)) {
+    throw new ConfigurationError(
+      "FIREFLY_READ_ONLY is no longer supported. Use FIREFLY_PERMISSIONS=read instead — " +
+        "it means exactly the same thing. Remove FIREFLY_READ_ONLY to start.",
+    );
   }
-  const names = raw.split(",").map((name) => name.trim().toLowerCase()).filter(Boolean);
-  if (names.includes("all")) {
-    return new Set(Object.values(EntityType));
+
+  const entities = (env.FIREFLY_ENABLED_ENTITIES ?? "")
+    .split(",")
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean);
+  if (entities.length > 0 && !entities.includes("all")) {
+    const named = entities.filter((name) => ENTITY_VALUES.has(name));
+    const policy = named.length > 0 ? `${named.map((name) => `${name}:full`).join(";")};*:none` : "*:none";
+    throw new ConfigurationError(
+      "FIREFLY_ENABLED_ENTITIES is no longer supported. Express it with FIREFLY_PERMISSIONS " +
+        `instead — FIREFLY_PERMISSIONS='${policy}' hides the same entities. ` +
+        "Remove FIREFLY_ENABLED_ENTITIES to start.",
+    );
   }
-  const entities = names.filter((name): name is EntityType => ENTITY_VALUES.has(name));
-  return new Set(entities);
+}
+
+/** A base URL, from either a full URL or a bare domain.
+ *
+ * A domain is the ordinary case and should cost one word. A full URL is still
+ * taken as written, because deriving from a domain would break the installs
+ * that need it most: Firefly behind a subpath, on a custom port, or on plain
+ * http inside a home network.
+ *
+ * The test is structural rather than a guess at what looks like a hostname: a
+ * value carrying a scheme or a path is already a URL and is left alone.
+ */
+function baseUrl(raw: string | undefined, suffix: string): string {
+  const text = (raw ?? "").trim().replace(/\/$/, "");
+  if (text === "") return "";
+  if (text.includes("://") || text.includes("/")) return text;
+  return `https://${text}${suffix}`;
 }
 
 /** Parse FIREFLY_PERMISSIONS.
@@ -138,19 +172,18 @@ function parsePermissions(raw: string | undefined): PermissionPolicy {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  refuseRetiredSettings(env);
   return {
-    apiUrl: env.FIREFLY_API_URL ?? "",
+    apiUrl: baseUrl(env.FIREFLY_API_URL, "/api/v1"),
     apiToken: env.FIREFLY_API_TOKEN ?? "",
-    readOnly: parseBool(env.FIREFLY_READ_ONLY),
     permissions: parsePermissions(env.FIREFLY_PERMISSIONS),
-    enabledEntities: parseEntities(env.FIREFLY_ENABLED_ENTITIES),
     disableSslVerify: parseBool(env.FIREFLY_DISABLE_SSL_VERIFY),
     logLevel: env.FIREFLY_LOG_LEVEL ?? "INFO",
     httpHost: env.MCP_HTTP_HOST ?? "127.0.0.1",
     httpPort: Number(env.MCP_HTTP_PORT ?? "3000"),
     httpToken: env.MCP_HTTP_TOKEN ?? "",
     structuredOutput: parseBool(env.MCP_STRUCTURED_OUTPUT),
-    resourceUrl: (env.MCP_RESOURCE_URL ?? "").trim().replace(/\/$/, ""),
+    resourceUrl: baseUrl(env.MCP_RESOURCE_URL, "/mcp"),
     // Trailing slashes are stripped: an issuer is compared to a token's `iss`
     // by exact string, and "…/realm/" would never match "…/realm".
     authorizationServers: (env.MCP_AUTHORIZATION_SERVERS ?? "")

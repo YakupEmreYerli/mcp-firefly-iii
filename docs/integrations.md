@@ -39,8 +39,7 @@ configuration change.
       "args": ["-y", "@yakupemreyerli/firefly-mcp"],
       "env": {
         "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
-        "FIREFLY_API_TOKEN": "your-token",
-        "FIREFLY_ENABLED_ENTITIES": "all"
+        "FIREFLY_API_TOKEN": "your-token"
       }
     }
   }
@@ -59,8 +58,7 @@ Create an `mcp.json` in the project root or workspace:
       "args": ["-y", "@yakupemreyerli/firefly-mcp"],
       "env": {
         "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
-        "FIREFLY_API_TOKEN": "your-token",
-        "FIREFLY_ENABLED_ENTITIES": "all"
+        "FIREFLY_API_TOKEN": "your-token"
       }
     }
   }
@@ -79,8 +77,7 @@ Add this to your workspace or global settings:
       "args": ["-y", "@yakupemreyerli/firefly-mcp"],
       "env": {
         "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
-        "FIREFLY_API_TOKEN": "your-token",
-        "FIREFLY_ENABLED_ENTITIES": "all"
+        "FIREFLY_API_TOKEN": "your-token"
       }
     }
   }
@@ -103,8 +100,7 @@ Most clients follow the same shape:
   "cwd": "/absolute/path/to/mcp-firefly-iii",
   "env": {
     "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
-    "FIREFLY_API_TOKEN": "your-token",
-    "FIREFLY_ENABLED_ENTITIES": "all"
+    "FIREFLY_API_TOKEN": "your-token"
   }
 }
 ```
@@ -117,8 +113,7 @@ Run `npm install && npm run build` in the checkout first, so `dist/` exists.
 |----------|---------|---------|
 | `FIREFLY_API_URL` | Firefly III API address | `https://firefly.example.com/api/v1` |
 | `FIREFLY_API_TOKEN` | Personal Access Token | `your-token` |
-| `FIREFLY_ENABLED_ENTITIES` | Entities to expose | `all` or `account,transaction,summary` |
-| `FIREFLY_READ_ONLY` | Refuse write operations | `false` (default) |
+| `FIREFLY_PERMISSIONS` | How far the assistant may go | unset (everything), `read`, `safe`, or a per-entity list |
 
 For the full list see [Configuration](configuration.md).
 
@@ -151,7 +146,7 @@ make check
 | **No tools appear** | Is the JSON valid, and did you restart the client? |
 | **Connection error** | Verify the API URL and token with `curl`, or run `make check` |
 | **SSL error** | For local development only: `"FIREFLY_DISABLE_SSL_VERIFY": "true"` |
-| **Writes not working** | `FIREFLY_READ_ONLY` may be on |
+| **Writes not working** | `FIREFLY_PERMISSIONS` may be narrowing access |
 | **Changes have no effect** | The client starts the server once; restart it |
 
 That last row is the most common one: a change to your configuration or to the

@@ -5,7 +5,10 @@ export class RegistryError extends FireflyMcpError {}
 export class EntityNotAvailableError extends FireflyMcpError {}
 export class OperationNotFoundError extends FireflyMcpError {}
 export class ValidationError extends FireflyMcpError {}
-export class ReadOnlyModeError extends FireflyMcpError {}
+/** Raised at startup when the environment names a setting this version no
+ * longer honours. Refusing beats ignoring: a removed restriction that is
+ * silently dropped leaves a server more permissive than its operator wrote. */
+export class ConfigurationError extends FireflyMcpError {}
 /** Raised when an operation is called through a tool whose risk annotation does
  * not cover it — a delete reached through the read-only surface, say. Without
  * this the annotation would be a claim the server does not keep. */
@@ -14,6 +17,17 @@ export class WrongAccessSurfaceError extends FireflyMcpError {}
  * operation needs. Distinct from ReadOnlyModeError so the message can name the
  * setting the operator would actually have to change. */
 export class PermissionDeniedError extends FireflyMcpError {}
+
+/** Raised when interactive setup runs without a terminal to ask into.
+ *
+ * Without this the pending question never settles and the process exits 0,
+ * which reads as "setup succeeded" to anything running it non-interactively.
+ */
+export class SetupAborted extends FireflyMcpError {
+  constructor() {
+    super("Setup needs an interactive terminal; input ended early.");
+  }
+}
 
 /** An error response from Firefly III.
  *

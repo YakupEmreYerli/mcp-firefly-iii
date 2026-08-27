@@ -39,10 +39,8 @@ function client(splits: Split[], perPage = 100): { client: FireflyClient; querie
 
 function registry(c: FireflyClient): Registry {
   const config: Config = {
-    apiUrl: "https://firefly.example/api/v1", apiToken: "", readOnly: false,
-    permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
-    structuredOutput: false, enabledEntities: new Set(Object.values(EntityType)),
-    resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
+    apiUrl: "https://firefly.example/api/v1", apiToken: "",     permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false,
+    structuredOutput: false,     resourceUrl: "", authorizationServers: [], disableSslVerify: false, logLevel: "INFO",
   };
   const result = new Registry(config, c);
   result.register(analysisModule);

@@ -11,19 +11,14 @@ cp .env.example .env
 ## Every variable
 
 ```bash
-# Required: your Firefly III API base URL (the trailing /api/v1 is required)
-FIREFLY_API_URL=https://your-firefly.example/api/v1
+# Required: your Firefly III instance. A bare domain is enough
+FIREFLY_API_URL=your-firefly.example
 
 # Required: a Personal Access Token from Firefly III
 FIREFLY_API_TOKEN=your-token
 
-# Which entities to expose (default: all)
-FIREFLY_ENABLED_ENTITIES=all
-
-# false → 3 meta-tools; true → one tool per operation (default: false)
-
-# true → write operations are refused and hidden (default: false)
-FIREFLY_READ_ONLY=false
+# How far the assistant may go (default: unset, meaning everything)
+FIREFLY_PERMISSIONS=
 
 # Only for a local instance with a self-signed certificate
 FIREFLY_DISABLE_SSL_VERIFY=false
@@ -33,9 +28,17 @@ FIREFLY_DISABLE_SSL_VERIFY=false
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `FIREFLY_API_URL` | *(required)* | Firefly III API base URL |
+| `FIREFLY_API_URL` | *(required)* | Firefly III instance: a domain, or a full API base URL |
 | `FIREFLY_API_TOKEN` | *(required)* | Personal Access Token |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Disables certificate verification |
+
+A bare domain is expanded to `https://<domain>/api/v1`. Give the full URL when
+your instance needs one — behind a subpath, on a custom port, or on plain http:
+
+```bash
+FIREFLY_API_URL=firefly.example.com                      # the ordinary case
+FIREFLY_API_URL=https://your-server:8080/firefly/api/v1  # taken as written
+```
 
 ### Getting a token
 
@@ -56,22 +59,27 @@ disables certificate verification completely.
 
 ## Read-only mode
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `FIREFLY_READ_ONLY` | `false` | Refuses every write operation |
-
-With `FIREFLY_READ_ONLY=true`, operations tagged `write` (create, update,
-delete) are both **refused** and **hidden** — from the tool catalogue and from
-schema lookups. Read operations are unaffected.
+Read-only is a permission level, not a separate switch:
 
 ```bash
 # Ask questions, change nothing
-FIREFLY_READ_ONLY=true
+FIREFLY_PERMISSIONS=read
 ```
+
+Operations tagged `write` and `destructive` are then both **refused** and
+**hidden** — from the tool catalogue and from schema lookups — and the two
+writing tools are not registered at all. Read operations are unaffected.
 
 Writes are on by default. Read-only is there for the sessions where you want a
 guarantee rather than a habit — a shared screen, a demo, or an agent you have
 not watched work yet.
+
+!!! warning "`FIREFLY_READ_ONLY` was removed in 2.0.0"
+
+    It said the same thing as `FIREFLY_PERMISSIONS=read`, and two settings for
+    one decision is how they drift apart. A server whose environment still sets
+    it to a restricting value **refuses to start** and names the replacement,
+    rather than starting silently writable.
 
 The two behaviours work together and both are deliberate. Hiding alone would not
 be enforcement; refusing alone would send the model down a dead end every time.
@@ -110,7 +118,7 @@ Either a preset:
 
 | Value | Allows |
 |-------|--------|
-| `read` | Reads only — the same reach as `FIREFLY_READ_ONLY=true` |
+| `read` | Reads only; every write is refused and hidden |
 | `safe` | Reads, creates and updates; nothing that cannot be undone |
 | `full` | Everything. This is the default when the variable is unset |
 
@@ -126,8 +134,7 @@ FIREFLY_PERMISSIONS=transaction:safe;account:read;rule:none;*:read
 The levels are `none`, `read`, `write` and `destructive`; the preset names are
 accepted in a list too, so `transaction:full` means `transaction:destructive`.
 
-Whichever of this and `FIREFLY_READ_ONLY` is stricter wins, and a refusal names
-the one the operator actually set. A clause that cannot be parsed is dropped
+A clause that cannot be parsed is dropped
 rather than widened — a misspelt entity or level fails closed, so a typo never
 grants access nobody asked for.
 
@@ -152,11 +159,19 @@ Listing every operation as its own tool was offered once and removed: it cost
 93.5% more of the model's context — 154 KB against 10 KB, measured — and most
 clients degrade past roughly forty tools.
 
-## Entity filter
+## Hiding an entity
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `FIREFLY_ENABLED_ENTITIES` | `all` | Which entities to expose |
+There is no separate entity switch. Giving an entity `none` in
+`FIREFLY_PERMISSIONS` hides it completely — from the catalogue, from schema
+lookups, and from execution:
+
+```bash
+# Accounts and transactions only
+FIREFLY_PERMISSIONS=account:full;transaction:full;*:none
+
+# A question-answering setup
+FIREFLY_PERMISSIONS=account:read;transaction:read;summary:read;search:read;insight:read;*:none
+```
 
 Available entities:
 
@@ -187,21 +202,11 @@ Available entities:
 | `configuration` | Firefly system settings |
 | `data_export` | Exporting financial data |
 
-```bash
-# Everything
-FIREFLY_ENABLED_ENTITIES=all
+!!! warning "`FIREFLY_ENABLED_ENTITIES` was removed in 2.0.0"
 
-# Accounts and transactions only
-FIREFLY_ENABLED_ENTITIES=account,transaction
-
-# A question-answering setup
-FIREFLY_ENABLED_ENTITIES=account,transaction,summary,search,insight
-
-# Budget tracking
-FIREFLY_ENABLED_ENTITIES=account,budget,category,tag
-```
-
-An unrecognised entity name is ignored; the server still starts.
+    It was a coarser spelling of the same policy. A server whose environment
+    still narrows entities with it **refuses to start**, and the message names
+    the `FIREFLY_PERMISSIONS` value that hides exactly the same entities.
 
 ## Remote HTTP mode
 
