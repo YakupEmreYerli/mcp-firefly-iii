@@ -163,7 +163,11 @@ export function createHttpServer(config: Config): Server {
     }
 
     if (path === "/health" && req.method === "GET") {
-      writeJson(res, 200, { ok: true });
+      // `auth` names the mode the process actually started in. Which settings
+      // reached the container is otherwise invisible from outside, and the
+      // symptom of a missing MCP_AUTH_PASSWORD — a client reporting that this
+      // server "does not implement OAuth" — points nowhere near the cause.
+      writeJson(res, 200, { ok: true, auth: builtin ? "oauth-builtin" : oauth ? "oauth-external" : "bearer" });
       return;
     }
     if (builtin && (path.startsWith("/oauth/") || path.startsWith("/.well-known/oauth-authorization-server"))) {

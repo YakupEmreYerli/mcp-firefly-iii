@@ -128,7 +128,10 @@ describe("routing", () => {
     const response = await fetch(`${base}/health`);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true });
+    // `auth` is the one thing a deployment cannot see from outside: which
+    // settings reached the container. A bearer-mode answer here is the whole
+    // explanation for a client that says the server has no OAuth.
+    await expect(response.json()).resolves.toEqual({ ok: true, auth: "bearer" });
   });
 
   it("does not leak the tool surface on an unknown path", async () => {
@@ -296,6 +299,13 @@ describe("OAuth resource server", () => {
     }
     const { resetOauthCaches } = await import("../src/oauth.js");
     resetOauthCaches();
+  });
+
+  it("names the auth mode on /health", async () => {
+    const base = await startOauth();
+    const response = await fetch(`${base}/health`);
+
+    await expect(response.json()).resolves.toEqual({ ok: true, auth: "oauth-external" });
   });
 
   it("refuses to start with an issuer but no resource identifier", () => {

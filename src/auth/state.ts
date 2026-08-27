@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { accessSync, chmodSync, constants, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from "node:crypto";
 import type { Config } from "../config.js";
@@ -37,8 +37,17 @@ export class AuthState {
     const directory = config.authStateDir ?? "/data/firefly-mcp-auth";
     try {
       mkdirSync(directory, { recursive: true, mode: 0o700 });
-      const mode = statSync(directory).mode & 0o777;
-      if ((mode & 0o077) !== 0) throw new Error(`directory mode is ${mode.toString(8)}`);
+      // A Docker volume is mounted 0755 and `mode` on mkdir only applies to a
+      // directory this process creates, so tighten it here instead of refusing
+      // to start. Refusing would make every default `volumes:` line fatal. If
+      // the chmod is not permitted (a bind mount owned by another user), the
+      // 0600 on state.json below is what actually keeps the key private.
+      try {
+        chmodSync(directory, 0o700);
+      } catch {
+        // Not ours to chmod; the file mode still holds.
+      }
+      accessSync(directory, constants.W_OK);
     } catch (error) {
       throw new Error(
         `MCP_AUTH_STATE_DIR is not usable (${directory}): ${error instanceof Error ? error.message : String(error)}`,
