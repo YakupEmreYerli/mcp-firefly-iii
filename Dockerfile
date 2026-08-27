@@ -19,6 +19,12 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 
+# Created here, before the volume is mounted, so a named volume inherits this
+# ownership on first use. The process runs as `node`, and a volume Docker
+# creates is owned by root: without this, the embedded authorization server
+# cannot write its key and refuses to start.
+RUN mkdir -p /data/firefly-mcp-auth && chown -R node:node /data
+
 USER node
 EXPOSE 3000
 

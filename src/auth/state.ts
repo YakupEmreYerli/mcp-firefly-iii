@@ -50,7 +50,8 @@ export class AuthState {
       accessSync(directory, constants.W_OK);
     } catch (error) {
       throw new Error(
-        `MCP_AUTH_STATE_DIR is not usable (${directory}): ${error instanceof Error ? error.message : String(error)}`,
+        `MCP_AUTH_STATE_DIR is not usable (${directory}): ${error instanceof Error ? error.message : String(error)}. ` +
+          `This process runs as uid ${process.getuid?.() ?? "unknown"}; a volume mounted here has to be writable by it.`,
       );
     }
     this.filePath = join(directory, "state.json");
