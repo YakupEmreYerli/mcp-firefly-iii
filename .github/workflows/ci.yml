@@ -54,7 +54,16 @@ jobs:
             '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
             '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
             '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
-            | ./node_modules/.bin/firefly-mcp | grep -q firefly_execute
+            | ./node_modules/.bin/firefly-mcp > /tmp/stdio-tools.json
+          for tool in firefly_query firefly_mutate firefly_destructive; do
+            grep -q "$tool" /tmp/stdio-tools.json || { echo "the stdio server did not serve $tool" >&2; exit 1; }
+          done
+          # The split is only worth anything if the tool that could do
+          # everything is actually gone.
+          if grep -q firefly_execute /tmp/stdio-tools.json; then
+            echo "the stdio server still serves firefly_execute" >&2
+            exit 1
+          fi
           # HTTP server: must refuse to start without a token.
           if ./node_modules/.bin/firefly-mcp-http 2>/dev/null; then
             echo "HTTP server started without MCP_HTTP_TOKEN" >&2
@@ -97,6 +106,13 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Accept: application/json, text/event-stream" \
             -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
-            | grep -q firefly_execute
+            > /tmp/http-tools.json
+          for tool in firefly_query firefly_mutate firefly_destructive; do
+            grep -q "$tool" /tmp/http-tools.json || { echo "the container did not serve $tool" >&2; exit 1; }
+          done
+          if grep -q firefly_execute /tmp/http-tools.json; then
+            echo "the container still serves firefly_execute" >&2
+            exit 1
+          fi
 
           docker rm -f ffmcp > /dev/null
