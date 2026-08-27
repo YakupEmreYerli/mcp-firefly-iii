@@ -95,7 +95,6 @@ Her birinde MCP tool annotation'ları var (`readOnlyHint`, `destructiveHint`,
 iken yazan iki araç hiç kaydedilmez.
 
 Çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için yüzey üç araçta tutuldu.
-Operasyon başına ayrı araç isterseniz `FIREFLY_DIRECT_MODE=true`.
 
 Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer,
 çalıştırma araçlarının hepsi, yalnızca adını verdiğiniz alanları tutan bir `fields`
@@ -109,7 +108,6 @@ listesi alır — büyük bir işlem listesinde bu yaklaşık %90 küçülme dem
 | `FIREFLY_API_TOKEN` | — | Zorunlu. Personal Access Token. |
 | `FIREFLY_READ_ONLY` | `false` | Tüm yazma operasyonlarını reddeder ve gizler. |
 | `FIREFLY_PERMISSIONS` | boş | Salt-okunur anahtarından ince ayar: hazır seviye ya da varlık başına seviye. |
-| `FIREFLY_DIRECT_MODE` | `false` | Beş meta-araç yerine operasyon başına bir araç. |
 | `FIREFLY_ENABLED_ENTITIES` | `all` | Açılacak varlıklar, virgülle ayrılmış. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Yalnızca kendinden imzalı sertifikalı yerel örnek için. |
 

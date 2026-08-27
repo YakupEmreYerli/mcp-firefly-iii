@@ -241,7 +241,6 @@ async function verifyConnection(apiUrl: string, apiToken: string): Promise<strin
     structuredOutput: false,
     resourceUrl: "",
     authorizationServers: [],
-    directMode: false,
     enabledEntities: new Set(),
     disableSslVerify: false,
     logLevel: "INFO",

@@ -14,7 +14,6 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     apiToken: "firefly-token",
     readOnly: false,
     permissions: { fallback: "destructive", byEntity: new Map() },
-    directMode: false,
     enabledEntities: new Set(Object.values(EntityType)),
     structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
     logLevel: "INFO",
@@ -404,24 +403,6 @@ describe("OAuth resource server", () => {
     const response = await oauthPost(base, OAUTH_INITIALIZE, await issue("openid email"));
     expect(response.status).toBe(403);
     expect(response.headers.get("www-authenticate")).toContain('scope="firefly:read"');
-  });
-
-  it("refuses a delete in direct mode, where tools are named after operations", async () => {
-    await startIssuer();
-    const base = await startOauth({ directMode: true });
-    const response = await oauthPost(
-      base,
-      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "transaction_delete", arguments: { id: "1" } } },
-      await issue("firefly:read"),
-    );
-    expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ error: "insufficient_scope", scope: "firefly:destructive" });
-  });
-
-  it("still lets a read through in direct mode", async () => {
-    await startIssuer();
-    const base = await startOauth({ directMode: true });
-    expect((await oauthPost(base, OAUTH_INITIALIZE, await issue("firefly:read"))).status).toBe(200);
   });
 
   it("names the setting when the resource identifier is not a URL", async () => {

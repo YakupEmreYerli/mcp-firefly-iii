@@ -125,7 +125,7 @@ Bu metin `firefly_query` sonucuyla modelin context'ine girer ve aynı oturumda
 Yapısal savunma yüzey ayrımıdır: enjekte edilmiş bir talimatın işe yaraması için
 host'un annotation'la işaretlediği ve onay isteyebildiği bir aracı çağırması
 gerekir. Metinsel savunma ise `UNTRUSTED_CONTENT_NOTICE` — üç çalıştırma
-yüzeyinin ve direct mode'un her aracının açıklamasında durur. Araç açıklaması
+çalıştırma yüzeyinin açıklamasında durur. Araç açıklaması
 sunucunun yazdığı, dolayısıyla güvenilir metindir; araç **sonucu** değildir.
 Yeni bir çalıştırma yüzeyi eklerseniz bu notu da taşıyın.
 

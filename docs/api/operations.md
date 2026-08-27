@@ -31,7 +31,7 @@ run — a delete reached through `firefly_query` is told which tool to use. And 
 surface your configuration has left with no operations on it is not registered
 at all, so it cannot be called only to fail.
 
-With `FIREFLY_DIRECT_MODE=true` every operation becomes its own tool
+Every operation is reached through those tools
 (`account_list`, `transaction_create`). That registers 146 tools, and most
 clients degrade past roughly 40.
 

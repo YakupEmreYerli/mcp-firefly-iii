@@ -5,7 +5,6 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Config } from "./config.js";
-import type { Access } from "./types.js";
 import { loadConfig } from "./config.js";
 import { createClient } from "./firefly.js";
 import { Registry } from "./registry.js";
@@ -13,7 +12,6 @@ import { ENTITY_MODULES, createServer } from "./server.js";
 import {
   MINIMUM_SCOPE,
   accessForRequest,
-  type AccessLookup,
   allowedBy,
   challenge,
   grantsAnything,
@@ -107,20 +105,6 @@ export function createHttpServer(config: Config): Server {
 
   const metadataPaths = oauth ? new Set(metadataPathsFor(config.resourceUrl)) : new Set<string>();
 
-  /** Direct mode names a tool after its entity and operation, so the risk has
-   * to be looked up rather than read off a surface name. Built from the
-   * registry itself, which is the one place the access level is declared. */
-  const accessOf: AccessLookup | undefined = config.directMode
-    ? (() => {
-        const byTool = new Map<string, Access>();
-        for (const module of ENTITY_MODULES) {
-          for (const [operation, spec] of Object.entries(module.operations)) {
-            if (spec.access !== "read") byTool.set(`${module.entity}_${operation}`, spec.access);
-          }
-        }
-        return (tool: string) => byTool.get(tool);
-      })()
-    : undefined;
 
   /** The registry a request runs against.
    *
@@ -209,7 +193,7 @@ export function createHttpServer(config: Config): Server {
     }
 
     if (scopes !== undefined) {
-      const needed = accessForRequest(body, accessOf);
+      const needed = accessForRequest(body);
       if (needed !== undefined && !allowedBy(scopes).has(needed)) {
         const scope = scopeFor(needed);
         res.setHeader(

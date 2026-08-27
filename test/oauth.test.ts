@@ -100,22 +100,6 @@ describe("the access a request needs", () => {
     }
   });
 
-  it("finds the risk in direct mode, where a tool is named after its operation", () => {
-    // The default table knows surface names only, so every direct-mode call
-    // read as a read and skipped the gate. The registry still refused it — the
-    // client was told the wrong thing about why.
-    const lookup = (tool: string) =>
-      tool === "transaction_delete" ? ("destructive" as const) : tool === "transaction_create" ? ("write" as const) : undefined;
-    expect(accessForRequest(call("transaction_delete"), lookup)).toBe("destructive");
-    expect(accessForRequest(call("transaction_create"), lookup)).toBe("write");
-    expect(accessForRequest(call("transaction_list"), lookup)).toBeUndefined();
-  });
-
-  it("applies that lookup across a batch too", () => {
-    const lookup = (tool: string) => (tool === "transaction_delete" ? ("destructive" as const) : undefined);
-    expect(accessForRequest([call("transaction_list"), call("transaction_delete")], lookup)).toBe("destructive");
-  });
-
   it("names the scope that grants an access level", () => {
     expect(scopeFor("write")).toBe(SCOPES.write);
     expect(scopeFor("destructive")).toBe(SCOPES.destructive);

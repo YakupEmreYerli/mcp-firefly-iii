@@ -60,9 +60,8 @@ describe("loadConfig", () => {
   });
 
   it("reads booleans case-insensitively", () => {
-    const config = loadConfig({ FIREFLY_READ_ONLY: "TRUE", FIREFLY_DIRECT_MODE: "True" });
+    const config = loadConfig({ FIREFLY_READ_ONLY: "TRUE", });
     expect(config.readOnly).toBe(true);
-    expect(config.directMode).toBe(true);
   });
 
   it.each(["1", "yes", "on", "YES", " On "])(
@@ -71,8 +70,4 @@ describe("loadConfig", () => {
       expect(loadConfig({ FIREFLY_READ_ONLY: raw }).readOnly).toBe(true);
     },
   );
-
-  it("parses the FIREFLY_DIRECT_MODE=1 that .env.test actually sets", () => {
-    expect(loadConfig({ FIREFLY_DIRECT_MODE: "1" }).directMode).toBe(true);
-  });
 });

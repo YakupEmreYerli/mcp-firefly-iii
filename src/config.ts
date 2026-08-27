@@ -50,7 +50,6 @@ export type Config = {
   apiToken: string;
   readOnly: boolean;
   permissions: PermissionPolicy;
-  directMode: boolean;
   enabledEntities: Set<EntityType>;
   disableSslVerify: boolean;
   /** Read but not yet consumed: this layer has no logging yet. */
@@ -144,7 +143,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     apiToken: env.FIREFLY_API_TOKEN ?? "",
     readOnly: parseBool(env.FIREFLY_READ_ONLY),
     permissions: parsePermissions(env.FIREFLY_PERMISSIONS),
-    directMode: parseBool(env.FIREFLY_DIRECT_MODE),
     enabledEntities: parseEntities(env.FIREFLY_ENABLED_ENTITIES),
     disableSslVerify: parseBool(env.FIREFLY_DISABLE_SSL_VERIFY),
     logLevel: env.FIREFLY_LOG_LEVEL ?? "INFO",

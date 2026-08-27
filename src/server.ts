@@ -154,9 +154,7 @@ export function createServer(registry: Registry, config: Config): McpServer {
   // 0.1.0 while the package shipped 0.3.2.
   const server = new McpServer({ name: "Firefly MCP Server", version: packageVersion() });
 
-  // Either/or, as in the Python version: direct mode replaces the meta-tools.
-  if (config.directMode) registerDirectModeTools(server, registry, config);
-  else registerMetaTools(server, registry, config);
+  registerMetaTools(server, registry, config);
 
   return server;
 }
@@ -274,45 +272,4 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
       return toolResult(payload, config.structuredOutput);
     },
   );
-}
-
-/** One MCP tool per operation, in place of the three meta-tools.
- *
- * Off by default: most MCP clients degrade past ~40 tools, which is why the
- * meta-tools exist. Kept for clients that prefer explicit tools.
- *
- * Tool names are `<entity>_<operation>`, matching the Python version's
- * `f"{entity}_{operation}"` exactly — no `firefly_` prefix.
- */
-function registerDirectModeTools(server: McpServer, registry: Registry, config: Config): void {
-  for (const module of registry.entityModules()) {
-    for (const info of registry.listOperations(module.entity)) {
-      const operation = module.operations[info.operation];
-      if (!operation) continue;
-
-      server.registerTool(
-        `${module.entity}_${info.operation}`,
-        {
-          // Direct mode does not go through executeDescription, so the notice
-          // has to be attached here too — the untrusted content is the same.
-          description: `${operation.description}\n\n${UNTRUSTED_CONTENT_NOTICE}`,
-          annotations: annotationsFor(operation.access),
-          ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
-          // The whole strict schema, not `.shape`. A raw shape is rebuilt by
-          // the SDK as a strip-mode object: an unknown key would be deleted
-          // before `Registry.execute` ever saw it, and an operation whose
-          // fields are all optional would then run unfiltered instead of
-          // failing. Passing the schema itself keeps the SDK's own parse
-          // strict while the advertised JSON Schema stays per-parameter.
-          inputSchema: operation.input,
-        },
-        async (params: unknown) => {
-          const payload = await registry
-            .execute(module.entity, info.operation, params)
-            .catch((caught: unknown) => asError(caught));
-          return toolResult(payload, config.structuredOutput);
-        },
-      );
-    }
-  }
 }

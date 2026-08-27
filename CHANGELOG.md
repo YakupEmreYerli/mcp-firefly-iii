@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- `FIREFLY_DIRECT_MODE`, which listed every operation as its own tool. It cost
+  93.5% more of the model's context than the meta-tools — 154 KB against 10 KB,
+  measured — and most clients degrade past roughly forty tools, so it made the
+  server worse on the clients it was meant to help. It also meant every feature
+  had to be built twice, and the second copy is where a defect landed: tool
+  names there are `<entity>_<operation>` rather than surface names, so the
+  OAuth scope check found nothing to match and read every call as a read.
+  Setting the variable now does nothing.
+
 ### Added
 
 - OAuth 2.1 support in HTTP mode, as a resource server. `MCP_AUTHORIZATION_SERVERS`

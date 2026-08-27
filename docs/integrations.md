@@ -60,8 +60,7 @@ Create an `mcp.json` in the project root or workspace:
       "env": {
         "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
         "FIREFLY_API_TOKEN": "your-token",
-        "FIREFLY_ENABLED_ENTITIES": "all",
-        "FIREFLY_DIRECT_MODE": "false"
+        "FIREFLY_ENABLED_ENTITIES": "all"
       }
     }
   }
@@ -81,8 +80,7 @@ Add this to your workspace or global settings:
       "env": {
         "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
         "FIREFLY_API_TOKEN": "your-token",
-        "FIREFLY_ENABLED_ENTITIES": "all",
-        "FIREFLY_DIRECT_MODE": "false"
+        "FIREFLY_ENABLED_ENTITIES": "all"
       }
     }
   }
@@ -106,8 +104,7 @@ Most clients follow the same shape:
   "env": {
     "FIREFLY_API_URL": "https://your-firefly.example/api/v1",
     "FIREFLY_API_TOKEN": "your-token",
-    "FIREFLY_ENABLED_ENTITIES": "all",
-    "FIREFLY_DIRECT_MODE": "false"
+    "FIREFLY_ENABLED_ENTITIES": "all"
   }
 }
 ```
@@ -122,7 +119,6 @@ Run `npm install && npm run build` in the checkout first, so `dist/` exists.
 | `FIREFLY_API_TOKEN` | Personal Access Token | `your-token` |
 | `FIREFLY_ENABLED_ENTITIES` | Entities to expose | `all` or `account,transaction,summary` |
 | `FIREFLY_READ_ONLY` | Refuse write operations | `false` (default) |
-| `FIREFLY_DIRECT_MODE` | Individual tools or meta-tools | `false` (default) |
 
 For the full list see [Configuration](configuration.md).
 

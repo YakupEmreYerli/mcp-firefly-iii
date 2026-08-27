@@ -21,7 +21,6 @@ FIREFLY_API_TOKEN=your-token
 FIREFLY_ENABLED_ENTITIES=all
 
 # false → 3 meta-tools; true → one tool per operation (default: false)
-FIREFLY_DIRECT_MODE=false
 
 # true → write operations are refused and hidden (default: false)
 FIREFLY_READ_ONLY=false
@@ -84,7 +83,6 @@ as a read-only error rather than a generic failure — so the caller can tell
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `FIREFLY_DIRECT_MODE` | `false` | How operations are presented as tools |
 | `FIREFLY_PERMISSIONS` | unset (full) | Finer access control than the read-only switch |
 | `MCP_STRUCTURED_OUTPUT` | `false` | Return `structuredContent` instead of JSON as text |
 
@@ -145,16 +143,14 @@ operation that can only fail sends the model down a dead end. A surface left
 with no operations at all — `firefly_mutate` and `firefly_destructive` under
 `FIREFLY_PERMISSIONS=read`, for instance — is not registered as a tool either.
 
-**Consolidated mode (default)** exposes five meta-tools: `firefly_query`,
-`firefly_mutate`, `firefly_destructive`, `firefly_list_operations` and
-`firefly_get_schema`. All 146 operations are reached through those, split by
-risk so a host can annotate them differently. This is the default because most MCP clients degrade past
-roughly 40 tools.
+The server exposes five meta-tools: `firefly_query`, `firefly_mutate`,
+`firefly_destructive`, `firefly_list_operations` and `firefly_get_schema`. All
+146 operations are reached through those, split by risk so a host can annotate
+them differently.
 
-**Direct mode** gives every operation its own tool (`account_list`,
-`transaction_create`, and so on). The tool names are more explicit, but 146
-tools is too many for most clients. It makes sense in narrow automations where
-you enable only a few entities.
+Listing every operation as its own tool was offered once and removed: it cost
+93.5% more of the model's context — 154 KB against 10 KB, measured — and most
+clients degrade past roughly forty tools.
 
 ## Entity filter
 

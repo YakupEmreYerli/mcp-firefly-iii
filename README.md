@@ -94,7 +94,7 @@ reached through `firefly_query` is refused. With `FIREFLY_READ_ONLY=true` the
 two writing tools are not registered at all.
 
 Most MCP clients degrade past roughly 40 tools, which is why the surface is
-three. Set `FIREFLY_DIRECT_MODE=true` to get one tool per operation instead.
+three.
 
 Responses are trimmed before they reach the model: empty and null attributes are
 always dropped, and every execution tool takes a `fields` list that keeps only the
@@ -108,7 +108,6 @@ attributes you name — on a large transaction list that is roughly a 90% cut.
 | `FIREFLY_API_TOKEN` | — | Required. Personal Access Token. |
 | `FIREFLY_READ_ONLY` | `false` | Refuse and hide every write operation. |
 | `FIREFLY_PERMISSIONS` | unset | Finer than the read-only switch: a preset, or a level per entity. |
-| `FIREFLY_DIRECT_MODE` | `false` | One tool per operation instead of the five meta-tools. |
 | `FIREFLY_ENABLED_ENTITIES` | `all` | Comma-separated entity names to expose. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Only for a local instance with a self-signed certificate. |
 

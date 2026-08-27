@@ -24,7 +24,6 @@ const config: Config = {
   apiToken: "token",
   readOnly: false,
   permissions: { fallback: "destructive", byEntity: new Map() },
-  directMode: false,
   enabledEntities: new Set(Object.values(EntityType)),
   structuredOutput: false, resourceUrl: "", authorizationServers: [], disableSslVerify: false,
   logLevel: "INFO",
@@ -138,8 +137,8 @@ describe("untrusted record content", () => {
     for (const field of ["description", "notes", "tags"]) expect(text).toContain(field);
   });
 
-  it("reaches direct mode too, where the shared description is never built", async () => {
-    const server = createServer(makeRegistry(), { ...config, directMode: true });
+  it("reaches every registered tool, not only the ones built from a surface", async () => {
+    const server = createServer(makeRegistry(), { ...config });
     const mcpClient = new Client({ name: "test", version: "0" });
     const [a, b] = InMemoryTransport.createLinkedPair();
     await Promise.all([server.connect(b), mcpClient.connect(a)]);
@@ -167,18 +166,14 @@ describe("tool annotations", () => {
     expect(annotations.firefly_destructive).toMatchObject({ readOnlyHint: false, destructiveHint: true });
   });
 
-  it("annotates each direct-mode tool from its own access level", async () => {
-    const annotations = await toolAnnotations({ directMode: true });
-    expect(annotations.transaction_list).toMatchObject({ readOnlyHint: true, destructiveHint: false });
-  });
-
-  it("flags a delete as destructive and idempotent, and a create as neither", async () => {
-    const annotations = await toolAnnotations({ directMode: true });
-    expect(annotations.transaction_delete).toMatchObject({ destructiveHint: true, idempotentHint: true });
-    // Repeating a create makes a second transaction, so it must not claim to
-    // be idempotent — that is the hint a host would use to retry safely.
-    expect(annotations.transaction_create).toMatchObject({ readOnlyHint: false, destructiveHint: false });
-    expect(annotations.transaction_create).not.toHaveProperty("idempotentHint");
+  it("claims idempotence only where it is true", async () => {
+    const annotations = await toolAnnotations();
+    // Deleting the same record twice leaves the same end state.
+    expect(annotations.firefly_destructive).toMatchObject({ destructiveHint: true, idempotentHint: true });
+    // Repeating a create makes a second transaction, so the write surface must
+    // not claim it — that is the hint a host would use to retry safely.
+    expect(annotations.firefly_mutate).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+    expect(annotations.firefly_mutate).not.toHaveProperty("idempotentHint");
   });
 
   it("tells hosts Firefly is a remote service", async () => {
@@ -436,81 +431,6 @@ describe("each surface carries only its own catalogue", () => {
     expect(text).not.toContain("insight");
   });
 });
-
-describe("direct mode", () => {
-  it("replaces the meta-tools rather than supplementing them", async () => {
-    expect(await registeredToolNames({ directMode: true })).toEqual(["insight_expense_total"]);
-  });
-
-  it("hides write operations, as the catalogue does", async () => {
-    const readOnly = { ...config, readOnly: true, directMode: true };
-    const registry = new Registry(readOnly, client);
-    registry.register(module);
-    registry.register({
-      entity: EntityType.Account,
-      hint: "accounts",
-      operations: {
-        create: defineOperation({
-          description: "Create a new account.",
-          access: "write",
-          input: z.object({ name: z.string() }).strict(),
-          handler: async () => ({ data: {} }),
-        }),
-      },
-    });
-
-    const server = createServer(registry, readOnly);
-    const mcpClient = new Client({ name: "test", version: "0" });
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
-    try {
-      const names = (await mcpClient.listTools()).tools.map((tool) => tool.name);
-      expect(names).toEqual(["insight_expense_total"]);
-    } finally {
-      await mcpClient.close();
-      await server.close();
-    }
-  });
-});
-
-describe("direct mode", () => {
-  async function callDirectTool(name: string, args: Record<string, unknown>) {
-    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
-    const { InMemoryTransport } = await import(
-      "@modelcontextprotocol/sdk/inMemory.js"
-    );
-    const { createClient } = await import("../src/firefly.js");
-    const { transactionsModule } = await import("../src/entities/transactions.js");
-
-    const directConfig: Config = { ...config, directMode: true };
-    const registry = new Registry(directConfig, client);
-    registry.register(transactionsModule);
-    const server = createServer(registry, directConfig);
-
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-    const mcpClient = new Client({ name: "test", version: "0" });
-    await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
-
-    const tools = await mcpClient.listTools();
-    const result = await mcpClient.callTool({ name, arguments: args });
-    await mcpClient.close();
-    return { tools, result };
-  }
-
-  it("advertises each parameter rather than one opaque params object", async () => {
-    const { tools } = await callDirectTool("transaction_get", { id: "7" });
-    const tool = tools.tools.find((candidate) => candidate.name === "transaction_get");
-
-    expect(Object.keys(tool?.inputSchema.properties ?? {})).toEqual(["id"]);
-  });
-
-  it("refuses an unknown key instead of silently dropping it", async () => {
-    const { result } = await callDirectTool("transaction_list", { nonsense: "x" });
-
-    expect(JSON.stringify(result)).toMatch(/nonsense|unrecognized/i);
-  });
-});
-
 
 describe("surfaces a permission policy has emptied", () => {
   const readOnlyPolicy = { fallback: "read" as const, byEntity: new Map() };
