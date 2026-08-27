@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `analysis.recurring_expenses`, which finds payments that repeat to the same
+  payee and reports how often, how far apart, and how much they vary. It stops
+  at what the ledger records: it does not call anything a subscription and does
+  not decide whether one is still running, because a fixed monthly charge paid
+  three days ago may have been cancelled yesterday. The interval and the gap
+  since the last payment are given so the caller can ask.
+- `analysis.uncategorized`, grouping spending that carries no category by who
+  was paid, largest total first — one decision per payee closes every payment
+  to it.
 - `MCP_STRUCTURED_OUTPUT`, returning results as MCP `structuredContent` with an
   advertised output schema instead of JSON inside a text block. Off by default,
   and the two are never sent together: mirroring both, as the specification

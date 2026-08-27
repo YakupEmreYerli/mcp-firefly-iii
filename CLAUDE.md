@@ -102,6 +102,10 @@ yanlış cevap** üretmeleri — yazılı olmalarının sebebi bu.
 - **İşlem güncellemeleri her split içinde `transaction_journal_id` ister**, yoksa
   split eşleşmez ve hiçbir şey olmaz.
 - **`/search/accounts` `field` parametresi ister**, yoksa 422 döner.
+- **`opening_balance: "0"` sessizce yok sayılır.** Hesap PUT'u 200 döner ve
+  açılış bakiyesi olduğu gibi kalır. `"0.01"` uygulanır, `null` ise alanı
+  gerçekten temizler. Yani bir açılış bakiyesini sıfırlamak isteyen kod, `"0"`
+  gönderdiğinde başarılı görünüp hiçbir şey değiştirmez — canlı ölçüldü.
 - **Insight giderleri negatiftir**; gelir ve transferler pozitif.
 
 **Yazma işlemlerini bağımsız bir okumayla doğrulayın.** Firefly'dan gelen 200,

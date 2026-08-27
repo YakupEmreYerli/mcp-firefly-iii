@@ -27,11 +27,11 @@ function setup(): { registry: Registry; calls: Call[] } {
 }
 
 describe("entity parity surface", () => {
-  // 139 mirror a Firefly endpoint; the rest are computed here — one comparison
+  // 139 mirror a Firefly endpoint; the rest are computed here — three analyses
   // and four name resolvers.
   it("registers every operation the modules declare", () => {
     const { registry } = setup();
-    expect(registry.listOperations()).toHaveLength(144);
+    expect(registry.listOperations()).toHaveLength(146);
   });
 
   it("uses the Python insight paths", async () => {

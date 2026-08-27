@@ -43,7 +43,7 @@ npm run build && npx @modelcontextprotocol/inspector node dist/index.js
 
 In the default consolidated mode the Tools tab shows five tools:
 `firefly_query`, `firefly_mutate`, `firefly_destructive`,
-`firefly_list_operations` and `firefly_get_schema`. All 144 operations are
+`firefly_list_operations` and `firefly_get_schema`. All 146 operations are
 reached through them. With `FIREFLY_READ_ONLY=true` the two writing tools are
 absent.
 
