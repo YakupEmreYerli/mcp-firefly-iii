@@ -117,7 +117,7 @@ operation that can only fail sends the model down a dead end.
 
 **Consolidated mode (default)** exposes five meta-tools: `firefly_query`,
 `firefly_mutate`, `firefly_destructive`, `firefly_list_operations` and
-`firefly_get_schema`. All 140 operations are reached through those, split by
+`firefly_get_schema`. All 144 operations are reached through those, split by
 risk so a host can annotate them differently. This is the default because most MCP clients degrade past
 roughly 40 tools.
 

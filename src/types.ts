@@ -25,6 +25,7 @@ export enum EntityType {
   Configuration = "configuration",
   DataExport = "data_export",
   Analysis = "analysis",
+  Resolve = "resolve",
 }
 
 /** What an operation does to Firefly III.

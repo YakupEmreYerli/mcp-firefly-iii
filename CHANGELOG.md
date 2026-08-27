@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A `resolve` entity, turning a name a user said into the Firefly record it
+  means: `resolve.account`, `resolve.category`, `resolve.budget`,
+  `resolve.tag`. Matching folds Turkish letters (a plain `toLowerCase` gets `I`
+  and `İ` wrong), treats a shorter query as an abbreviation, and bridges a
+  Turkish suffix — so "nakit" finds `Nakit (Cüzdan)` and "yemek" finds
+  `Yeme & İçme`. When two names fit equally it returns the candidates and
+  declines to choose, and Firefly's internal "Initial balance for …" accounts
+  are excluded so they cannot cause an ambiguity the user cannot even see.
 - `dry_run` on `firefly_mutate` and `firefly_destructive`. It runs the operation
   against a client that reads for real but only records what it would write, so
   the preview comes back with ids resolved and the payload shaped exactly as
