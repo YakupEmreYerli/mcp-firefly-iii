@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   token's reach is refused with 403 `insufficient_scope` before the tool runs,
   naming the scope that would have worked, and the granted scopes also narrow
   the permission policy so enforcement does not rest on that check alone.
+- The scope check reads direct mode too, where a tool is named after its entity
+  and operation rather than after a surface. The lookup comes from the registry,
+  which is the one place the access level is declared.
 - Audience binding per RFC 8707: a token issued for another service is refused.
   A bearer token is whoever holds it, so without this any token a client had
   would have worked here.

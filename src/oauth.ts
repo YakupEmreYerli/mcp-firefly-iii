@@ -59,11 +59,23 @@ export function policyForScopes(scopes: Iterable<string>): PermissionPolicy {
   return { fallback, byEntity: new Map<EntityType, PermissionLevel>() };
 }
 
-/** Which surface a tool name belongs to. */
+/** Which surface a tool name belongs to, in the default meta-tool mode. */
 const SURFACE_ACCESS: Record<string, Access> = {
   firefly_mutate: "write",
   firefly_destructive: "destructive",
 };
+
+/** What a tool name needs, or undefined for a read.
+ *
+ * Direct mode names a tool after its entity and operation rather than after a
+ * surface, so the default table finds nothing there and every call reads as a
+ * read. The registry still refuses what the token cannot do, but the client is
+ * told the wrong thing about why — the same failure a JSON-RPC batch caused.
+ * `createHttpServer` supplies the map for that mode.
+ */
+export type AccessLookup = (tool: string) => Access | undefined;
+
+const defaultLookup: AccessLookup = (tool) => SURFACE_ACCESS[tool];
 
 const RANK: Record<Access, number> = { read: 1, write: 2, destructive: 3 };
 
@@ -80,11 +92,11 @@ const RANK: Record<Access, number> = { read: 1, write: 2, destructive: 3 };
  * that should not have, but the client was told the wrong thing about why.
  * The answer for a batch is the widest access any member needs.
  */
-export function accessForRequest(body: unknown): Access | undefined {
+export function accessForRequest(body: unknown, lookup: AccessLookup = defaultLookup): Access | undefined {
   if (Array.isArray(body)) {
     let widest: Access | undefined;
     for (const member of body) {
-      const needed = accessForRequest(member);
+      const needed = accessForRequest(member, lookup);
       if (needed && (!widest || RANK[needed] > RANK[widest])) widest = needed;
     }
     return widest;
@@ -93,7 +105,7 @@ export function accessForRequest(body: unknown): Access | undefined {
   const request = body as { method?: unknown; params?: { name?: unknown } };
   if (request.method !== "tools/call") return undefined;
   const tool = request.params?.name;
-  return typeof tool === "string" ? SURFACE_ACCESS[tool] : undefined;
+  return typeof tool === "string" ? lookup(tool) : undefined;
 }
 
 /** The scope that grants an access level, for a challenge. */
