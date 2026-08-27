@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { SignJWT, jwtVerify } from "jose";
 import type { Config } from "../config.js";
-import { SCOPES, grantedScopes } from "../oauth.js";
+import { SCOPES, grantedScopes, scopesWithin } from "../oauth.js";
 import { AuthState } from "./state.js";
 import { findClient, registerClient } from "./clients.js";
 import { AuthorizationCodes } from "./codes.js";
@@ -202,7 +202,9 @@ export class BuiltinAuth {
       return true;
     }
 
-    const requested = (params.get("scope") ?? SCOPES.read)
+    // A client that names no scope is taken to want everything the operator
+    // allows; the consent screen is where that gets narrowed, by a person.
+    const requested = (params.get("scope") ?? scopesWithin(this.config.permissions).join(" "))
       .split(" ")
       .filter((scope) => ALL_SCOPES.includes(scope as typeof SCOPES.read));
     const scopes = grantedScopes(requested, this.config.permissions);

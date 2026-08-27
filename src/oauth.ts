@@ -22,6 +22,9 @@ export const SCOPES = {
  * 401 challenges for, and what `scopes_supported` advertises as the minimum. */
 export const MINIMUM_SCOPE = SCOPES.read;
 
+/** Every scope this server defines, narrowest first. */
+const ALL_SCOPE_VALUES: string[] = [SCOPES.read, SCOPES.write, SCOPES.destructive];
+
 /** Broader implies narrower.
  *
  * The specification requires a server to account for this rather than making a
@@ -68,11 +71,41 @@ export function policyForScopes(scopes: Iterable<string>, ceiling?: PermissionPo
   return { fallback: minimum(fallback, ceiling.fallback), byEntity };
 }
 
+const LEVEL_RANK: Record<PermissionLevel, number> = { none: 0, read: 1, write: 2, destructive: 3 };
+const SCOPE_RANK: Record<string, number> = { [SCOPES.read]: 1, [SCOPES.write]: 2, [SCOPES.destructive]: 3 };
+
+/** The highest level the operator's policy allows anywhere.
+ *
+ * Per-entity clauses count: `transaction:write;*:read` has to be able to hand
+ * out `firefly:write`, or the one entity the operator opened up stays shut.
+ * Granting the scope does not widen anything on its own — enforcement runs the
+ * policy again per call, with the token's scopes intersected into it.
+ */
+function ceilingLevel(policy: PermissionPolicy): PermissionLevel {
+  let level = policy.fallback;
+  for (const value of policy.byEntity.values()) {
+    if (LEVEL_RANK[value] > LEVEL_RANK[level]) level = value;
+  }
+  return level;
+}
+
+/** The scopes worth asking for under the operator's ceiling.
+ *
+ * What a client sees in `scopes_supported`, and what it is assumed to want
+ * when it asks for nothing. Advertising only the minimum instead reads to a
+ * client as a read-only server: it requests `firefly:read`, and the consent
+ * screen can then offer nothing else, since an authorization server must not
+ * grant a scope that was never requested.
+ */
+export function scopesWithin(policy: PermissionPolicy): string[] {
+  const ceiling = LEVEL_RANK[ceilingLevel(policy)];
+  return ALL_SCOPE_VALUES.filter((scope) => SCOPE_RANK[scope]! <= ceiling);
+}
+
 /** Intersect requested scopes with the operator's permission ceiling. */
 export function grantedScopes(scopes: Iterable<string>, ceiling: PermissionPolicy): string[] {
-  const rank: Record<string, number> = { [SCOPES.read]: 1, [SCOPES.write]: 2, [SCOPES.destructive]: 3 };
-  const ceilingRank = { none: 0, read: 1, write: 2, destructive: 3 }[ceiling.fallback];
-  return [...new Set(scopes)].filter((scope) => (rank[scope] ?? 0) > 0 && rank[scope]! <= ceilingRank);
+  const allowed = new Set(scopesWithin(ceiling));
+  return [...new Set(scopes)].filter((scope) => allowed.has(scope));
 }
 
 /** Which surface a tool name belongs to, in the default meta-tool mode. */
@@ -148,16 +181,21 @@ export type ResourceMetadata = {
 
 /** RFC 9728 Protected Resource Metadata.
  *
- * `scopes_supported` lists the minimum for basic functioning rather than
- * everything on offer, which is what the specification asks for: a client that
- * takes this as its opening request gets read access and is challenged upward
- * only when it reaches for more.
+ * `scopes_supported` is what the operator's FIREFLY_PERMISSIONS ceiling allows,
+ * not the minimum: a client reads this to decide what to ask for, and a client
+ * that asks for `firefly:read` alone can never be consented up to writing,
+ * however the consent screen is answered.
  */
-export function resourceMetadata(resource: string, authorizationServers: string[]): ResourceMetadata {
+export function resourceMetadata(
+  resource: string,
+  authorizationServers: string[],
+  ceiling?: PermissionPolicy,
+): ResourceMetadata {
+  const scopes = ceiling ? scopesWithin(ceiling) : [MINIMUM_SCOPE];
   return {
     resource,
     authorization_servers: authorizationServers,
-    scopes_supported: [MINIMUM_SCOPE],
+    scopes_supported: scopes.length > 0 ? scopes : [MINIMUM_SCOPE],
     bearer_methods_supported: ["header"],
   };
 }

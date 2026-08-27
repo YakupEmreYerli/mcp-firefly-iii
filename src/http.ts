@@ -177,7 +177,7 @@ export function createHttpServer(config: Config): Server {
     // because it does not yet have a token, and RFC 9728 carries nothing
     // secret — only where to go and ask.
     if (metadataPaths.has(path) && req.method === "GET") {
-      writeJson(res, 200, resourceMetadata(config.resourceUrl, issuers));
+      writeJson(res, 200, resourceMetadata(config.resourceUrl, issuers, config.permissions));
       return;
     }
     if (!MCP_PATHS.has(path) || !MCP_METHODS.has(req.method ?? "")) {
