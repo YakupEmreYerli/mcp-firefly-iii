@@ -26,7 +26,7 @@ const config: Config = {
   permissions: { fallback: "destructive", byEntity: new Map() },
   directMode: false,
   enabledEntities: new Set(Object.values(EntityType)),
-  disableSslVerify: false,
+  structuredOutput: false, disableSslVerify: false,
   logLevel: "INFO",
 };
 
@@ -143,6 +143,99 @@ describe("tool annotations", () => {
   it("tells hosts Firefly is a remote service", async () => {
     const annotations = await toolAnnotations();
     expect(annotations.firefly_query).toMatchObject({ openWorldHint: true });
+  });
+});
+
+/** One tool call, as the client receives it. */
+async function callTool(
+  name: string,
+  args: Record<string, unknown>,
+  overrides: Partial<Config> = {},
+  register: EntityModule = module,
+) {
+  const registry = new Registry({ ...config, ...overrides }, client);
+  registry.register(register);
+  const server = createServer(registry, { ...config, ...overrides });
+  const mcpClient = new Client({ name: "test", version: "0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+  try {
+    return (await mcpClient.callTool({ name, arguments: args })) as {
+      content?: { type: string; text?: string }[];
+      structuredContent?: Record<string, unknown>;
+    };
+  } finally {
+    await mcpClient.close();
+    await server.close();
+  }
+}
+
+describe("structured output", () => {
+  const call = { entity: "insight", operation: "expense_total", params: { start: "2026-08-01" } };
+
+  it("returns JSON as text by default, so existing clients are unaffected", async () => {
+    const result = await callTool("firefly_query", call);
+    expect(result.structuredContent).toBeUndefined();
+    expect(result.content?.[0]?.type).toBe("text");
+  });
+
+  it("returns structure instead of text when it is turned on", async () => {
+    const result = await callTool("firefly_query", call, { structuredOutput: true });
+    expect(result.structuredContent).toBeDefined();
+  });
+
+  it("never sends both, because these responses are large enough for that to matter", async () => {
+    // account.list is 18 KB on the live instance. Mirroring it into a text
+    // block would hand back much of what the response trimming saves.
+    const result = await callTool("firefly_query", call, { structuredOutput: true });
+    const textLength = (result.content ?? []).reduce((total, part) => total + (part.text?.length ?? 0), 0);
+    expect(textLength).toBe(0);
+  });
+
+  it("carries a list under `result`, since structuredContent has to be an object", async () => {
+    // Not hypothetical: /insight/* and configuration.list answer with a bare
+    // array, which structuredContent cannot carry.
+    const listy: EntityModule = {
+      entity: EntityType.Insight,
+      hint: "answers with a bare array",
+      operations: {
+        expense_total: defineOperation({
+          description: "Totals.",
+          access: "read",
+          input: z.object({ start: z.string() }).strict(),
+          handler: async () => [{ currency_code: "TRY", difference_float: -12 }],
+        }),
+      },
+    };
+    const result = await callTool("firefly_query", call, { structuredOutput: true }, listy);
+    expect(result.structuredContent).toHaveProperty("result");
+    expect(result.structuredContent?.result).toHaveLength(1);
+  });
+
+  it("passes an object through unwrapped", async () => {
+    const result = await callTool("firefly_get_schema", { entity: "insight", operation: "expense_total" }, { structuredOutput: true });
+    expect(result.structuredContent).toMatchObject({ type: "object" });
+  });
+
+  it("advertises an output schema only in that mode, so the default costs no extra tokens", async () => {
+    const off = await toolAnnotations();
+    void off;
+    const withSchema = await (async () => {
+      const registry = new Registry({ ...config, structuredOutput: true }, client);
+      registry.register(module);
+      const server = createServer(registry, { ...config, structuredOutput: true });
+      const mcpClient = new Client({ name: "test", version: "0" });
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await Promise.all([server.connect(b), mcpClient.connect(a)]);
+      try {
+        const { tools } = await mcpClient.listTools();
+        return tools;
+      } finally {
+        await mcpClient.close();
+        await server.close();
+      }
+    })();
+    expect(withSchema.find((tool) => tool.name === "firefly_query")?.outputSchema).toBeDefined();
   });
 });
 

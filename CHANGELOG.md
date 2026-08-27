@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `MCP_STRUCTURED_OUTPUT`, returning results as MCP `structuredContent` with an
+  advertised output schema instead of JSON inside a text block. Off by default,
+  and the two are never sent together: mirroring both, as the specification
+  suggests for older clients, would double every response — `account.list` is
+  18 KB against a personal instance — and give back much of what the response
+  trimming saves. Arrays travel under a `result` key, since `structuredContent`
+  must be an object and the insight endpoints answer with a bare list.
 - A `resolve` entity, turning a name a user said into the Firefly record it
   means: `resolve.account`, `resolve.category`, `resolve.budget`,
   `resolve.tag`. Matching folds Turkish letters (a plain `toLowerCase` gets `I`

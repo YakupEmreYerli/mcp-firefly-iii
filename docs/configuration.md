@@ -86,6 +86,25 @@ as a read-only error rather than a generic failure — so the caller can tell
 |----------|---------|---------|
 | `FIREFLY_DIRECT_MODE` | `false` | How operations are presented as tools |
 | `FIREFLY_PERMISSIONS` | unset (full) | Finer access control than the read-only switch |
+| `MCP_STRUCTURED_OUTPUT` | `false` | Return `structuredContent` instead of JSON as text |
+
+### `MCP_STRUCTURED_OUTPUT`
+
+Off by default, where every result arrives as JSON inside a text block. Turned
+on, results arrive as MCP `structuredContent` and the execution tools advertise
+an output schema.
+
+The two are never sent together. The specification suggests mirroring
+structured output into a text block so older clients still see something, but
+the responses here are not small — `account.list` measures 18 KB against a
+personal instance and `transaction.list` 13.5 KB — and duplicating them would
+give back much of what the response trimming exists to save. So this is the
+operator's call: leave it off unless your client understands
+`structuredContent`.
+
+`structuredContent` has to be an object, while the insight endpoints and
+`configuration.list` answer with a bare array. Those arrive under a `result`
+key; objects pass through unchanged.
 
 ### `FIREFLY_PERMISSIONS`
 

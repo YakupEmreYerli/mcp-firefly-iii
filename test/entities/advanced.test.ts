@@ -15,7 +15,7 @@ function setup() {
     del: async (path) => { calls.push(`DELETE ${path}`); return null; },
     postBinary: async () => null,
   };
-  const config: Config = { apiUrl: "https://example.test/api/v1", apiToken: "", readOnly: false, permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false, enabledEntities: new Set(Object.values(EntityType)), disableSslVerify: false, logLevel: "INFO" };
+  const config: Config = { apiUrl: "https://example.test/api/v1", apiToken: "", readOnly: false, permissions: { fallback: "destructive", byEntity: new Map() }, directMode: false, enabledEntities: new Set(Object.values(EntityType)), structuredOutput: false, disableSslVerify: false, logLevel: "INFO" };
   const registry = new Registry(config, client);
   for (const module of ENTITY_MODULES) registry.register(module);
   return { registry, calls };

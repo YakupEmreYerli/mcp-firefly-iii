@@ -44,7 +44,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     permissions: { fallback: "destructive", byEntity: new Map() },
     directMode: false,
     enabledEntities: new Set(Object.values(EntityType)),
-    disableSslVerify: false,
+    structuredOutput: false, disableSslVerify: false,
     logLevel: "INFO",
     ...overrides,
   };

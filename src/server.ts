@@ -80,15 +80,39 @@ function annotationsFor(access: Access): {
   };
 }
 
-/** Wrap a JSON payload as MCP tool-call content.
+type ToolResult = {
+  content: { type: "text"; text: string }[];
+  structuredContent?: Record<string, unknown>;
+};
+
+/** Wrap a payload as MCP tool-call content.
  *
- * A type-annotated helper (rather than inline object literals) so the
- * `"text"` literal type checks against the SDK's content union without a
- * type assertion.
+ * Two shapes, never both. The spec suggests mirroring `structuredContent` into
+ * a text block for older clients, but that doubles every response, and these
+ * are not small — `account.list` on the live instance is 18 KB, `transaction.list`
+ * 13.5 KB. Sending both would hand back a large part of what the trimming in
+ * `projection.ts` exists to save, so the choice is the operator's:
+ * `MCP_STRUCTURED_OUTPUT` off (the default) keeps today's text, on returns
+ * structure only. Neither mode pays twice.
+ *
+ * `structuredContent` must be an object, while insight endpoints and
+ * `configuration.list` answer with arrays, so anything that is not an object
+ * travels under `result`.
  */
-function toolResult(payload: unknown): { content: [{ type: "text"; text: string }] } {
-  return { content: [{ type: "text", text: JSON.stringify(payload) }] };
+function toolResult(payload: unknown, structured: boolean): ToolResult {
+  if (!structured) return { content: [{ type: "text", text: JSON.stringify(payload) }] };
+  const isObject = typeof payload === "object" && payload !== null && !Array.isArray(payload);
+  return {
+    content: [],
+    structuredContent: isObject ? (payload as Record<string, unknown>) : { result: payload },
+  };
 }
+
+/** Declared only when structured output is on, because the SDK requires
+ * `structuredContent` from any tool that advertises a schema. The shape is
+ * whatever Firefly returned for the operation the caller chose, so there is
+ * nothing truer to promise than "an object". */
+const OUTPUT_SCHEMA = { result: z.unknown().optional().describe("Present only when Firefly answered with a list rather than an object") };
 
 export function createServer(registry: Registry, config: Config): McpServer {
   // Read from package.json rather than written down here: a second copy is a
@@ -97,7 +121,7 @@ export function createServer(registry: Registry, config: Config): McpServer {
   const server = new McpServer({ name: "Firefly MCP Server", version: packageVersion() });
 
   // Either/or, as in the Python version: direct mode replaces the meta-tools.
-  if (config.directMode) registerDirectModeTools(server, registry);
+  if (config.directMode) registerDirectModeTools(server, registry, config);
   else registerMetaTools(server, registry, config);
 
   return server;
@@ -150,6 +174,7 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
       {
         description: executeDescription(registry, surface),
         annotations: annotationsFor(surface.access[0]!),
+        ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
         inputSchema: {
           entity: z.string().describe("Entity type (account, transaction, budget, ...)"),
           operation: z.string().describe("Operation name (list, get, create, ...)"),
@@ -172,7 +197,7 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
         const payload = await registry
           .execute(entity, operation, params, fields, surface.access, dry_run === true)
           .catch((caught: unknown) => asError(caught));
-        return toolResult(payload);
+        return toolResult(payload, config.structuredOutput);
       },
     );
   }
@@ -182,11 +207,12 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
     {
       description: "List available Firefly III operations, optionally filtered by entity.",
       annotations: annotationsFor("read"),
+      ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
       inputSchema: { entity: z.nativeEnum(EntityType).optional() },
     },
     // `entity` is already a validated EntityType and listOperations filters a
     // missing module rather than throwing, so there is nothing to catch here.
-    ({ entity }) => toolResult(registry.listOperations(entity)),
+    ({ entity }) => toolResult(registry.listOperations(entity), config.structuredOutput),
   );
 
   server.registerTool(
@@ -194,6 +220,7 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
     {
       description: "Get the parameter schema for a specific operation.",
       annotations: annotationsFor("read"),
+      ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
       inputSchema: { entity: z.string(), operation: z.string() },
     },
     ({ entity, operation }) => {
@@ -204,7 +231,7 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
           return asError(caught);
         }
       })();
-      return toolResult(payload);
+      return toolResult(payload, config.structuredOutput);
     },
   );
 }
@@ -217,7 +244,7 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
  * Tool names are `<entity>_<operation>`, matching the Python version's
  * `f"{entity}_{operation}"` exactly — no `firefly_` prefix.
  */
-function registerDirectModeTools(server: McpServer, registry: Registry): void {
+function registerDirectModeTools(server: McpServer, registry: Registry, config: Config): void {
   for (const module of registry.entityModules()) {
     for (const info of registry.listOperations(module.entity)) {
       const operation = module.operations[info.operation];
@@ -228,6 +255,7 @@ function registerDirectModeTools(server: McpServer, registry: Registry): void {
         {
           description: operation.description,
           annotations: annotationsFor(operation.access),
+          ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
           // The whole strict schema, not `.shape`. A raw shape is rebuilt by
           // the SDK as a strip-mode object: an unknown key would be deleted
           // before `Registry.execute` ever saw it, and an operation whose
@@ -240,7 +268,7 @@ function registerDirectModeTools(server: McpServer, registry: Registry): void {
           const payload = await registry
             .execute(module.entity, info.operation, params)
             .catch((caught: unknown) => asError(caught));
-          return toolResult(payload);
+          return toolResult(payload, config.structuredOutput);
         },
       );
     }

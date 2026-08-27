@@ -57,6 +57,7 @@ export type Config = {
   httpHost?: string;
   httpPort?: number;
   httpToken?: string;
+  structuredOutput: boolean;
 };
 
 const ENTITY_VALUES = new Set<string>(Object.values(EntityType));
@@ -136,5 +137,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     httpHost: env.MCP_HTTP_HOST ?? "127.0.0.1",
     httpPort: Number(env.MCP_HTTP_PORT ?? "3000"),
     httpToken: env.MCP_HTTP_TOKEN ?? "",
+    structuredOutput: parseBool(env.MCP_STRUCTURED_OUTPUT),
   };
 }

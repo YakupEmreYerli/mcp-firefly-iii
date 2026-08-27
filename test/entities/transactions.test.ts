@@ -49,7 +49,7 @@ function makeRegistry(client: FireflyClient, readOnly = false): Registry {
     permissions: { fallback: "destructive", byEntity: new Map() },
     directMode: false,
     enabledEntities: new Set(Object.values(EntityType)),
-    disableSslVerify: false,
+    structuredOutput: false, disableSslVerify: false,
     logLevel: "INFO",
   };
   const registry = new Registry(config, client);
