@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-27
+
+First stable release. The tool surface is now covered by semantic versioning:
+anything that breaks a caller from here on needs a major version.
+
+### Removed
+
+- `firefly_execute`. **This is the breaking change.** One tool that could both
+  list a balance and delete a transaction left the host nothing to annotate, so
+  it is replaced by `firefly_query`, `firefly_mutate` and `firefly_destructive`
+  — see Changed. A caller that named `firefly_execute` must pick the surface
+  matching what it is doing; `entity`, `operation`, `params` and `fields` are
+  unchanged.
+
 ### Added
 
 - Every execution surface now states that record content is data and never
@@ -276,6 +290,7 @@ First release.
   required bearer token, with a `Dockerfile` and Compose example.
 
 [Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.3.2...HEAD
+[1.0.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.0.0
 [0.3.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.2
 [0.3.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.1
 [0.3.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.0
