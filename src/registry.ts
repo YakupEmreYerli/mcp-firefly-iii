@@ -243,16 +243,25 @@ export class Registry {
     // read has nothing to preview, so it simply runs.
     if (dryRun && found.access !== "read") {
       const plan: PlannedWrite[] = [];
-      await found.handler(parsed.data, previewClient(this.client, plan));
+      const outcome = await found.handler(parsed.data, previewClient(this.client, plan));
       const warnings = await duplicateWarnings(plan, this.client);
-      return {
+      // Only a refusal is carried over from the handler. An operation that
+      // declines — a filter matching more rows than the caller allowed — writes
+      // nothing, and an empty plan on its own cannot be told apart from a
+      // filter that matched nothing at all. Its success counters are NOT
+      // carried: the preview client's writes all "succeed", so a plan of ten
+      // PUTs reported `updated: 10` beside a note saying nothing was written,
+      // and a caller reading the count would not run it for real.
+      const refusal = isRefusal(outcome) ? { outcome } : {};
+      return markThirdPartyText({
         dry_run: true,
         entity,
         operation,
         would_send: plan,
+        ...refusal,
         ...(warnings.length > 0 ? { warnings } : {}),
         note: "Nothing was written. Call again without dry_run to apply this.",
-      };
+      });
     }
 
     const result = await found.handler(parsed.data, this.client);
@@ -260,4 +269,14 @@ export class Registry {
     // actually sees rather than the ones buried in a split.
     return markThirdPartyText(projectFields(flattenTransactions(stripEmpty(result)), fields));
   }
+}
+
+/** Did a handler decline to act?
+ *
+ * A preview reports a refusal because it changes what the caller does next;
+ * it does not report the handler's success counters, which are fiction when
+ * every write went to the preview client.
+ */
+function isRefusal(outcome: unknown): boolean {
+  return typeof outcome === "object" && outcome !== null && (outcome as { refused?: unknown }).refused === true;
 }

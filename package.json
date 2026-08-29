@@ -1,6 +1,6 @@
 {
   "name": "@yakupemreyerli/firefly-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Model Context Protocol server for Firefly III personal finance management",
   "license": "MIT",
   "author": "Yakup Emre Yerli",
@@ -41,8 +41,10 @@
     "check": "node --env-file=.env dist/check.js",
     "start": "node --env-file=.env dist/index.js",
     "start:http": "node --env-file=.env dist/http.js",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build",
-    "smoke:live": "npm run build && node --env-file=.env scripts/live-smoke.mjs"
+    "prepublishOnly": "npm run typecheck && npm test && npm run build && npm run docs:check",
+    "smoke:live": "npm run build && node --env-file=.env scripts/live-smoke.mjs",
+    "docs:sync": "npm run build && node scripts/docs-sync.mjs",
+    "docs:check": "npm run build && node scripts/docs-sync.mjs --check"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

@@ -5,7 +5,50 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-08-29
+
+### Added
+
+- Six `transaction` operations for changes that span more than one record
+  without naming ids: `bulk_update` and `bulk_delete` take a list of ids,
+  `bulk_update_where` and `bulk_rewrite` take a filter instead, `group_patterns`
+  collapses a set of transactions into the shapes behind it (a hundred card
+  lines differing only in a terminal number become one row, with a count and a
+  total), and `reconcile` matches a bank statement's rows against the ledger
+  and reports what each side is missing. Filter-driven writes require
+  `max_matches`: Firefly answers 200 to every write and there is no undo, so a
+  filter wider than the caller expected is refused before the first PUT rather
+  than after the last one.
+- `description_like`, a pattern for `group_patterns`, `bulk_update_where` and
+  `bulk_rewrite`'s filters: `#` for a run of digits, `*` for anything, literal
+  text otherwise. Not a regular expression — an earlier draft accepted one, and
+  `^(a+)+$` against a 31-character description pinned the server for over 25
+  seconds, reachable from the read-only surface. The matcher instead makes one
+  left-to-right pass with no backtracking, so there is no input that makes it
+  slow.
+- `dry_run` on a filter-driven write now reports a refusal in its preview, not
+  only the payloads it would send. Without it, "the filter matched nothing" and
+  "600 rows matched and the write was refused" looked identical: both showed an
+  empty plan.
+
+### Fixed
+
+- A bulk write's amount filter (`amount_min`, `amount_max`, `amount_equals`)
+  is now rejected up front if it is not a plain decimal. `Number("1.000,00")`
+  — the ordinary way to write a thousand in Turkish — is `NaN`, and every
+  comparison against `NaN` is `false`, so the bound did not narrow the
+  selection, it silently removed the condition and the write reached every
+  transaction the page limit allowed.
+
+### Changed
+
+- `transactionBulkFields`'s `tags` is no longer accepted by a filter-driven
+  write (`bulk_update_where`). Firefly replaces a split's whole tag list rather
+  than merging into it — the failure this project's own history records
+  `bulk_tag` causing once — and the field's documented fix ("read the current
+  values first and send them all back") cannot be followed when the caller
+  never names which rows it is writing to. `bulk_tag` still merges, and
+  `bulk_update` still lets each row carry its own list.
 
 ### Removed
 

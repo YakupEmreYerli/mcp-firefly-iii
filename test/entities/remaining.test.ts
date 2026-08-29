@@ -32,7 +32,7 @@ describe("entity parity surface", () => {
   // and four name resolvers.
   it("registers every operation the modules declare", () => {
     const { registry } = setup();
-    expect(registry.listOperations()).toHaveLength(146);
+    expect(registry.listOperations()).toHaveLength(152);
   });
 
   it("uses the Python insight paths", async () => {

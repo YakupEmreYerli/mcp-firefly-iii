@@ -94,6 +94,39 @@ Bileşim kural değil, istisnadır. Bir soru hem *sık* soruluyorsa *hem de* ham
 birleştirme işini çağırana yıkıyorsa hak eder. İnce operasyonlar her hâlükârda
 altta durmaya devam eder.
 
+Filtreyle bir yazı operasyonu (`bulk_update_where`, `bulk_rewrite`) bu ilkeyi
+çiğnemek için bir düzenleme Yapar: `where` + `set` tek çağrıda seçim ve yazımı
+birleştirir. Onu buna izin veren iki şart vardır — ikisi de zorunludur:
+
+- **`max_matches` şarttır.** Filtre kolayca yanlış olur, Firefly her yazıma 200
+  cevap verir ve geri alma yoktur. Çağıran kaç satır beklediğini söyler; daha geniş
+  bir eşleşme ilk PUT'tan önce durur. `max_matches` verilmezse şema reddeder.
+- **Kesilen tarama da reddeder.** Sayfa tavanına ulaşan veya Firefly'nin sayfalama
+  meta'sı vermeyen bir tarama "belki daha çok eşleşme var" demektir; kısmi
+  eşleşmeye yazmak, daha küçük bir sayıyla aynı hatadır.
+
+## Toplu operasyonlarda desen ve etiket
+
+**Desen dili regex değildir, olmamalıdır.** `description_like` ve `bulk_rewrite`
+`#` (rakam dizisi) ile `*` (herhangi) jokerlerini alır; eşleştirici geri
+izlemesiz ve tek geçişlidir. Bir ara regex kabul edildi: `^(a+)+$` deseni 31
+karakterlik bir açıklamada olay döngüsünü 25 saniyeden fazla kilitledi — üstelik
+onay istenmeyen `firefly_query` yüzeyinden. JavaScript çalışan bir regex'i
+kesemez ve işlem açıklaması bu projenin kendi tehdit modelinde güvenilmez
+metindir: enjekte edilmiş bir not modelden o deseni aratabilir.
+
+**Paylaşılan bir `set` nesnesi `tags` taşıyamaz.** Firefly etiket listesinin
+tamamını değiştirir; tek liste birçok satıra yazılırsa her birinin kendi
+etiketlerini siler, ve alanın açıklamasındaki çözüm (önce oku, hepsini geri
+gönder) satırların adı anılmadığında uygulanamaz. Etiket eklemek için birleştiren
+`bulk_tag`, ya da her satırın kendi listesini taşıdığı `bulk_update`.
+
+**Filtreyle yazan bir operasyon önce `dry_run` ile çağrılır.** Ön izleme,
+gönderilecek PUT'ları çözülmüş journal id'leriyle gösterir; reddedildiyse bunu da
+söyler. Handler'ın başarı sayaçları ön izlemede taşınmaz — ön izleme istemcisinde
+her yazma "başarılı" olur, ve "hiçbir şey yazılmadı" notunun yanındaki
+`updated: 10` çağıranı işi bitmiş sanmaya iter.
+
 ## Sessizce yanlış sonuç veren Firefly III davranışları
 
 Firefly III 6.6.3 üzerinde canlı doğrulandı. Hepsinin ortak özelliği **hata değil,
@@ -126,6 +159,19 @@ yanlış cevap** üretmeleri — yazılı olmalarının sebebi bu.
   siler. `bulk_tag` bu yüzden bir kez veri sildi. Etiket/trigger/action/accounts
   gibi alanların şemasında bu yazılıdır, `test/replace-semantics.test.ts`
   düşmesini engeller.
+- **Çok parçalı gruba tek bir tutar yazmak toplamı sessizce katlar.** Bir
+  grubun üç split'ine tek `amount` yaymak, o tutarı üç kez kaydeder ve Firefly
+  200 cevap verir — geri alma yok. Aynı tehlike `source_id`/`destination_id`
+  için de geçerli: üç bacaklı bir split'in bacakları tek hesaba çöker. Bu yüzden
+  `bulk_update` ve `bulk_update_where` çok parçalı grupları **tamamen reddeder**
+  (alana göre muafiyet listesi tutmazlar); operasyonun yerine tek işlem `update`.
+  `bulk_categorize` ve `bulk_tag` istisnadır — kategori ve etiket gerçekten tüm
+  gruba aittir, yayılımları uzun süredir testlidir.
+- **Arayüzün "bakiye"si `virtual_balance` içerir, API'nin `current_balance`'ı
+  içermez.** Ekranda 501,47 yazarken `/accounts/{id}` 500,00 döner; iki değer de
+  "bakiye" diye sunulur. Fark, gerçek para kaydı değildir (kullanıcının
+  cüzdanındaki senaryo), ancak arayüzle API arasında karşılaştırma yapan her kod
+  bunu bilmelidir.
 - **Insight giderleri negatiftir**; gelir ve transferler pozitif.
 
 ## Kayıt içeriği güvenilmezdir

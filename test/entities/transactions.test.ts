@@ -305,7 +305,15 @@ describe("access tagging", () => {
       .map(([name]) => name)
       .sort();
 
-    expect(destructive).toEqual(["bulk_categorize", "bulk_tag", "delete"]);
+    expect(destructive).toEqual([
+      "bulk_categorize",
+      "bulk_delete",
+      "bulk_rewrite",
+      "bulk_tag",
+      "bulk_update",
+      "bulk_update_where",
+      "delete",
+    ]);
   });
 
   it("hides all of them from a connection granted only firefly:read", () => {
@@ -315,7 +323,14 @@ describe("access tagging", () => {
       .map((op) => op.operation)
       .sort();
 
-    expect(names).toEqual(["get", "list", "list_attachments", "list_piggy_bank_events"]);
+    expect(names).toEqual([
+      "get",
+      "group_patterns",
+      "list",
+      "list_attachments",
+      "list_piggy_bank_events",
+      "reconcile",
+    ]);
   });
 });
 
@@ -337,6 +352,26 @@ describe("input schemas are idempotent", () => {
     delete: { id: "7" },
     bulk_categorize: { transaction_ids: [1], category_name: "Market" },
     bulk_tag: { transaction_ids: [1], tag_names: ["x"] },
+    bulk_update: { updates: [{ transaction_id: "7", fields: { description: "x" } }] },
+    bulk_delete: { transaction_ids: ["7"] },
+    group_patterns: { where: { start: "2026-08-01" } },
+    bulk_update_where: {
+      where: { source_name: "Annem" },
+      set: { category_name: "Harçlık" },
+      max_matches: 5,
+    },
+    bulk_rewrite: {
+      where: { description_contains: "TRENDYOL" },
+      match: "^\\d+-",
+      replace: "",
+      max_matches: 5,
+    },
+    reconcile: {
+      account_id: "1",
+      rows: [{ date: "2026-08-18", amount: "-75.00" }],
+      start: "2026-08-01",
+      end: "2026-08-31",
+    },
   };
 
   it.each(Object.keys(transactionOperations))("%s parses to the same value twice", (name) => {
@@ -434,5 +469,223 @@ describe("bulk operations report what they actually did", () => {
       tag_names: ["x"],
     })) as { results: { reason?: string }[] };
     expect(result.results[0]!.reason).toContain("404");
+  });
+});
+
+describe("bulk_update", () => {
+  // A client whose groups carry the journal ids Firefly would return, so the
+  // test can tell a filled-in journal id from a fabricated one.
+  function groupClient(splitsPerGroup = 1): { client: FireflyClient; calls: Record<string, Call[]> } {
+    const calls: Record<string, Call[]> = { get: [], post: [], put: [], del: [] };
+    const client: FireflyClient = {
+      postBinary: async () => null,
+      getText: async () => "",
+      get: async (path, query) => {
+        calls.get!.push({ path, query });
+        const id = path.split("/").pop()!;
+        return {
+          data: {
+            attributes: {
+              transactions: Array.from({ length: splitsPerGroup }, (_, index) => ({
+                transaction_journal_id: `${id}0${index}`,
+                tags: ["kept"],
+              })),
+            },
+          },
+        };
+      },
+      post: async () => ({}),
+      put: async (path, body) => {
+        calls.put!.push({ path, body });
+        return {};
+      },
+      del: async (path, query) => {
+        calls.del!.push({ path, query });
+        return null;
+      },
+    };
+    return { client, calls };
+  }
+
+  it("sends each id its own fields, not the first row's", async () => {
+    // The failure this guards against is silent: one shared payload, or a map
+    // keyed by array index, rewrites every transaction with row one's text and
+    // Firefly answers 200 for all of them.
+    const { client, calls } = groupClient();
+    const result = await makeRegistry(client).execute("transaction", "bulk_update", {
+      updates: [
+        { transaction_id: "7", fields: { description: "Clash of Clans" } },
+        { transaction_id: "9", fields: { description: "Nitro aylık abonelik", category_name: "Dijital abonelikler" } },
+      ],
+    });
+
+    expect(calls.put).toEqual([
+      {
+        path: "/transactions/7",
+        body: { transactions: [{ transaction_journal_id: "700", description: "Clash of Clans" }] },
+      },
+      {
+        path: "/transactions/9",
+        body: {
+          transactions: [
+            {
+              transaction_journal_id: "900",
+              description: "Nitro aylık abonelik",
+              category_name: "Dijital abonelikler",
+            },
+          ],
+        },
+      },
+    ]);
+    expect(result).toMatchObject({ updated: 2, failed: 0, skipped: 0 });
+  });
+
+  it("fills in the journal id Firefly returned, per split", async () => {
+    // Without transaction_journal_id the PUT returns 200 and changes nothing,
+    // so an operation that omitted it would look like it worked. A single-split
+    // group exercises the fill: multi-split groups are refused altogether (see
+    // the refusal tests below), so the per-split path only runs on one split.
+    const { client, calls } = groupClient(1);
+    await makeRegistry(client).execute("transaction", "bulk_update", {
+      updates: [{ transaction_id: "4", fields: { category_name: "Market" } }],
+    });
+
+    expect(calls.put![0]!.body).toEqual({
+      transactions: [
+        { transaction_journal_id: "400", category_name: "Market" },
+      ],
+    });
+  });
+
+  it("refuses to write an amount across a multi-split group", async () => {
+    // Fanning one amount out to every split triples a three-way split's total
+    // and Firefly reports success. Skipping is the only safe answer.
+    const { client, calls } = groupClient(3);
+    const result = (await makeRegistry(client).execute("transaction", "bulk_update", {
+      updates: [{ transaction_id: "5", fields: { amount: "73.00" } }],
+    })) as { skipped: number; updated: number; results: { id: string; reason?: string }[] };
+
+    expect(calls.put).toEqual([]);
+    expect(result).toMatchObject({ updated: 0, skipped: 1 });
+    expect(result.results[0]!.reason).toContain("3 splits");
+  });
+
+  it("refuses to rewrite one id twice instead of silently dropping a row", async () => {
+    // Two rows naming the same transaction used to keep only the last row's
+    // fields while reporting both as updated — an edit vanished and the caller
+    // was told it landed. The schema refuses the second naming instead, so the
+    // caller has to merge the fields it meant to set.
+    const { client, calls } = groupClient();
+    await expect(
+      makeRegistry(client).execute("transaction", "bulk_update", {
+        updates: [
+          { transaction_id: "7", fields: { description: "a" } },
+          { transaction_id: "7", fields: { category_name: "Market" } },
+        ],
+      }),
+    ).rejects.toThrow(/may appear once/);
+    expect(calls.put).toEqual([]);
+  });
+
+  it("refuses even a group-wide field on a multi-split group", async () => {
+    // An earlier build allowed notes/description/category on a group with
+    // several splits while refusing amount/type/source. That list was not
+    // completable (source_id and destination_id are also per-split), so the
+    // rule became a flat refusal: it is not worth keeping a list of the fields
+    // whose repeats a split group happens to tolerate.
+    const { client, calls } = groupClient(2);
+    const result = (await makeRegistry(client).execute("transaction", "bulk_update", {
+      updates: [{ transaction_id: "6", fields: { notes: "ham metin" } }],
+    })) as { updated: number; skipped: number; results: { reason?: string }[] };
+    expect(calls.put).toEqual([]);
+    expect(result).toMatchObject({ updated: 0, skipped: 1 });
+    expect(result.results[0]!.reason).toContain("2 splits");
+  });
+
+  it("rejects an empty field set instead of spending two requests on nothing", async () => {
+    const { client, calls } = groupClient();
+    await expect(
+      makeRegistry(client).execute("transaction", "bulk_update", {
+        updates: [{ transaction_id: "7", fields: {} }],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(calls.get).toEqual([]);
+  });
+
+  it("carries a failure without abandoning the ids after it", async () => {
+    const { client } = groupClient();
+    const failing: FireflyClient = {
+      ...client,
+      put: async (path, body) => {
+        if (path === "/transactions/2") throw new FireflyApiError(404, "not found", { path });
+        return client.put(path, body);
+      },
+    };
+    const result = (await makeRegistry(failing).execute("transaction", "bulk_update", {
+      updates: [
+        { transaction_id: "1", fields: { notes: "a" } },
+        { transaction_id: "2", fields: { notes: "b" } },
+        { transaction_id: "3", fields: { notes: "c" } },
+      ],
+    })) as { updated: number; failed: number; results: { id: string; status: string }[] };
+
+    expect(result).toMatchObject({ updated: 2, failed: 1 });
+    expect(result.results.map((entry) => [entry.id, entry.status])).toEqual([
+      ["1", "updated"],
+      ["2", "failed"],
+      ["3", "updated"],
+    ]);
+  });
+
+  it("is reachable only from the destructive surface", async () => {
+    const { client } = groupClient();
+    await expect(
+      makeRegistry(client).execute(
+        "transaction",
+        "bulk_update",
+        { updates: [{ transaction_id: "1", fields: { notes: "a" } }] },
+        undefined,
+        ["write"],
+      ),
+    ).rejects.toThrow();
+  });
+});
+
+describe("bulk_delete", () => {
+  it("deletes every id and reports each one", async () => {
+    const { client, calls } = spyClient();
+    const result = await makeRegistry(client).execute("transaction", "bulk_delete", {
+      transaction_ids: ["29", "55"],
+    });
+
+    expect(calls.del!.map((call) => call.path)).toEqual(["/transactions/29", "/transactions/55"]);
+    expect(result).toMatchObject({
+      deleted: 2,
+      failed: 0,
+      results: [
+        { id: "29", status: "deleted" },
+        { id: "55", status: "deleted" },
+      ],
+    });
+  });
+
+  it("keeps deleting after one id fails, and names it", async () => {
+    const calls: string[] = [];
+    const { client } = spyClient();
+    const failing: FireflyClient = {
+      ...client,
+      del: async (path) => {
+        calls.push(path);
+        if (path === "/transactions/2") throw new FireflyApiError(404, "not found", { path });
+        return null;
+      },
+    };
+    const result = (await makeRegistry(failing).execute("transaction", "bulk_delete", {
+      transaction_ids: ["1", "2", "3"],
+    })) as { deleted: number; failed: number; results: { id: string; reason?: string }[] };
+
+    expect(calls).toEqual(["/transactions/1", "/transactions/2", "/transactions/3"]);
+    expect(result).toMatchObject({ deleted: 2, failed: 1 });
+    expect(result.results[1]!.reason).toContain("404");
   });
 });
