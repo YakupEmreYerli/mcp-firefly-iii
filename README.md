@@ -3,6 +3,10 @@
 [![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp)
 [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
+
+Listed on the [MCP Registry](https://registry.modelcontextprotocol.io/) as
+`io.github.YakupEmreYerli/mcp-firefly-iii`.
 
 Give an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/)
 instance over the Model Context Protocol — with reading, writing and deleting
@@ -208,7 +212,7 @@ needs `Authorization: Bearer <MCP_HTTP_TOKEN>`.
 
 Pin a version tag (see the
 [releases page](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases)
-— for example `:v1.1.0`) rather than `:latest` for anything you depend on.
+— for example `:v1.1.1`) rather than `:latest` for anything you depend on.
 
 ## Development
 

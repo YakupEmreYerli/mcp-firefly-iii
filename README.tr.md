@@ -3,6 +3,10 @@
 [![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp)
 [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
+
+[MCP Registry](https://registry.modelcontextprotocol.io/)'de
+`io.github.YakupEmreYerli/mcp-firefly-iii` adıyla listelidir.
 
 Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ
 asistanının erişmesini sağlar — Model Context Protocol üzerinden, okuma, yazma
@@ -208,7 +212,7 @@ docker run -d \
 
 Bağımlı olduğunuz bir yerde `:latest` yerine bir sürüm etiketi sabitleyin
 ([releases sayfasına](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases)
-bakın — örneğin `:v1.1.0`).
+bakın — örneğin `:v1.1.1`).
 
 ## Geliştirme
 
