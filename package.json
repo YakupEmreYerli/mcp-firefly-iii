@@ -1,7 +1,8 @@
 {
   "name": "@yakupemreyerli/firefly-mcp",
   "version": "1.1.0",
-  "description": "Model Context Protocol server for Firefly III personal finance management",
+  "description": "Security-first, self-hosted MCP server for Firefly III — 152 operations behind 5 scoped tools, with stdio and authenticated HTTP.",
+  "mcpName": "io.github.yakupemreyerli/mcp-firefly-iii",
   "license": "MIT",
   "author": "Yakup Emre Yerli",
   "homepage": "https://github.com/YakupEmreYerli/mcp-firefly-iii#readme",
