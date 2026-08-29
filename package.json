@@ -41,10 +41,10 @@
     "check": "node --env-file=.env dist/check.js",
     "start": "node --env-file=.env dist/index.js",
     "start:http": "node --env-file=.env dist/http.js",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build && npm run docs:check",
+    "prepublishOnly": "npm run typecheck && npm run build && npm test && npm run docs:check",
     "smoke:live": "npm run build && node --env-file=.env scripts/live-smoke.mjs",
-    "docs:sync": "npm run build && node scripts/docs-sync.mjs",
-    "docs:check": "npm run build && node scripts/docs-sync.mjs --check"
+    "docs:check": "npm run build && node scripts/docs/cli.mjs check",
+    "docs:update": "npm run build && node scripts/docs/cli.mjs update"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

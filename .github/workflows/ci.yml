@@ -24,8 +24,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      # Build before test: the docs generator's own tests import the compiled
+      # registry from dist/, the one artifact this pipeline treats as ground
+      # truth, and CI starts from a clean checkout with no dist/ yet.
       - run: npm run build
+      - run: npm test
+      - run: npm run docs:check
 
   package:
     runs-on: ubuntu-latest

@@ -123,7 +123,7 @@ key; objects pass through unchanged.
 
 The server exposes five meta-tools: `firefly_query`, `firefly_mutate`,
 `firefly_destructive`, `firefly_list_operations` and `firefly_get_schema`. All
-146 operations are reached through those, split by risk so a host can annotate
+152 operations are reached through those, split by risk so a host can annotate
 them differently.
 
 Listing every operation as its own tool was offered once and removed: it cost

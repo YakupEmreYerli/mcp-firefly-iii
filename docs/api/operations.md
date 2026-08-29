@@ -1,6 +1,6 @@
 # Operations
 
-**146 operations** across 26 entities. This page covers the CRUD side; for the
+**152 operations** across 26 entities. This page covers the CRUD side; for the
 operations that answer questions about your data — spending totals, category
 breakdowns, period comparisons, search — see [Analysis Operations](analysis.md).
 
@@ -56,31 +56,31 @@ Omit `fields` when you do not yet know which attributes matter.
 
 | Entity | Count | Operations |
 |--------|-------|------------|
+| `summary` | 2 | basic, overview |
 | `analysis` | 3 | compare_periods, recurring_expenses, uncategorized |
 | `resolve` | 4 | account, budget, category, tag |
-| `summary` | 2 | overview, basic |
-| `search` | 2 | transactions, accounts |
-| `insight` | 8 | expense_total, expense_category, expense_budget, expense_tag, expense_no_category, income_total, income_category, transfer_total |
-| `account` | 8 | list, get, create, update, delete, list_transactions, list_attachments, list_piggy_banks |
-| `transaction` | 9 | list, get, create, update, delete, list_attachments, list_piggy_bank_events, bulk_categorize, bulk_tag |
-| `budget` | 13 | list, get, create, update, delete, list_limits, create_limit, get_limit, update_limit, delete_limit, list_transactions, list_transactions_without_budget, list_attachments |
-| `category` | 7 | list, get, create, update, delete, list_transactions, list_attachments |
-| `tag` | 7 | list, get, create, update, delete, list_transactions, list_attachments |
-| `bill` | 8 | list, get, create, update, delete, list_transactions, list_attachments, list_rules |
-| `piggy_bank` | 7 | list, get, create, update, delete, list_events, list_attachments |
-| `rule` | 7 | list, get, create, update, delete, test, trigger |
-| `rule_group` | 8 | list, get, create, update, delete, list_rules, test, trigger |
-| `currency` | 7 | list, get, create, update, delete, enable, disable |
-| `exchange_rate` | 5 | list, get, create, update, delete |
-| `attachment` | 7 | list, get, create, upload, update, delete, download |
-| `recurring_transaction` | 5 | list, get, create, update, delete |
+| `search` | 2 | accounts, transactions |
+| `insight` | 8 | expense_budget, expense_category, expense_no_category, expense_tag, expense_total, income_category, income_total, transfer_total |
+| `account` | 8 | create, delete, get, list, list_attachments, list_piggy_banks, list_transactions, update |
+| `transaction` | 15 | bulk_categorize, bulk_delete, bulk_rewrite, bulk_tag, bulk_update, bulk_update_where, create, delete, get, group_patterns, list, list_attachments, list_piggy_bank_events, reconcile, update |
+| `budget` | 13 | create, create_limit, delete, delete_limit, get, get_limit, list, list_attachments, list_limits, list_transactions, list_transactions_without_budget, update, update_limit |
+| `category` | 7 | create, delete, get, list, list_attachments, list_transactions, update |
+| `tag` | 7 | create, delete, get, list, list_attachments, list_transactions, update |
+| `bill` | 8 | create, delete, get, list, list_attachments, list_rules, list_transactions, update |
+| `piggy_bank` | 7 | create, delete, get, list, list_attachments, list_events, update |
+| `rule` | 7 | create, delete, get, list, test, trigger, update |
+| `rule_group` | 8 | create, delete, get, list, list_rules, test, trigger, update |
+| `currency` | 7 | create, delete, disable, enable, get, list, update |
+| `exchange_rate` | 5 | create, delete, get, list, update |
+| `attachment` | 7 | create, delete, download, get, list, update, upload |
+| `recurring_transaction` | 5 | create, delete, get, list, update |
 | `autocomplete` | 8 | accounts, bills, budgets, categories, currencies, piggy_banks, tags, transactions |
 | `available_budget` | 1 | list |
-| `transaction_link` | 5 | list, get, create, update, delete |
-| `link_type` | 3 | list, get, list_transactions |
-| `object_group` | 2 | list, get |
-| `preference` | 2 | list, get |
-| `configuration` | 2 | list, get |
+| `transaction_link` | 5 | create, delete, get, list, update |
+| `link_type` | 3 | get, list, list_transactions |
+| `object_group` | 2 | get, list |
+| `preference` | 2 | get, list |
+| `configuration` | 2 | get, list |
 | `data_export` | 6 | accounts, bills, budgets, categories, piggy_banks, recurring |
 
 For an operation's exact parameters call `firefly_get_schema`. This page does
@@ -243,8 +243,9 @@ replace it with its own text.
 | 422 | Validation error — missing or invalid parameter |
 | 5xx | Something wrong on the Firefly III side |
 
-In read-only mode, write operations are refused before reaching Firefly at all,
-and this is reported as a read-only error rather than a generic failure.
+A write or destructive operation beyond what the connection's Firefly token or
+OAuth scope allows is refused before reaching Firefly at all — see
+[what the assistant may do](../configuration.md#what-the-assistant-may-do).
 
 ### Rate limiting
 
@@ -257,5 +258,6 @@ straight to the caller with the message Firefly returned.
 - The server's reach is exactly what your API token allows
 - No query or personal data is cached; the only outbound call is to the Firefly
   III instance you configured
-- To turn writes off entirely see
-  [read-only mode](../configuration.md#read-only-mode)
+- To turn writes off entirely, issue a read-only Firefly token or withhold the
+  `firefly:write` OAuth scope — see
+  [what the assistant may do](../configuration.md#what-the-assistant-may-do)

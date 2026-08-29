@@ -128,7 +128,7 @@ MCP tools work against the live instance. It only reads; it writes nothing.
 
 ```
 Firefly III 6.6.3 reachable at https://your-firefly.example/api/v1
-25 entities, 140 operations
+25 entities, 152 operations
 ```
 
 To poke at the tools interactively in a browser:

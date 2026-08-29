@@ -1,0 +1,1087 @@
+{
+  "manifestVersion": 1,
+  "operations": [
+    {
+      "name": "account.create",
+      "entity": "account",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "8279f0162013d8e3"
+    },
+    {
+      "name": "account.delete",
+      "entity": "account",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "77e3154637722366"
+    },
+    {
+      "name": "account.get",
+      "entity": "account",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "4445a45125d2a367"
+    },
+    {
+      "name": "account.list",
+      "entity": "account",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "cce7b90b53823aba"
+    },
+    {
+      "name": "account.list_attachments",
+      "entity": "account",
+      "operation": "list_attachments",
+      "access": "read",
+      "fingerprint": "d5409295a8043336"
+    },
+    {
+      "name": "account.list_piggy_banks",
+      "entity": "account",
+      "operation": "list_piggy_banks",
+      "access": "read",
+      "fingerprint": "1f5ba66a83783d83"
+    },
+    {
+      "name": "account.list_transactions",
+      "entity": "account",
+      "operation": "list_transactions",
+      "access": "read",
+      "fingerprint": "3ec99481ddcd64ed"
+    },
+    {
+      "name": "account.update",
+      "entity": "account",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "10a04d43214d84cb"
+    },
+    {
+      "name": "analysis.compare_periods",
+      "entity": "analysis",
+      "operation": "compare_periods",
+      "access": "read",
+      "fingerprint": "d76ee74559d17518"
+    },
+    {
+      "name": "analysis.recurring_expenses",
+      "entity": "analysis",
+      "operation": "recurring_expenses",
+      "access": "read",
+      "fingerprint": "6ce392eb07ce103a"
+    },
+    {
+      "name": "analysis.uncategorized",
+      "entity": "analysis",
+      "operation": "uncategorized",
+      "access": "read",
+      "fingerprint": "127a9827ad50d2e1"
+    },
+    {
+      "name": "attachment.create",
+      "entity": "attachment",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "32f6fe3bc92a147b"
+    },
+    {
+      "name": "attachment.delete",
+      "entity": "attachment",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "9c542bb6ecba4454"
+    },
+    {
+      "name": "attachment.download",
+      "entity": "attachment",
+      "operation": "download",
+      "access": "read",
+      "fingerprint": "f33ca449d0099193"
+    },
+    {
+      "name": "attachment.get",
+      "entity": "attachment",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "b12c7c2570191b56"
+    },
+    {
+      "name": "attachment.list",
+      "entity": "attachment",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "7507f6f8fb302d81"
+    },
+    {
+      "name": "attachment.update",
+      "entity": "attachment",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "f8e1041b18e56c64"
+    },
+    {
+      "name": "attachment.upload",
+      "entity": "attachment",
+      "operation": "upload",
+      "access": "write",
+      "fingerprint": "9faf4f0a38084176"
+    },
+    {
+      "name": "autocomplete.accounts",
+      "entity": "autocomplete",
+      "operation": "accounts",
+      "access": "read",
+      "fingerprint": "e26a21083f12272d"
+    },
+    {
+      "name": "autocomplete.bills",
+      "entity": "autocomplete",
+      "operation": "bills",
+      "access": "read",
+      "fingerprint": "deaeebb34c8bece6"
+    },
+    {
+      "name": "autocomplete.budgets",
+      "entity": "autocomplete",
+      "operation": "budgets",
+      "access": "read",
+      "fingerprint": "22b2e5071d3d76e6"
+    },
+    {
+      "name": "autocomplete.categories",
+      "entity": "autocomplete",
+      "operation": "categories",
+      "access": "read",
+      "fingerprint": "136c46cd9eae58be"
+    },
+    {
+      "name": "autocomplete.currencies",
+      "entity": "autocomplete",
+      "operation": "currencies",
+      "access": "read",
+      "fingerprint": "124772482bd4358c"
+    },
+    {
+      "name": "autocomplete.piggy_banks",
+      "entity": "autocomplete",
+      "operation": "piggy_banks",
+      "access": "read",
+      "fingerprint": "f55384549ac4e683"
+    },
+    {
+      "name": "autocomplete.tags",
+      "entity": "autocomplete",
+      "operation": "tags",
+      "access": "read",
+      "fingerprint": "46376154a40fe038"
+    },
+    {
+      "name": "autocomplete.transactions",
+      "entity": "autocomplete",
+      "operation": "transactions",
+      "access": "read",
+      "fingerprint": "daad5389b2894aa0"
+    },
+    {
+      "name": "available_budget.list",
+      "entity": "available_budget",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "44f7f76c1c449776"
+    },
+    {
+      "name": "bill.create",
+      "entity": "bill",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "ebaaee8363f93d6f"
+    },
+    {
+      "name": "bill.delete",
+      "entity": "bill",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "d03fee9b70f6de8a"
+    },
+    {
+      "name": "bill.get",
+      "entity": "bill",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "16da1553c460c4c6"
+    },
+    {
+      "name": "bill.list",
+      "entity": "bill",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "3d038a0109687998"
+    },
+    {
+      "name": "bill.list_attachments",
+      "entity": "bill",
+      "operation": "list_attachments",
+      "access": "read",
+      "fingerprint": "94330fe5e14c48eb"
+    },
+    {
+      "name": "bill.list_rules",
+      "entity": "bill",
+      "operation": "list_rules",
+      "access": "read",
+      "fingerprint": "6ade0424b305fce6"
+    },
+    {
+      "name": "bill.list_transactions",
+      "entity": "bill",
+      "operation": "list_transactions",
+      "access": "read",
+      "fingerprint": "23dd2a4e86352dde"
+    },
+    {
+      "name": "bill.update",
+      "entity": "bill",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "0b40ad7f0fd20c40"
+    },
+    {
+      "name": "budget.create",
+      "entity": "budget",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "18eddb134bbf799c"
+    },
+    {
+      "name": "budget.create_limit",
+      "entity": "budget",
+      "operation": "create_limit",
+      "access": "write",
+      "fingerprint": "f135ecb30c74cc56"
+    },
+    {
+      "name": "budget.delete",
+      "entity": "budget",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "dcb94bf910f0aefb"
+    },
+    {
+      "name": "budget.delete_limit",
+      "entity": "budget",
+      "operation": "delete_limit",
+      "access": "destructive",
+      "fingerprint": "a885dcc07e86b935"
+    },
+    {
+      "name": "budget.get",
+      "entity": "budget",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "a31e196729e75f7e"
+    },
+    {
+      "name": "budget.get_limit",
+      "entity": "budget",
+      "operation": "get_limit",
+      "access": "read",
+      "fingerprint": "560623452f77075e"
+    },
+    {
+      "name": "budget.list",
+      "entity": "budget",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "775c3107d77c1023"
+    },
+    {
+      "name": "budget.list_attachments",
+      "entity": "budget",
+      "operation": "list_attachments",
+      "access": "read",
+      "fingerprint": "f8f91efb8e911cb0"
+    },
+    {
+      "name": "budget.list_limits",
+      "entity": "budget",
+      "operation": "list_limits",
+      "access": "read",
+      "fingerprint": "aabe5f0968cba516"
+    },
+    {
+      "name": "budget.list_transactions",
+      "entity": "budget",
+      "operation": "list_transactions",
+      "access": "read",
+      "fingerprint": "1f78ef47e8e08e0d"
+    },
+    {
+      "name": "budget.list_transactions_without_budget",
+      "entity": "budget",
+      "operation": "list_transactions_without_budget",
+      "access": "read",
+      "fingerprint": "7b5f75c59d8441a6"
+    },
+    {
+      "name": "budget.update",
+      "entity": "budget",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "bbb7f775890c2011"
+    },
+    {
+      "name": "budget.update_limit",
+      "entity": "budget",
+      "operation": "update_limit",
+      "access": "write",
+      "fingerprint": "e8dd5e91712b480c"
+    },
+    {
+      "name": "category.create",
+      "entity": "category",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "6df7c52eff038b01"
+    },
+    {
+      "name": "category.delete",
+      "entity": "category",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "d27ad5e374f9be76"
+    },
+    {
+      "name": "category.get",
+      "entity": "category",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "0a888dd231d43d3c"
+    },
+    {
+      "name": "category.list",
+      "entity": "category",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "3d2f9fe0cfee86e2"
+    },
+    {
+      "name": "category.list_attachments",
+      "entity": "category",
+      "operation": "list_attachments",
+      "access": "read",
+      "fingerprint": "f55e05252d396729"
+    },
+    {
+      "name": "category.list_transactions",
+      "entity": "category",
+      "operation": "list_transactions",
+      "access": "read",
+      "fingerprint": "7d7b45532e44e3bf"
+    },
+    {
+      "name": "category.update",
+      "entity": "category",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "8ed87ceb08658031"
+    },
+    {
+      "name": "configuration.get",
+      "entity": "configuration",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "c15e03c9c139d762"
+    },
+    {
+      "name": "configuration.list",
+      "entity": "configuration",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "a720860ebe20fd72"
+    },
+    {
+      "name": "currency.create",
+      "entity": "currency",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "4d0b21495fba649d"
+    },
+    {
+      "name": "currency.delete",
+      "entity": "currency",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "b43e49cc9f4c343f"
+    },
+    {
+      "name": "currency.disable",
+      "entity": "currency",
+      "operation": "disable",
+      "access": "write",
+      "fingerprint": "9a1fbb41877491ff"
+    },
+    {
+      "name": "currency.enable",
+      "entity": "currency",
+      "operation": "enable",
+      "access": "write",
+      "fingerprint": "216784ab605eece5"
+    },
+    {
+      "name": "currency.get",
+      "entity": "currency",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "013037779d4cf994"
+    },
+    {
+      "name": "currency.list",
+      "entity": "currency",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "21a338e616763912"
+    },
+    {
+      "name": "currency.update",
+      "entity": "currency",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "6036611491ddb37d"
+    },
+    {
+      "name": "data_export.accounts",
+      "entity": "data_export",
+      "operation": "accounts",
+      "access": "read",
+      "fingerprint": "171e965a9bd695ad"
+    },
+    {
+      "name": "data_export.bills",
+      "entity": "data_export",
+      "operation": "bills",
+      "access": "read",
+      "fingerprint": "50712a73d28d7163"
+    },
+    {
+      "name": "data_export.budgets",
+      "entity": "data_export",
+      "operation": "budgets",
+      "access": "read",
+      "fingerprint": "f7957386eaff6f7e"
+    },
+    {
+      "name": "data_export.categories",
+      "entity": "data_export",
+      "operation": "categories",
+      "access": "read",
+      "fingerprint": "b11eaa55d218d0d4"
+    },
+    {
+      "name": "data_export.piggy_banks",
+      "entity": "data_export",
+      "operation": "piggy_banks",
+      "access": "read",
+      "fingerprint": "2e2093879a8498af"
+    },
+    {
+      "name": "data_export.recurring",
+      "entity": "data_export",
+      "operation": "recurring",
+      "access": "read",
+      "fingerprint": "1503460918012bbf"
+    },
+    {
+      "name": "exchange_rate.create",
+      "entity": "exchange_rate",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "5c37591b70dee7dd"
+    },
+    {
+      "name": "exchange_rate.delete",
+      "entity": "exchange_rate",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "2897d492e1acfd47"
+    },
+    {
+      "name": "exchange_rate.get",
+      "entity": "exchange_rate",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "b33ffda9c7190c64"
+    },
+    {
+      "name": "exchange_rate.list",
+      "entity": "exchange_rate",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "fd8c5fac6c93542f"
+    },
+    {
+      "name": "exchange_rate.update",
+      "entity": "exchange_rate",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "1266bd9b49ffcf5b"
+    },
+    {
+      "name": "insight.expense_budget",
+      "entity": "insight",
+      "operation": "expense_budget",
+      "access": "read",
+      "fingerprint": "14ea15ee56a90ccc"
+    },
+    {
+      "name": "insight.expense_category",
+      "entity": "insight",
+      "operation": "expense_category",
+      "access": "read",
+      "fingerprint": "7a1ee180f385f276"
+    },
+    {
+      "name": "insight.expense_no_category",
+      "entity": "insight",
+      "operation": "expense_no_category",
+      "access": "read",
+      "fingerprint": "4a6e0dee67d4b155"
+    },
+    {
+      "name": "insight.expense_tag",
+      "entity": "insight",
+      "operation": "expense_tag",
+      "access": "read",
+      "fingerprint": "b873e3998c47cd83"
+    },
+    {
+      "name": "insight.expense_total",
+      "entity": "insight",
+      "operation": "expense_total",
+      "access": "read",
+      "fingerprint": "6e03a1d73c0dce18"
+    },
+    {
+      "name": "insight.income_category",
+      "entity": "insight",
+      "operation": "income_category",
+      "access": "read",
+      "fingerprint": "c170dd476662ac4e"
+    },
+    {
+      "name": "insight.income_total",
+      "entity": "insight",
+      "operation": "income_total",
+      "access": "read",
+      "fingerprint": "64320d7ec7ed59b1"
+    },
+    {
+      "name": "insight.transfer_total",
+      "entity": "insight",
+      "operation": "transfer_total",
+      "access": "read",
+      "fingerprint": "db1e113cad4a69a2"
+    },
+    {
+      "name": "link_type.get",
+      "entity": "link_type",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "34d4b47b2490a998"
+    },
+    {
+      "name": "link_type.list",
+      "entity": "link_type",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "0f89a151ab51e3e7"
+    },
+    {
+      "name": "link_type.list_transactions",
+      "entity": "link_type",
+      "operation": "list_transactions",
+      "access": "read",
+      "fingerprint": "0e2d822957a41980"
+    },
+    {
+      "name": "object_group.get",
+      "entity": "object_group",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "9cefa376cef3dacd"
+    },
+    {
+      "name": "object_group.list",
+      "entity": "object_group",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "af60ae7705fdb6e6"
+    },
+    {
+      "name": "piggy_bank.create",
+      "entity": "piggy_bank",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "689d985ef03a50f7"
+    },
+    {
+      "name": "piggy_bank.delete",
+      "entity": "piggy_bank",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "3264979b0b498026"
+    },
+    {
+      "name": "piggy_bank.get",
+      "entity": "piggy_bank",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "5f2860e2ee40d90b"
+    },
+    {
+      "name": "piggy_bank.list",
+      "entity": "piggy_bank",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "fd7a79b7edaaba6e"
+    },
+    {
+      "name": "piggy_bank.list_attachments",
+      "entity": "piggy_bank",
+      "operation": "list_attachments",
+      "access": "read",
+      "fingerprint": "6e0ca9e56ed54432"
+    },
+    {
+      "name": "piggy_bank.list_events",
+      "entity": "piggy_bank",
+      "operation": "list_events",
+      "access": "read",
+      "fingerprint": "1fadd53c660ae60d"
+    },
+    {
+      "name": "piggy_bank.update",
+      "entity": "piggy_bank",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "3f1e3c42111b5357"
+    },
+    {
+      "name": "preference.get",
+      "entity": "preference",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "4c04e128f438740a"
+    },
+    {
+      "name": "preference.list",
+      "entity": "preference",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "a92c273a46a67e58"
+    },
+    {
+      "name": "recurring_transaction.create",
+      "entity": "recurring_transaction",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "f300d7b9da7966f0"
+    },
+    {
+      "name": "recurring_transaction.delete",
+      "entity": "recurring_transaction",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "d6b9a4c3defcc2e5"
+    },
+    {
+      "name": "recurring_transaction.get",
+      "entity": "recurring_transaction",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "50ac8681f3a621bc"
+    },
+    {
+      "name": "recurring_transaction.list",
+      "entity": "recurring_transaction",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "251ccf7fb1c81140"
+    },
+    {
+      "name": "recurring_transaction.update",
+      "entity": "recurring_transaction",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "dd85de68b3c51051"
+    },
+    {
+      "name": "resolve.account",
+      "entity": "resolve",
+      "operation": "account",
+      "access": "read",
+      "fingerprint": "da0689b26d010d98"
+    },
+    {
+      "name": "resolve.budget",
+      "entity": "resolve",
+      "operation": "budget",
+      "access": "read",
+      "fingerprint": "7cd30bb18768821e"
+    },
+    {
+      "name": "resolve.category",
+      "entity": "resolve",
+      "operation": "category",
+      "access": "read",
+      "fingerprint": "cd6bf397e9ab0f2f"
+    },
+    {
+      "name": "resolve.tag",
+      "entity": "resolve",
+      "operation": "tag",
+      "access": "read",
+      "fingerprint": "c74c491e90dafc84"
+    },
+    {
+      "name": "rule_group.create",
+      "entity": "rule_group",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "299571467a0d26f8"
+    },
+    {
+      "name": "rule_group.delete",
+      "entity": "rule_group",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "045ad78f2f88be4a"
+    },
+    {
+      "name": "rule_group.get",
+      "entity": "rule_group",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "74d4b62b6ddd423e"
+    },
+    {
+      "name": "rule_group.list",
+      "entity": "rule_group",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "c6831bcafba9eb60"
+    },
+    {
+      "name": "rule_group.list_rules",
+      "entity": "rule_group",
+      "operation": "list_rules",
+      "access": "read",
+      "fingerprint": "4efcd3fde1b4580c"
+    },
+    {
+      "name": "rule_group.test",
+      "entity": "rule_group",
+      "operation": "test",
+      "access": "read",
+      "fingerprint": "64e1fccd1bc944ef"
+    },
+    {
+      "name": "rule_group.trigger",
+      "entity": "rule_group",
+      "operation": "trigger",
+      "access": "write",
+      "fingerprint": "782e0b828f730626"
+    },
+    {
+      "name": "rule_group.update",
+      "entity": "rule_group",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "0e48e2a69d8afe8d"
+    },
+    {
+      "name": "rule.create",
+      "entity": "rule",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "87c9b04815b39578"
+    },
+    {
+      "name": "rule.delete",
+      "entity": "rule",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "59918ec6723faec9"
+    },
+    {
+      "name": "rule.get",
+      "entity": "rule",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "4656572538df6f91"
+    },
+    {
+      "name": "rule.list",
+      "entity": "rule",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "c217dfeee6d0e3e8"
+    },
+    {
+      "name": "rule.test",
+      "entity": "rule",
+      "operation": "test",
+      "access": "read",
+      "fingerprint": "572fe0dbbc0a0643"
+    },
+    {
+      "name": "rule.trigger",
+      "entity": "rule",
+      "operation": "trigger",
+      "access": "write",
+      "fingerprint": "b29e54e24ade891b"
+    },
+    {
+      "name": "rule.update",
+      "entity": "rule",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "834fbbb293b9d14b"
+    },
+    {
+      "name": "search.accounts",
+      "entity": "search",
+      "operation": "accounts",
+      "access": "read",
+      "fingerprint": "e3ae2991a6cdf045"
+    },
+    {
+      "name": "search.transactions",
+      "entity": "search",
+      "operation": "transactions",
+      "access": "read",
+      "fingerprint": "05d63dbd0e643018"
+    },
+    {
+      "name": "summary.basic",
+      "entity": "summary",
+      "operation": "basic",
+      "access": "read",
+      "fingerprint": "812f96cee0b21c4c"
+    },
+    {
+      "name": "summary.overview",
+      "entity": "summary",
+      "operation": "overview",
+      "access": "read",
+      "fingerprint": "b1d5b8b8b9e5695d"
+    },
+    {
+      "name": "tag.create",
+      "entity": "tag",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "13bb8ab58e78ce35"
+    },
+    {
+      "name": "tag.delete",
+      "entity": "tag",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "526cdd516ab9a270"
+    },
+    {
+      "name": "tag.get",
+      "entity": "tag",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "c0f3fe2a5d7425f8"
+    },
+    {
+      "name": "tag.list",
+      "entity": "tag",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "52dfa38b4ebf7629"
+    },
+    {
+      "name": "tag.list_attachments",
+      "entity": "tag",
+      "operation": "list_attachments",
+      "access": "read",
+      "fingerprint": "5cbac1c01e3b6562"
+    },
+    {
+      "name": "tag.list_transactions",
+      "entity": "tag",
+      "operation": "list_transactions",
+      "access": "read",
+      "fingerprint": "7aebf805d0e73bc4"
+    },
+    {
+      "name": "tag.update",
+      "entity": "tag",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "b55c7f65ebd2555b"
+    },
+    {
+      "name": "transaction_link.create",
+      "entity": "transaction_link",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "83af33f473038953"
+    },
+    {
+      "name": "transaction_link.delete",
+      "entity": "transaction_link",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "ad178d16eeca3894"
+    },
+    {
+      "name": "transaction_link.get",
+      "entity": "transaction_link",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "17900b6555c0659f"
+    },
+    {
+      "name": "transaction_link.list",
+      "entity": "transaction_link",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "f5cc2358357c3fb3"
+    },
+    {
+      "name": "transaction_link.update",
+      "entity": "transaction_link",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "cd86bd8694277116"
+    },
+    {
+      "name": "transaction.bulk_categorize",
+      "entity": "transaction",
+      "operation": "bulk_categorize",
+      "access": "destructive",
+      "fingerprint": "8fee37849a2ae0c8"
+    },
+    {
+      "name": "transaction.bulk_delete",
+      "entity": "transaction",
+      "operation": "bulk_delete",
+      "access": "destructive",
+      "fingerprint": "4c261d3ed2922398"
+    },
+    {
+      "name": "transaction.bulk_rewrite",
+      "entity": "transaction",
+      "operation": "bulk_rewrite",
+      "access": "destructive",
+      "fingerprint": "03f97cd91ae26351"
+    },
+    {
+      "name": "transaction.bulk_tag",
+      "entity": "transaction",
+      "operation": "bulk_tag",
+      "access": "destructive",
+      "fingerprint": "4923ed55a88b25ac"
+    },
+    {
+      "name": "transaction.bulk_update",
+      "entity": "transaction",
+      "operation": "bulk_update",
+      "access": "destructive",
+      "fingerprint": "93024ded4b452011"
+    },
+    {
+      "name": "transaction.bulk_update_where",
+      "entity": "transaction",
+      "operation": "bulk_update_where",
+      "access": "destructive",
+      "fingerprint": "b9647a6616c56c79"
+    },
+    {
+      "name": "transaction.create",
+      "entity": "transaction",
+      "operation": "create",
+      "access": "write",
+      "fingerprint": "576aa8d6a2820cac"
+    },
+    {
+      "name": "transaction.delete",
+      "entity": "transaction",
+      "operation": "delete",
+      "access": "destructive",
+      "fingerprint": "746f8add66f95d62"
+    },
+    {
+      "name": "transaction.get",
+      "entity": "transaction",
+      "operation": "get",
+      "access": "read",
+      "fingerprint": "f1c43a45c3ee4e83"
+    },
+    {
+      "name": "transaction.group_patterns",
+      "entity": "transaction",
+      "operation": "group_patterns",
+      "access": "read",
+      "fingerprint": "1f542c3cbfa5ac20"
+    },
+    {
+      "name": "transaction.list",
+      "entity": "transaction",
+      "operation": "list",
+      "access": "read",
+      "fingerprint": "ba095734d78197c2"
+    },
+    {
+      "name": "transaction.list_attachments",
+      "entity": "transaction",
+      "operation": "list_attachments",
+      "access": "read",
+      "fingerprint": "098424ce36f8ff38"
+    },
+    {
+      "name": "transaction.list_piggy_bank_events",
+      "entity": "transaction",
+      "operation": "list_piggy_bank_events",
+      "access": "read",
+      "fingerprint": "66358b78304e144c"
+    },
+    {
+      "name": "transaction.reconcile",
+      "entity": "transaction",
+      "operation": "reconcile",
+      "access": "read",
+      "fingerprint": "0ac0f20417a0eb64"
+    },
+    {
+      "name": "transaction.update",
+      "entity": "transaction",
+      "operation": "update",
+      "access": "write",
+      "fingerprint": "24936508c53ac84e"
+    }
+  ],
+  "envVars": [
+    "FIREFLY_API_TOKEN",
+    "FIREFLY_API_URL",
+    "FIREFLY_DISABLE_SSL_VERIFY",
+    "MCP_AUTHORIZATION_SERVERS",
+    "MCP_AUTH_PASSWORD",
+    "MCP_AUTH_STATE_DIR",
+    "MCP_HTTP_HOST",
+    "MCP_HTTP_PORT",
+    "MCP_HTTP_TOKEN",
+    "MCP_RESOURCE_URL",
+    "MCP_STRUCTURED_OUTPUT"
+  ],
+  "retiredEnvVars": [
+    "FIREFLY_ENABLED_ENTITIES",
+    "FIREFLY_PERMISSIONS",
+    "FIREFLY_READ_ONLY"
+  ]
+}

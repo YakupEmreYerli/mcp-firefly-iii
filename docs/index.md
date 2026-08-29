@@ -19,7 +19,7 @@ assistant looks at your own instance and answers.
 - **Access belongs to the connection.** A stdio client can do whatever its
   Firefly token can. Over HTTP, OAuth scopes are approved per connection, and a
   surface that was not granted is refused as well as hidden from the catalogue.
-- **5 meta-tools, 146 operations.** Most MCP clients degrade past roughly 40
+- **5 meta-tools, 152 operations.** Most MCP clients degrade past roughly 40
   tools, so operations are reached through meta-tools rather than exposed one by
   one. Execution is split across three of them by risk — query, mutate,
   destructive — and the split is enforced, not just advertised.
@@ -61,55 +61,33 @@ Once installed, you talk to your assistant in plain language:
 
 ## Operations
 
-146 operations across 26 entities.
+152 operations across 26 entities.
 
 | Entity | Purpose | Operations |
 |--------|---------|------------|
-| **summary** | Period summary and overview | overview, basic |
+| **summary** | Period summary and overview | basic, overview |
 | **analysis** | Questions answered from the ledger rather than fetched | compare_periods, recurring_expenses, uncategorized |
 | **resolve** | Turning a name a user said into the record they meant | account, budget, category, tag |
-| **search** | Finding records without knowing an ID | transactions, accounts |
-| **insight** | Spending and income analysis | expense_total, expense_category, expense_budget, expense_tag, expense_no_category, income_total, income_category, transfer_total |
-| **account** | Asset, expense, revenue and liability accounts | list, get, create, update, delete, list_transactions, list_attachments, list_piggy_banks |
-| **transaction** | Transactions and transfers | list, get, create, update, delete, list_attachments, list_piggy_bank_events, bulk_categorize, bulk_tag |
-| **budget** | Budgets and spending limits | list, get, create, update, delete, list_limits, create_limit, get_limit, update_limit, delete_limit, list_transactions, list_transactions_without_budget, list_attachments |
-| **category** | Transaction categories | list, get, create, update, delete, list_transactions, list_attachments |
-| **tag** | Transaction tags | list, get, create, update, delete, list_transactions, list_attachments |
-| **bill** | Recurring bills | list, get, create, update, delete, list_transactions, list_attachments, list_rules |
-| **piggy_bank** | Savings goals | list, get, create, update, delete, list_events, list_attachments |
-| **rule** | Automation rules | list, get, create, update, delete, test, trigger |
-| **rule_group** | Rule groups | list, get, create, update, delete, list_rules, test, trigger |
-| **currency** | Currencies | list, get, create, update, delete, enable, disable |
-| **exchange_rate** | Currency conversion rates | list, get, create, update, delete |
-| **attachment** | Files attached to financial records | list, get, create, upload, update, delete, download |
-| **recurring_transaction** | Scheduled recurring transactions | list, get, create, update, delete |
+| **search** | Finding records without knowing an ID | accounts, transactions |
+| **insight** | Spending and income analysis | expense_budget, expense_category, expense_no_category, expense_tag, expense_total, income_category, income_total, transfer_total |
+| **account** | Asset, expense, revenue and liability accounts | create, delete, get, list, list_attachments, list_piggy_banks, list_transactions, update |
+| **transaction** | Transactions and transfers | bulk_categorize, bulk_delete, bulk_rewrite, bulk_tag, bulk_update, bulk_update_where, create, delete, get, group_patterns, list, list_attachments, list_piggy_bank_events, reconcile, update |
+| **budget** | Budgets and spending limits | create, create_limit, delete, delete_limit, get, get_limit, list, list_attachments, list_limits, list_transactions, list_transactions_without_budget, update, update_limit |
+| **category** | Transaction categories | create, delete, get, list, list_attachments, list_transactions, update |
+| **tag** | Transaction tags | create, delete, get, list, list_attachments, list_transactions, update |
+| **bill** | Recurring bills | create, delete, get, list, list_attachments, list_rules, list_transactions, update |
+| **piggy_bank** | Savings goals | create, delete, get, list, list_attachments, list_events, update |
+| **rule** | Automation rules | create, delete, get, list, test, trigger, update |
+| **rule_group** | Rule groups | create, delete, get, list, list_rules, test, trigger, update |
+| **currency** | Currencies | create, delete, disable, enable, get, list, update |
+| **exchange_rate** | Currency conversion rates | create, delete, get, list, update |
+| **attachment** | Files attached to financial records | create, delete, download, get, list, update, upload |
+| **recurring_transaction** | Scheduled recurring transactions | create, delete, get, list, update |
 | **autocomplete** | Fast lookup suggestions | accounts, bills, budgets, categories, currencies, piggy_banks, tags, transactions |
 | **available_budget** | Budget available within a period | list |
-| **transaction_link** | Relationships between transactions | list, get, create, update, delete |
-| **link_type** | Names for those relationships | list, get, list_transactions |
-| **object_group** | Groups of accounts and records | list, get |
-| **preference** | User preferences | list, get |
-| **configuration** | Firefly system settings | list, get |
+| **transaction_link** | Relationships between transactions | create, delete, get, list, update |
+| **link_type** | Names for those relationships | get, list, list_transactions |
+| **object_group** | Groups of accounts and records | get, list |
+| **preference** | User preferences | get, list |
+| **configuration** | Firefly system settings | get, list |
 | **data_export** | Exporting financial data | accounts, bills, budgets, categories, piggy_banks, recurring |
-
-For the analysis operations in detail see
-[Analysis Operations](api/analysis.md); for the full CRUD list see
-[Operations](api/operations.md).
-
-Export operations return Firefly's raw CSV by default. Pass `format: "json"`
-for programmatic use.
-
-## Requirements
-
-- Node.js 20.6+
-- npm
-- A running Firefly III instance
-- A Firefly III Personal Access Token
-- An MCP-capable client (Claude Code, Claude Desktop, Cursor, and others)
-
-The server runs on TypeScript/Node.js. No Python installation or `uv` required.
-
-## Support
-
-- 📖 [Documentation](https://github.com/YakupEmreYerli/mcp-firefly-iii/tree/main/docs)
-- 🐛 [Issues](https://github.com/YakupEmreYerli/mcp-firefly-iii/issues)
