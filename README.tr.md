@@ -20,8 +20,10 @@ destekler; kayıt silmek ya da bir alanı birçok kayıtta birden değiştirmek 
 geri alınamaz işlemler kendi yetkisinin arkasında durur — yalnızca
 `firefly:read` verilmiş bir bağlantı bu araçları hiç görmez.
 
-Herkes **kendi** Firefly örneğine, **kendi** token'ıyla bağlanır. Ortak bir hesap
-yoktur, veri üçüncü bir taraftan geçmez.
+Herkes **kendi** Firefly örneğine, **kendi** token'ıyla bağlanır — arada
+barındırılan bir sunucu ya da aktarıcı yoktur. Yanıtı aldıktan sonra
+bağladığınız yapay zekâ istemcisinin veya modelin onunla ne yaptığı bu
+sunucunun kontrolü dışındadır.
 
 ## Neden beş araç?
 
@@ -64,9 +66,10 @@ adımına kataloğun tamamını hiç yüklemeden.
   yazımdan önce durur. Çok parçalı işlem gruplarını, tutarlarını sessizce
   katlayabilecek toplu operasyonlar tamamen reddeder — tek bir işlemi
   değiştirmek için `update` kullanılır.
-- **Uzak mod şartsız açılmaz.** HTTP sunucusu `MCP_HTTP_TOKEN` olmadan
-  başlamayı reddeder, `/mcp`'ye gelen her istek `Authorization: Bearer
-  <token>` taşımak zorundadır.
+- **Uzak mod şartsız açılmaz.** Uzak HTTP, sabit bir bearer token ile ya da
+  bağlantı başına yetki kapsamı gerekiyorsa gömülü OAuth ile çalışabilir.
+  Token modunda sunucu `MCP_HTTP_TOKEN` olmadan başlamayı reddeder, `/mcp`'ye
+  gelen her istek `Authorization: Bearer <token>` taşımak zorundadır.
 - **Bunun kapsamadığı şey:** bu sunucu verinizi üçüncü bir tarafa göndermez,
   ama bağladığınız yapay zekâ istemcisinin veya modelin, eline geçen yanıtla
   ne yapacağını kontrol etmez — bu, sunucunun değil, istemcinizin özelliğidir.
@@ -203,7 +206,9 @@ docker run -d \
 `/health` token istemez, container probe'ları içindir. `/mcp` üzerindeki her
 şey `Authorization: Bearer <MCP_HTTP_TOKEN>` ister.
 
-Bağımlı olduğunuz bir yerde `:latest` yerine sürüm sabitleyin (`:0.3.1`).
+Bağımlı olduğunuz bir yerde `:latest` yerine bir sürüm etiketi sabitleyin
+([releases sayfasına](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases)
+bakın — örneğin `:v1.1.0`).
 
 ## Geliştirme
 

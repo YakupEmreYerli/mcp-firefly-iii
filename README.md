@@ -21,7 +21,9 @@ across many at once — sit behind their own scope: a connection granted only
 `firefly:read` never even sees them.
 
 Everyone runs this against their **own** Firefly instance with their **own**
-token. Nothing is shared, and no data passes through a third party.
+token — there is no hosted backend or relay in between. What the AI client
+or model you connect it to does with a response afterward is outside this
+server's control.
 
 ## Why five tools?
 
@@ -65,9 +67,10 @@ tool-selection step.
   first write. Multi-split transaction groups are rejected outright by bulk
   operations that could silently fold their amounts together — `update` on
   a single transaction is the way to change those.
-- **Remote mode won't start unqualified.** The HTTP server refuses to boot
-  without `MCP_HTTP_TOKEN`, and every request to `/mcp` needs
-  `Authorization: Bearer <token>`.
+- **Remote mode won't start unqualified.** Remote HTTP can use a static
+  bearer token, or embedded OAuth when you need per-connection scopes. In
+  token mode, the server refuses to boot without `MCP_HTTP_TOKEN`, and every
+  request to `/mcp` needs `Authorization: Bearer <token>`.
 - **What this doesn't cover:** this server doesn't send your data to a third
   party, but it doesn't control what the AI client or model you connect it
   to does with a response once it has one — that's a property of your
@@ -203,7 +206,9 @@ docker run -d \
 `/health` answers without a token, for container probes. Everything on `/mcp`
 needs `Authorization: Bearer <MCP_HTTP_TOKEN>`.
 
-Pin a version (`:0.3.1`) rather than `:latest` for anything you depend on.
+Pin a version tag (see the
+[releases page](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases)
+— for example `:v1.1.0`) rather than `:latest` for anything you depend on.
 
 ## Development
 
