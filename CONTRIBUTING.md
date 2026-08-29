@@ -30,8 +30,9 @@ src/
 ```
 
 `src/registry.ts` binds entities to operations and exposes everything through
-five meta-tools rather than 146 separate tools, because most MCP clients degrade
-past roughly 40. Execution is split by risk across `firefly_query`,
+five meta-tools rather than 152 separate tools — a flat catalogue that costs
+context and gets harder for an MCP client to choose from as it grows.
+Execution is split by risk across `firefly_query`,
 `firefly_mutate` and `firefly_destructive`, with `firefly_list_operations` and
 `firefly_get_schema` alongside them. The split is enforced in
 `Registry.execute`, not merely advertised: an operation reached through the

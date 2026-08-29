@@ -41,7 +41,7 @@ npm run build && npx @modelcontextprotocol/inspector node dist/index.js
 | **Resources** | Resources the server exposes (this server has none) |
 | **Server Info** | Capabilities, connection state, and the message log |
 
-In the default consolidated mode the Tools tab shows five tools:
+The Tools tab shows five tools:
 `firefly_query`, `firefly_mutate`, `firefly_destructive`,
 `firefly_list_operations` and `firefly_get_schema`. All 152 operations are
 reached through them. Over stdio all five are present; a scoped OAuth connection

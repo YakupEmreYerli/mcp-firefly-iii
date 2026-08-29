@@ -6,8 +6,8 @@ breakdowns, period comparisons, search — see [Analysis Operations](analysis.md
 
 ## How operations are called
 
-In the default **consolidated mode** operations are not individual tools. There
-are five meta-tools, and everything goes through them. Execution is split across
+Operations are not individual tools. There are five meta-tools, and everything
+goes through them. Execution is split across
 three of them by risk, so a host can annotate a delete differently from a read:
 
 | Tool | Purpose |
@@ -31,9 +31,9 @@ run — a delete reached through `firefly_query` is told which tool to use. And 
 surface your configuration has left with no operations on it is not registered
 at all, so it cannot be called only to fail.
 
-Every operation is reached through those tools
-(`account_list`, `transaction_create`). That registers 146 tools, and most
-clients degrade past roughly 40.
+A flat, one-tool-per-operation mapping (`account_list`, `transaction_create`,
+...) would register 152 separate tools. Most MCP clients degrade past roughly
+40 — the five meta-tools exist to stay well under that.
 
 ### Trimming responses
 

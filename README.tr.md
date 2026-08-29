@@ -1,18 +1,80 @@
 # Firefly III MCP Sunucusu
 
-Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ
-asistanının okuma — izin verirseniz yazma — erişimi kazanmasını sağlar. Model
-Context Protocol üzerinden çalışır.
+[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp)
+[![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE)
 
-26 varlıkta 152 operasyon: işlemler, hesaplar, bütçeler, kategoriler, etiketler,
-faturalar, kumbaralar, kurallar; ayrıca arama ve dönem analizi.
+Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ
+asistanının erişmesini sağlar — Model Context Protocol üzerinden, okuma, yazma
+ve silme işlemlerini ayrı ayrı yetkilendirilmiş üç ayrı yüzeyde tutarak, hepsini
+birden yapabilen tek bir araç yerine.
 
 > English: [README.md](README.md)
+
+- *"Geçen ay en çok neye harcadım?"*
+- *"Ağustos'taki kategorisiz işlemleri bul, kategori öner."*
+- *"Tutarı artan abonelikleri göster."*
+
+152 Firefly operasyonu, 5 MCP aracı olarak sunulur. Her yazma işlemi `dry_run`
+destekler; kayıt silmek ya da bir alanı birçok kayıtta birden değiştirmek gibi
+geri alınamaz işlemler kendi yetkisinin arkasında durur — yalnızca
+`firefly:read` verilmiş bir bağlantı bu araçları hiç görmez.
 
 Herkes **kendi** Firefly örneğine, **kendi** token'ıyla bağlanır. Ortak bir hesap
 yoktur, veri üçüncü bir taraftan geçmez.
 
-## Kurulum
+## Neden beş araç?
+
+Firefly III'ün API'si geniş. Her uca kendi MCP aracını vermek modelin önüne
+152 ayrı araç koymak demek olurdu — bu düz katalog büyüdükçe context'e mal
+olur ve bir MCP istemcisinin seçim yapmasını zorlaştırır.
+
+```
+152 Firefly operasyonu
+        │
+        ▼
+   typed operation registry
+        │
+        ▼
+    5 MCP meta-tool
+        │
+        ▼
+    yapay zekâ istemciniz
+```
+
+Okuma, yazma ve silme işlemleri tek bir genel giriş noktasında birleşmek yerine
+ayrı araçlarda kalır; böylece bir host — ya da yetki kapsamı sınırlı bir OAuth
+bağlantısı — her birine farklı bir politika uygulayabilir, hem de aracı seçim
+adımına kataloğun tamamını hiç yüklemeden.
+
+## Güvenlik ve kontrol
+
+- **Tek bir açık/kapalı anahtar değil, kapsamlı erişim.** stdio üzerinde sınır
+  Firefly token'ının kendisidir — yalnızca soru cevaplayan bir oturum
+  isterseniz salt-okunur bir Personal Access Token üretin, çünkü sunucunun
+  kendi izin ayarı yok. HTTP üzerinde OAuth ile `firefly:read`,
+  `firefly:write` ve `firefly:destructive` bağlantı başına, onay ekranında
+  verilir; verilmeyen yüzey hem gizlenir hem de reddedilir.
+- **Her yazmada `dry_run`.** Bir yazma veya toplu işlem çalışmadan önce
+  `dry_run: true`, gönderilecek isteği — çözülmüş kayıt id'leriyle birlikte —
+  hiç göndermeden aynen döndürür.
+- **Toplu yazmalar körlemesine çalışamaz.** Filtreyle çalışan bir toplu
+  güncelleme `max_matches` ister; tarama bu sayıdan fazla satır bulursa, ya da
+  Firefly'ın sayfalama meta'sı taramanın tam bittiğini doğrulamazsa, işlem ilk
+  yazımdan önce durur. Çok parçalı işlem gruplarını, tutarlarını sessizce
+  katlayabilecek toplu operasyonlar tamamen reddeder — tek bir işlemi
+  değiştirmek için `update` kullanılır.
+- **Uzak mod şartsız açılmaz.** HTTP sunucusu `MCP_HTTP_TOKEN` olmadan
+  başlamayı reddeder, `/mcp`'ye gelen her istek `Authorization: Bearer
+  <token>` taşımak zorundadır.
+- **Bunun kapsamadığı şey:** bu sunucu verinizi üçüncü bir tarafa göndermez,
+  ama bağladığınız yapay zekâ istemcisinin veya modelin, eline geçen yanıtla
+  ne yapacağını kontrol etmez — bu, sunucunun değil, istemcinizin özelliğidir.
+
+Tam tehdit modeli
+[SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md)'de.
+
+## Hızlı Başlangıç
 
 Node.js 20.6+ gerekir. En kısa yol, kurulumu ona bırakmak:
 
@@ -61,22 +123,9 @@ Token** yolundan alırsınız. URL için alan adınız yeterli — `https://` ve
 `/api/v1` tamamlanır. Örneğiniz bir alt yolda, özel bir portta ya da düz
 http üzerindeyse tam URL'i verin.
 
-## Asistan nereye kadar gidebilir
-
-stdio üzerinde, Firefly token'ının izin verdiği kadar: asistandan bir harcamayı
-kaydetmesini veya bir işlemi kategorilendirmesini isteyebilirsiniz, yapar.
-Sunucunun kendi izin ayarı yok — yalnızca soru cevaplayan bir oturum isterseniz
-Firefly III'te salt-okunur bir Personal Access Token üretin. Sınırı o zaman
-asistanın operatörünün aynı dosyadan değiştirebileceği bir değişken değil,
-Firefly'ın kendisi uygular.
-
-HTTP üzerinde OAuth ile erişim bağlantı başına belirlenir: `firefly:read`,
-`firefly:write` ve `firefly:destructive` onay ekranında onaylanır, verilmeyen
-yüzey hem reddedilir hem de gizlenir.
-
 ## Asistanın gördüğü yüzey
 
-146 değil, beş araç — ve çalıştırma riske göre bölünmüş, böylece istemci
+Beş meta-tool'un tamamı — çalıştırma riske göre bölünmüş, böylece istemci
 bakiye okumakla işlem silmeyi ayırt edebiliyor:
 
 | Araç | Cevapladığı soru | Risk |
@@ -91,8 +140,6 @@ Her birinde MCP tool annotation'ları var (`readOnlyHint`, `destructiveHint`,
 `idempotentHint`) ve ayrım yalnızca ilan edilmiyor, **uygulanıyor**:
 `firefly_query` üzerinden çağrılan bir silme reddedilir. Yalnızca `firefly:read`
 verilmiş bir bağlantı, yazan iki aracı hiç görmez.
-
-Çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için yüzey üç araçta tutuldu.
 
 Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer,
 çalıştırma araçlarının hepsi, yalnızca adını verdiğiniz alanları tutan bir `fields`

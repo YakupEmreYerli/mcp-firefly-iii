@@ -1,18 +1,82 @@
 # Firefly III MCP Server
 
-Give an AI assistant read — and, if you allow it, write — access to your own
-[Firefly III](https://www.firefly-iii.org/) instance over the Model Context
-Protocol.
+[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp)
+[![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE)
 
-152 operations across 26 entities: transactions, accounts, budgets, categories,
-tags, bills, piggy banks, rules, plus search and period analysis.
+Give an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/)
+instance over the Model Context Protocol — with reading, writing and deleting
+kept as three separate, explicitly-scoped surfaces, not one tool that can do
+all three.
 
 > Türkçe: [README.tr.md](README.tr.md)
+
+- *"What did I spend the most on last month?"*
+- *"Find uncategorised transactions from August and suggest categories."*
+- *"Show me subscriptions whose amount went up."*
+
+152 Firefly operations, exposed as 5 MCP tools. Every write supports
+`dry_run`, and destructive actions — deleting a record, or rewriting one field
+across many at once — sit behind their own scope: a connection granted only
+`firefly:read` never even sees them.
 
 Everyone runs this against their **own** Firefly instance with their **own**
 token. Nothing is shared, and no data passes through a third party.
 
-## Install
+## Why five tools?
+
+Firefly III's API is large. Mapping every endpoint to its own MCP tool would
+put 152 individual tools in front of the model — a flat catalogue that costs
+context and gets harder for an MCP client to choose from as it grows.
+
+```
+152 Firefly operations
+        │
+        ▼
+ typed operation registry
+        │
+        ▼
+   5 MCP meta-tools
+        │
+        ▼
+     your AI client
+```
+
+Read, write and destructive operations stay on separate tools instead of one
+generic entry point, so a host — or a scoped OAuth connection — can apply a
+different policy to each without ever loading the full catalogue into its
+tool-selection step.
+
+## Security & control
+
+- **Scoped access, not a single on/off switch.** Over stdio, the limit is the
+  Firefly token itself — issue a read-only Personal Access Token for a
+  session that should only answer questions, since the server has no
+  permission setting of its own to fall back on. Over HTTP with OAuth,
+  `firefly:read`, `firefly:write` and `firefly:destructive` are granted per
+  connection at the authorization screen, and a surface that was not granted
+  is hidden as well as refused.
+- **`dry_run` on every write.** Before a mutation or bulk operation runs,
+  `dry_run: true` returns the exact request it would send — resolved record
+  IDs included — without sending it.
+- **Bulk writes can't run blind.** A filter-driven bulk update requires
+  `max_matches`; if the scan finds more rows than that, or Firefly's paging
+  doesn't confirm the scan was complete, the operation stops before the
+  first write. Multi-split transaction groups are rejected outright by bulk
+  operations that could silently fold their amounts together — `update` on
+  a single transaction is the way to change those.
+- **Remote mode won't start unqualified.** The HTTP server refuses to boot
+  without `MCP_HTTP_TOKEN`, and every request to `/mcp` needs
+  `Authorization: Bearer <token>`.
+- **What this doesn't cover:** this server doesn't send your data to a third
+  party, but it doesn't control what the AI client or model you connect it
+  to does with a response once it has one — that's a property of your
+  client, not of this server.
+
+Full threat model in
+[SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md).
+
+## Quick Start
 
 Requires Node.js 20.6+. The quickest way is to let setup do it:
 
@@ -60,21 +124,9 @@ Personal Access Token**. For the URL, your domain is enough — `https://` and
 `/api/v1` are filled in. Give the full URL if your instance sits behind a
 subpath, on a custom port, or on plain http.
 
-## How far it can go
-
-Over stdio, as far as the Firefly token allows: you can ask the assistant to
-record a purchase or categorise a transaction and it will. There is no
-server-wide permission setting — for a session that can only answer questions,
-issue a read-only Personal Access Token in Firefly III, so the limit is enforced
-by Firefly rather than by a variable the same person can edit.
-
-Over HTTP with OAuth, access is decided per connection: `firefly:read`,
-`firefly:write` and `firefly:destructive` are granted at the password screen,
-and a surface that was not granted is hidden as well as refused.
-
 ## What the assistant sees
 
-Five tools, not 146 — and execution is split by risk, so a host can tell
+The five meta-tools, in full — execution is split by risk, so a host can tell
 reading a balance from deleting a transaction:
 
 | Tool | Answers | Risk |
@@ -89,9 +141,6 @@ Each carries MCP tool annotations (`readOnlyHint`, `destructiveHint`,
 `idempotentHint`), and the split is enforced, not merely advertised: a delete
 reached through `firefly_query` is refused. A connection granted only
 `firefly:read` never sees the two writing tools at all.
-
-Most MCP clients degrade past roughly 40 tools, which is why the surface is
-three.
 
 Responses are trimmed before they reach the model: empty and null attributes are
 always dropped, and every execution tool takes a `fields` list that keeps only the

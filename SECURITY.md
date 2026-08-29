@@ -21,7 +21,8 @@ anyone's real financial data in the report.
 
 ## Supported versions
 
-This project is pre-1.0. Fixes land on the latest release only.
+This project moves fast and has no long-term support branch. Fixes land on
+the latest release only.
 
 ## Record content is written by other people
 
