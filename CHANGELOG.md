@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-08-30
+
+### Added
+
+- `mcpName` in `package.json`, so the published npm tarball carries the
+  ownership marker the [official MCP Registry](https://github.com/modelcontextprotocol/registry)
+  checks before accepting a `server.json` publish. 1.1.0 predates this and
+  does not carry it, which is why this release exists.
+
+No runtime behavior changes.
+
 ## [1.1.0] - 2026-08-29
 
 ### Added
