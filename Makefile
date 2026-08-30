@@ -1,5 +1,5 @@
 # Makefile for firefly-mcp project
-.PHONY: help test run check smoke inspector docs-serve docs-build docs-deploy clean
+.PHONY: help test run check smoke inspector media docs-serve docs-build docs-deploy clean
 
 # Default target
 help:
@@ -9,6 +9,7 @@ help:
 	@echo "  check            - Verify the live Firefly III connection"
 	@echo "  smoke            - Maintainer: walk every read operation against live Firefly III"
 	@echo "  inspector        - Open MCP Inspector against this server"
+	@echo "  media            - Regenerate the social preview and share card"
 	@echo "  docs-serve       - Serve documentation locally"
 	@echo "  docs-build       - Build documentation"
 	@echo "  docs-deploy      - Deploy documentation to GitHub Pages"
@@ -36,6 +37,10 @@ smoke:
 # Interactive tool explorer in the browser
 inspector:
 	npm run build && npx @modelcontextprotocol/inspector node dist/index.js
+
+# Regenerate the title cards in docs/assets from a single source of wording
+media:
+	npm run media
 
 # Documentation commands
 #

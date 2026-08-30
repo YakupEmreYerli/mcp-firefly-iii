@@ -31,7 +31,7 @@ assistant looks at your own instance and answers.
 
 ## Demo
 
-<video controls preload="metadata" poster="assets/demo-poster.jpg" style="width:100%;max-width:960px;border-radius:8px">
+<video controls preload="metadata" style="width:100%;max-width:960px;border-radius:8px">
   <source src="assets/demo.mp4" type="video/mp4">
   <a href="assets/demo.mp4">Download the demo (MP4, 38s)</a>
 </video>
