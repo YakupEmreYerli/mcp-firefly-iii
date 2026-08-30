@@ -80,16 +80,18 @@ card fails the same check a stale page does.
 So the counts stay here, where the pipeline can reach them, and an entry
 written for somewhere else describes what the server *is*:
 
-> A security-first, self-hosted MCP server for Firefly III, for use with Claude
-> Code, Claude Desktop, Claude web and mobile, and ChatGPT. Firefly III's API is
-> exposed through a small set of meta-tools rather than one tool per endpoint,
-> split into separate read, write and destructive surfaces so a host can
-> annotate and confirm each risk level independently. Writes support dry-run
-> previews, bulk writes are guarded by an explicit match limit, and it runs over
-> stdio or authenticated HTTP with OAuth 2.1. Published on npm with provenance
-> and in the official MCP Registry.
+> A security-first, self-hosted MCP server for Firefly III, developed by
+> @YakupEmreYerli, for use with Claude Code, Claude Desktop, Claude web and
+> mobile, and ChatGPT. Firefly III's API is exposed through a small set of
+> meta-tools rather than one tool per endpoint, split into separate read, write
+> and destructive surfaces so a host can annotate and confirm each risk level
+> independently. Writes support dry-run previews, bulk writes are guarded by an
+> explicit match limit, and it runs over stdio or authenticated HTTP with
+> OAuth 2.1. Published on npm with provenance and in the official MCP Registry.
 
-That paragraph has no version, no count, and no claim that a release can
+That paragraph names its author the way the pages that carry it do — the
+Firefly III listing credits "@dreautall", "@bahuma20" and the rest in the same
+sentence — and has no version, no count, and no claim that a release can
 invalidate. It has needed no correction across every release so far, which is
 the whole point: the cheapest listing to keep current is one that was never
 written to go out of date.
