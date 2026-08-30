@@ -29,6 +29,16 @@ barındırılan bir sunucu ya da aktarıcı yoktur. Yanıtı aldıktan sonra
 bağladığınız yapay zekâ istemcisinin veya modelin onunla ne yaptığı bu
 sunucunun kontrolü dışındadır.
 
+## Demo
+
+[![Firefly III MCP demosu](docs/assets/demo-poster.jpg)](docs/assets/demo.mp4)
+
+**38 saniyelik demo:** finansal bir soru sor, cevabı MCP üzerinden oku,
+değişikliği `dry_run` ile önizle, onayla ve Firefly III'e yaz.
+
+Claude Desktop'ta, sentetik bir Firefly III örneğine karşı kaydedildi.
+Demoda görünen tüm finansal veriler uydurmadır.
+
 ## Neden beş araç?
 
 Firefly III'ün API'si geniş. Her uca kendi MCP aracını vermek modelin önüne

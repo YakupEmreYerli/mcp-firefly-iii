@@ -29,6 +29,16 @@ token — there is no hosted backend or relay in between. What the AI client
 or model you connect it to does with a response afterward is outside this
 server's control.
 
+## Demo
+
+[![Firefly III MCP demo](docs/assets/demo-poster.jpg)](docs/assets/demo.mp4)
+
+**38-second demo:** ask a financial question, read the answer through MCP,
+preview a change with `dry_run`, approve it, and write it back to Firefly III.
+
+Recorded in Claude Desktop against a synthetic Firefly III instance. All
+financial data shown in the demo is fabricated.
+
 ## Why five tools?
 
 Firefly III's API is large. Mapping every endpoint to its own MCP tool would
