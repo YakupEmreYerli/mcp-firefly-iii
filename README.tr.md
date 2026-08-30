@@ -1,8 +1,8 @@
 # Firefly III MCP Sunucusu
 
-[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
+[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest) [![Glama](https://img.shields.io/badge/Glama-listed-6f42c1)](https://glama.ai/mcp/servers/@YakupEmreYerli/mcp-firefly-iii)
 
-Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ asistanının erişmesini sağlayan bir Model Context Protocol sunucusu — 152 operasyon, 5 yetkilendirilmiş araç arkasında; okuma, yazma ve silme hepsini birden yapabilen tek bir araçta değil, ayrı ayrı yetkilendirilen üç ayrı yüzeyde. [MCP Registry](https://registry.modelcontextprotocol.io/)'de `io.github.YakupEmreYerli/mcp-firefly-iii` adıyla listelidir.
+Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ asistanının erişmesini sağlayan bir Model Context Protocol sunucusu — 152 operasyon, 5 yetkilendirilmiş araç arkasında; okuma, yazma ve silme hepsini birden yapabilen tek bir araçta değil, ayrı ayrı yetkilendirilen üç ayrı yüzeyde.
 
 > English: [README.md](README.md)
 
@@ -11,6 +11,8 @@ Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ a
 - *"Tutarı artan abonelikleri göster."*
 
 Herkes kendi Firefly örneğine, kendi token'ıyla bağlanır — arada barındırılan bir sunucu ya da aktarıcı yoktur.
+
+Resmî [MCP Registry](https://registry.modelcontextprotocol.io/)'de `io.github.YakupEmreYerli/mcp-firefly-iii` adıyla, [Glama](https://glama.ai/mcp/servers/@YakupEmreYerli/mcp-firefly-iii)'da ve Firefly III'ün kendi [üçüncü-parti uygulamalar](https://docs.firefly-iii.org/references/firefly-iii/third-parties/apps/) belgesinde listelidir. Her sürüm etiketli bir commit'ten CI tarafından derlenip yayınlanır; [npm provenance](https://docs.npmjs.com/generating-provenance-statements) tarball'ın bu depodan çıktığını doğrular.
 
 ## Demo
 

@@ -1,8 +1,8 @@
 # Firefly III MCP Server
 
-[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
+[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest) [![Glama](https://img.shields.io/badge/Glama-listed-6f42c1)](https://glama.ai/mcp/servers/@YakupEmreYerli/mcp-firefly-iii)
 
-A Model Context Protocol server that gives an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/) instance — 152 operations behind 5 scoped tools, with reading, writing and deleting kept as three separate, explicitly-authorized surfaces instead of one tool that can do all three. Listed on the [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.YakupEmreYerli/mcp-firefly-iii`.
+A Model Context Protocol server that gives an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/) instance — 152 operations behind 5 scoped tools, with reading, writing and deleting kept as three separate, explicitly-authorized surfaces instead of one tool that can do all three.
 
 > Türkçe: [README.tr.md](README.tr.md)
 
@@ -11,6 +11,8 @@ A Model Context Protocol server that gives an AI assistant access to your own [F
 - *"Show me subscriptions whose amount went up."*
 
 Everyone runs this against their own Firefly instance with their own token — there is no hosted backend or relay in between.
+
+Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.YakupEmreYerli/mcp-firefly-iii`, on [Glama](https://glama.ai/mcp/servers/@YakupEmreYerli/mcp-firefly-iii), and in Firefly III's own [third-party apps](https://docs.firefly-iii.org/references/firefly-iii/third-parties/apps/) documentation. Every release is built and published by CI from a tagged commit, with [npm provenance](https://docs.npmjs.com/generating-provenance-statements) attesting that the tarball came from this repository.
 
 ## Demo
 
