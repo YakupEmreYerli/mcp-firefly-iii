@@ -122,6 +122,55 @@ export function loadConfigSource() {
   return fs.readFileSync(path.resolve("src/config.ts"), "utf8");
 }
 
+/** Every TypeScript source in the project, concatenated.
+ *
+ * The env-var scan used to read `src/config.ts` alone, on the assumption that
+ * settings all live there. `MCP_UPDATE_CHECK` does not — it is read where it
+ * is used — so it was invisible to the check that exists to notice exactly
+ * that. A setting is wherever someone put it; the scan should not have an
+ * opinion about where that is.
+ */
+export function loadAllSources() {
+  const parts = [];
+  const visit = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) visit(full);
+      else if (entry.name.endsWith(".ts")) parts.push(fs.readFileSync(full, "utf8"));
+    }
+  };
+  visit("src");
+  return parts.join("\n");
+}
+
+/** The settings this project defines, as opposed to the ones the environment
+ * already had.
+ *
+ * A rule rather than a list of exceptions: `APPDATA`, `XDG_CACHE_HOME`, `CI`
+ * and `NO_UPDATE_NOTIFIER` are read here but named by the operating system or
+ * by convention elsewhere, and a list of names to skip is a place to quietly
+ * silence this check. Every setting this project has ever defined carries one
+ * of these two prefixes, so a new one cannot slip past without being renamed
+ * out of the project's own namespace first.
+ */
+export function isProjectSetting(name) {
+  return /^(FIREFLY|MCP)_/.test(name);
+}
+
+/** Parameter groups shared across operations, read from the built schemas.
+ *
+ * A group is a plain object of Zod schemas — `dateRange`, `pagination`,
+ * `periodOrDates` — as opposed to a bare schema like `isoDate`, which is a Zod
+ * instance and not a plain object. These are the parameters that apply to many
+ * operations at once and therefore need prose somewhere; a field belonging to
+ * one Firefly endpoint does not.
+ */
+export async function listSharedParameters() {
+  const common = await import("../../dist/schemas/common.js");
+  const groups = Object.values(common).filter((value) => value && value.constructor === Object);
+  return [...new Set(groups.flatMap((group) => Object.keys(group)))].sort();
+}
+
 /** Every markdown file under `docs/`, plus the two READMEs — the complete set
  * a stale fact could hide in. Sorted so a file walk (whose OS-level order is
  * not guaranteed) never changes the model's shape between two runs.
@@ -168,9 +217,11 @@ export async function buildModel() {
   return {
     operations: extractOperations(registry),
     entities: [...new Set(registry.listOperations().map((op) => op.entity))].sort(),
-    envVars: extractEnvVars(configSource).filter((name) => !retiredSet.has(name)),
+    envVars: extractEnvVars(loadAllSources())
+      .filter((name) => isProjectSetting(name) && !retiredSet.has(name)),
     retiredEnvVars: retired,
     docFiles: listDocFiles(),
     manifestFiles: listManifestFiles(),
+    sharedParams: await listSharedParameters(),
   };
 }

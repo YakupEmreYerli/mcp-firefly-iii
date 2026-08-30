@@ -34,10 +34,15 @@ function headingsIn(text) {
   return slugs;
 }
 
-/** Every env var this project has ever had — active or retired — is named
+/** Every setting this project has ever had — active or retired — is named
  * literally in configuration.md. A variable removed from that page without
  * being marked retired there is exactly the drift this whole system exists to
  * catch: the source says it still exists, the docs no longer mention it.
+ *
+ * The scan behind `model.envVars` reads every source file, not `config.ts`
+ * alone. `MCP_UPDATE_CHECK` is read where it is used rather than in the
+ * config module, and was therefore invisible to the check whose whole job was
+ * to notice an undocumented setting.
  */
 export function checkConfigCoverage(model, file = "docs/configuration.md") {
   const problems = [];
@@ -48,7 +53,7 @@ export function checkConfigCoverage(model, file = "docs/configuration.md") {
   }
   const text = fs.readFileSync(p, "utf8");
   for (const name of [...model.envVars, ...model.retiredEnvVars]) {
-    if (!text.includes(name)) problems.push(`${file}: does not mention ${name}, which src/config.ts reads`);
+    if (!text.includes(name)) problems.push(`${file}: does not mention ${name}, which the source reads`);
   }
   return problems;
 }
@@ -113,6 +118,40 @@ export function checkOperationReferences(model) {
   return problems;
 }
 
+/** A parameter shared across many operations is named somewhere in the docs.
+ *
+ * The pipeline was built to keep written facts true, and it did that well —
+ * but nothing failed when a fact was written nowhere at all. `period` shipped
+ * as the headline feature of a release and appeared in no page under `docs/`,
+ * because every check here started from the documentation and asked whether
+ * it was still correct. This one starts from the code.
+ *
+ * Only the shared groups: a field belonging to a single Firefly endpoint is
+ * described by its own schema, and demanding prose for each would produce
+ * hundreds of findings nobody would read — which is how a check stops being
+ * read at all.
+ */
+export function checkSharedParameterCoverage(model) {
+  const problems = [];
+  const texts = model.docFiles
+    .map((file) => path.resolve(file))
+    .filter((p) => fs.existsSync(p))
+    .map((p) => fs.readFileSync(p, "utf8"));
+  for (const name of model.sharedParams ?? []) {
+    // Backticked, the way this project writes a parameter everywhere: bare
+    // `start` and `end` are ordinary English and would match any prose.
+    if (!texts.some((text) => text.includes(`\`${name}\``))) {
+      problems.push(`no page documents \`${name}\`, a parameter shared across operations`);
+    }
+  }
+  return problems;
+}
+
 export function runAll(model) {
-  return [...checkConfigCoverage(model), ...checkLinks(model), ...checkOperationReferences(model)];
+  return [
+    ...checkConfigCoverage(model),
+    ...checkLinks(model),
+    ...checkOperationReferences(model),
+    ...checkSharedParameterCoverage(model),
+  ];
 }

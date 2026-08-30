@@ -2,7 +2,12 @@ import { describe, expect, it, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { checkConfigCoverage, checkLinks, checkOperationReferences } from "../../scripts/docs/validate.mjs";
+import {
+  checkConfigCoverage,
+  checkLinks,
+  checkOperationReferences,
+  checkSharedParameterCoverage,
+} from "../../scripts/docs/validate.mjs";
 
 // Every check reads real files by the path the model names, so these tests
 // write real (throwaway) files under a temp dir and point the model at them
@@ -34,7 +39,7 @@ describe("checkConfigCoverage", () => {
   it("flags an env var the source reads but the page never mentions", () => {
     const file = writeDoc(tempDocPath("config.md"), "This page never mentions the variable.\n");
     const problems = checkConfigCoverage({ envVars: ["FIREFLY_TOTALLY_UNDOCUMENTED"], retiredEnvVars: [] } as never, file);
-    expect(problems).toEqual([`${file}: does not mention FIREFLY_TOTALLY_UNDOCUMENTED, which src/config.ts reads`]);
+    expect(problems).toEqual([`${file}: does not mention FIREFLY_TOTALLY_UNDOCUMENTED, which the source reads`]);
   });
 
   it("passes once the page mentions every active and retired variable", () => {
@@ -120,5 +125,34 @@ describe("checkOperationReferences", () => {
     const file = writeDoc(tempDocPath("a.md"), "`account.gone` here, `account.gone` there.\n");
     const model = { docFiles: [file], operations: [{ name: "account.get" }], entities: ["account"] };
     expect(checkOperationReferences(model as never)).toHaveLength(1);
+  });
+});
+
+describe("checkSharedParameterCoverage", () => {
+  /** Every other check starts from the documentation and asks whether it is
+   * still true, which is why nothing failed when `period` shipped as a
+   * release's headline feature and appeared in no page at all. This one starts
+   * from the code. */
+  it("reports a shared parameter no page mentions", () => {
+    const file = writeDoc("tmp-params.md", "Filtering uses `start` and `end`.\n");
+    const problems = checkSharedParameterCoverage({
+      docFiles: [file],
+      sharedParams: ["start", "end", "period"],
+    });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("period");
+  });
+
+  it("wants the backticked name, not the English word", () => {
+    // "the period being examined" is prose about a date range and says nothing
+    // about a parameter called `period`.
+    const file = writeDoc("tmp-prose.md", "Totals are computed over the period being examined.\n");
+    expect(checkSharedParameterCoverage({ docFiles: [file], sharedParams: ["period"] })).toHaveLength(1);
+  });
+
+  it("is satisfied by any page in the set", () => {
+    const a = writeDoc("tmp-a.md", "Nothing relevant here.\n");
+    const b = writeDoc("tmp-b.md", "Pass `period` instead of the pair.\n");
+    expect(checkSharedParameterCoverage({ docFiles: [a, b], sharedParams: ["period"] })).toEqual([]);
   });
 });
