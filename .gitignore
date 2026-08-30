@@ -27,3 +27,6 @@ scripts/_*.mjs
 
 # Planning artefacts from the superpowers skill, not published docs.
 docs/superpowers/
+
+# npm pack leaves one of these behind; it is a build artifact, not a source.
+*.tgz

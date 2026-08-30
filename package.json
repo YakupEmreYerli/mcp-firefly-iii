@@ -1,6 +1,6 @@
 {
   "name": "@yakupemreyerli/firefly-mcp",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Security-first, self-hosted MCP server for Firefly III — 152 operations behind 5 scoped tools, with stdio and authenticated HTTP.",
   "mcpName": "io.github.YakupEmreYerli/mcp-firefly-iii",
   "license": "MIT",

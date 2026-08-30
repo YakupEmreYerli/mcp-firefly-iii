@@ -5,6 +5,97 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-08-30
+
+### Security
+
+- The HTTP server no longer exits when a request is cut off. A client that
+  hung up mid-body rejected the read in flight with `ECONNRESET`, nothing
+  caught it, and Node turns an unhandled rejection into an uncaught
+  exception — so one aborted POST, from an endpoint that answers before any
+  credential is checked, took the whole process down. A phone losing signal
+  during the OAuth login was enough. **Anyone running 1.1.1 or earlier with
+  `firefly-mcp-http` reachable should upgrade.**
+- `compose.example.yml` no longer overrides the two settings the setup
+  instructions tell you to put in `.env`. Compose lets `environment` win over
+  `env_file`, so a reader who set `MCP_AUTH_PASSWORD` and `MCP_RESOURCE_URL`
+  correctly still got the file's `change-this-to-a-long-password` and
+  `https://mcp.example.com` — a publicly known password on an
+  internet-facing authorization server, and an audience mismatch that shows up
+  only as "invalid token".
+- The OAuth routes no longer let an unauthenticated caller allocate without
+  limit. `/oauth/register`, `/oauth/authorize` and `/oauth/token` read bodies
+  with a second reader that had no size cap, so an 8 MiB POST was buffered
+  whole while `/mcp` refused anything over one megabyte; the two readers are
+  now one. `redirect_uris` is capped at eight, after a single request naming
+  twenty thousand URLs wrote 600 KB to the state file permanently. An
+  identical registration is handed back rather than duplicated, and the store
+  is bounded. Pending login forms are swept on expiry and are no longer
+  minted for methods the endpoint refuses. Expired refresh tokens are removed
+  on write instead of being kept for good.
+
+### Added
+
+- An update check. Once a day the server asks the npm registry whether a
+  newer version exists and, if so, says so once — a line on stderr and one
+  sentence beside the next tool result, never repeated. It is the only
+  request this server makes to anywhere other than your own Firefly instance:
+  an anonymous `GET` of public package metadata carrying no token, no
+  instance address and nothing about any record. `MCP_UPDATE_CHECK=false`
+  turns it off, as do `NO_UPDATE_NOTIFIER` and `CI`. See
+  [What leaves your machine](SECURITY.md#what-leaves-your-machine).
+- Relative period shortcuts on every date-filtered operation: `period:
+  "last_month"` resolves to `start` and `end` on the server, so a model no
+  longer does calendar arithmetic it gets quietly wrong across month lengths,
+  leap days and year boundaries. Sending `period` together with explicit
+  dates is refused rather than letting one silently win.
+
+### Changed
+
+- `setup` looks like something worth trusting with a bank token: numbered
+  steps, colour where a terminal supports it, a spinner while the connection
+  is being checked, and a tick or a cross against each outcome. No new
+  dependency — the whole thing is a handful of escape codes and a timer, and
+  every part of it falls back to plain text when the output is piped, when
+  `NO_COLOR` is set, or when there is no terminal at all.
+- `setup` no longer ends in a readline stack trace when input stops early.
+  Pressing Ctrl+D between two questions closed the interface while nothing was
+  pending, so the next one threw `ERR_USE_AFTER_CLOSE` instead of reporting an
+  abandoned setup.
+- One version comparison instead of two. `setup` had its own, differing from
+  the update check's in how it read a prerelease, and its own npm request that
+  ignored `MCP_UPDATE_CHECK` — so someone who had turned update checks off
+  still got one. The merged rule reads the published version strictly and the
+  running one leniently: a maintainer on `1.2.0-beta.1` is ahead of the
+  released `1.2.0` and is not told to reinstall over it, but is still behind
+  `1.3.0`.
+- Releases now publish to the MCP Registry as well as npm. The registry does
+  not follow npm, and nothing here ever told it anything, so its entry sat at
+  1.1.1 while releases carried on without it. A tag whose `server.json`
+  disagrees with it is now refused, the same as one whose `package.json` does.
+- `docs:check` and `docs:update` reach `package.json` and `server.json` too.
+  Their descriptions carry the operation count and are the sentences most
+  likely to be quoted somewhere this project cannot edit — npm renders one and
+  the registry serves the other — yet they were the copies nothing checked.
+- `firefly_get_schema` takes the same entity enum as `firefly_list_operations`
+  instead of a bare string, and both document every parameter they accept.
+- The transaction entity hint no longer names write verbs. Hints appear on
+  `firefly_query` alone, so listing "create, edit, delete" there advertised,
+  on the read-only surface, four things that surface refuses to do.
+- `/summary/basic` explains its bare 422 on a single-day range and points at
+  a longer period, rather than leaving the caller to guess between malformed
+  dates and a wrong endpoint.
+- The relative periods are documented in
+  [Operations](docs/api/operations.md#relative-periods), and
+  `docs/development/listings.md` records every external listing, which of them
+  update themselves, and the blurb to paste into the ones that do not — written
+  with no version and no count, because a copy on someone else's website needs
+  their review to correct.
+- Both READMEs are rebuilt around usage, and now document the OAuth connector
+  flow for Claude web, Claude mobile and ChatGPT — supported since 1.1.0, but
+  previously described only in `docs/oauth.md`, which the front page never
+  linked to.
+
 ## [1.1.1] - 2026-08-30
 
 ### Added
@@ -424,7 +515,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.1.2
 [1.0.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.0.0
 [0.3.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.2
 [0.3.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.1
