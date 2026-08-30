@@ -7,6 +7,13 @@ repo_name: YakupEmreYerli/mcp-firefly-iii
 repo_url: https://github.com/YakupEmreYerli/mcp-firefly-iii
 edit_uri: edit/main/docs/
 
+# Planning artefacts from the superpowers skill live under docs/ so the tooling
+# can find them, but they are working notes, not documentation. .gitignore keeps
+# them out of the repository; without this they would still be copied into the
+# built site by `mkdocs build`, which publishes what .gitignore was protecting.
+exclude_docs: |
+  superpowers/
+
 
 theme:
   name: material
