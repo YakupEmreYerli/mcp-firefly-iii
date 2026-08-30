@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Registry, defineOperation, type EntityModule } from "../src/registry.js";
-import { createServer, executeDescription } from "../src/server.js";
+import { ENTITY_MODULES, createServer, executeDescription } from "../src/server.js";
 import { EntityType, type Access } from "../src/types.js";
 import type { Config } from "../src/config.js";
 import type { FireflyClient } from "../src/firefly.js";
@@ -198,6 +198,20 @@ describe("the discovery tools", () => {
     for (const name of ["firefly_list_operations", "firefly_get_schema"]) {
       expect(tools[name]?.inputSchema?.properties?.entity?.enum, name).toContain(EntityType.Insight);
     }
+  });
+});
+
+describe("entity hints", () => {
+  /** Hints ride on firefly_query alone — repeating them on all three surfaces
+   * was measured at 55% more catalogue text. A hint that lists what the entity
+   * can be changed *into* therefore advertises, on the read-only surface, verbs
+   * that surface refuses to perform. */
+  it("never name a verb the read surface cannot perform", () => {
+    const writeVerb = /\b(creat|edit|delet|updat|renam|rewrit|bulk)\w*\b/i;
+    const offenders = ENTITY_MODULES.filter((entry) => writeVerb.test(entry.hint)).map(
+      (entry) => `${entry.entity}: ${entry.hint}`,
+    );
+    expect(offenders).toEqual([]);
   });
 });
 

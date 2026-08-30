@@ -621,6 +621,6 @@ async function applyRows(
 
 export const transactionsModule: EntityModule = {
   entity: EntityType.Transaction,
-  hint: "individual transactions; create, edit, delete, bulk edit by filter or pattern, reconcile against a statement",
+  hint: "individual transactions and their splits, attachments, and reconciliation against a statement",
   operations: transactionOperations,
 };
