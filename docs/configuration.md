@@ -107,11 +107,19 @@ Two things decide access instead, and both belong to whoever is connecting:
 - **The Firefly token.** A Personal Access Token issued read-only is read-only
   here, enforced by Firefly III rather than by this server. This is the
   guarantee worth having for a shared screen or a demo.
-- **The OAuth scopes**, in HTTP mode. `firefly:read`, `firefly:write` and
-  `firefly:destructive` are granted per connection at the password screen; a
-  surface the connection was not granted is refused *and* hidden — from the
-  catalogue, from schema lookups, and from the tool list, since advertising an
-  operation that can only fail sends the model down a dead end.
+- **The OAuth scopes**, in HTTP mode. A surface the connection was not granted
+  is refused *and* hidden — from the catalogue, from schema lookups, and from
+  the tool list, since advertising an operation that can only fail sends the
+  model down a dead end.
+
+    Read what that does and does not give you. The gate is real and the
+    registry enforces it, but the **embedded** password flow grants all three
+    scopes to whoever enters the password, whatever the client asked for —
+    there is no screen for choosing between them, because whoever holds the
+    password could have ticked every box on it. So per-connection scopes are a
+    boundary only when an **external** authorization server issues the tokens
+    and decides what to put in them. For a connection that must not write,
+    the boundary to use is a read-only Firefly III token.
 
 The refusal happens before the request reaches Firefly III and names the scope
 that was missing, so a caller can tell "not granted" from "something broke".

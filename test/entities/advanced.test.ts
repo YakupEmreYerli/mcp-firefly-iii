@@ -49,3 +49,25 @@ describe("advanced financial API surfaces", () => {
     }
   });
 });
+
+describe("what bulk_rewrite tells the model to send", () => {
+  /** The schema is the only instruction the model gets, and this one used to
+   * ask for "a JavaScript regular expression" with "$1..$9 for capture
+   * groups". The implementation has never accepted a regular expression: it
+   * parses the `#`/`*` language, in which `.` and `\` and `$` match
+   * themselves. A model doing as it was told therefore sent a pattern that
+   * matched nothing, or — worse, since this operation is destructive and runs
+   * to `max_matches` rows — matched something else. */
+  it("describes the pattern language it actually parses", async () => {
+    const { transactionOperations } = await import("../../src/entities/transactions.js");
+    const rewrite = transactionOperations.bulk_rewrite!;
+    const shape = (rewrite.input as unknown as { shape: Record<string, { description?: string }> }).shape;
+    const match = shape.match?.description ?? "";
+
+    expect(match).toContain("`#`");
+    expect(match).toContain("`*`");
+    expect(match).toMatch(/NOT a regular expression/i);
+    // The operation description must not promise one either.
+    expect(rewrite.description).not.toMatch(/regular expression/i);
+  });
+});

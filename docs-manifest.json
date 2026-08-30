@@ -979,7 +979,7 @@
       "entity": "transaction",
       "operation": "bulk_rewrite",
       "access": "destructive",
-      "fingerprint": "03f97cd91ae26351"
+      "fingerprint": "624e05b0455afe96"
     },
     {
       "name": "transaction.bulk_tag",

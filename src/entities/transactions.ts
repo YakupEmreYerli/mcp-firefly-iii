@@ -310,16 +310,24 @@ export const transactionOperations: Record<string, Operation> = {
   // it anywhere but here means pulling every row across the wire to compute it.
   bulk_rewrite: defineOperation({
     description:
-      "Rewrite a text field across matching transactions with a regular expression, e.g. turn '086200000023377-TRENDYOL.COM ISTANBUL TR Pos satis' into 'Trendyol'. Rows the pattern does not change are left alone.",
+      "Rewrite a text field across matching transactions with a wildcard pattern, e.g. turn '086200000023377-TRENDYOL.COM ISTANBUL TR Pos satis' into 'Trendyol'. Rows the pattern does not change are left alone.",
     access: "destructive",
     input: z
       .object({
         where: transactionFilter,
         field: rewriteField.default("description"),
-        match: z.string().min(1).max(200).describe("JavaScript regular expression, applied to the field"),
+        match: z
+          .string()
+          .min(1)
+          .max(200)
+          .describe(
+            "Pattern over the WHOLE field, the same language as description_like: `#` is one run of digits, `*` is any run of characters, everything else is literal. '#-*TRENDYOL*' matches '086200000023377-TRENDYOL.COM ISTANBUL TR Pos satis'. NOT a regular expression — `.`, `\\`, `(`, `+` and `$` match themselves, so a regex sent here silently fails to match, or matches something else.",
+          ),
         replace: z
           .string()
-          .describe("Replacement, with $1..$9 for capture groups. An empty string deletes the match."),
+          .describe(
+            "Replacement for the whole field. $1..$9 stand for what the wildcards captured, numbered left to right: with match '#-*' , $1 is the leading digits and $2 the rest. An empty string clears the field.",
+          ),
         max_matches: z.number().int().positive().max(MAX_BULK_ROWS),
         keep_original_in_notes: z
           .boolean()

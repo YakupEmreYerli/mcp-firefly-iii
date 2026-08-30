@@ -67,9 +67,12 @@ review, that step is where you have chosen to remove the check.
 
 ## Deployment notes that are your responsibility
 
-- **Never expose the HTTP server directly to the internet.** `MCP_HTTP_TOKEN` is
-  the only credential in front of it, and there is no rate limiting or lockout.
-  Put it behind TLS and, ideally, behind a reverse proxy that rate-limits.
+- **Never expose the HTTP server directly to the internet.** In static-token
+  mode `MCP_HTTP_TOKEN` is the only credential in front of it, and that path
+  has no rate limiting or lockout. The embedded OAuth password screen does back
+  off per source address, up to thirty seconds after repeated failures, but
+  that is one process's memory of one address and not a substitute for a
+  reverse proxy that rate-limits. Put it behind TLS either way.
 - **`MCP_HTTP_HOST` defaults to `127.0.0.1`.** Changing it to `0.0.0.0` publishes
   the server on every interface. Do that only when something else terminates TLS
   in front of it.
