@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   clientTargets,
-  isOlder,
   describeConnectionFailure,
   mergeServerEntry,
   normalizeApiUrl,
@@ -202,34 +201,3 @@ describe("describeConnectionFailure", () => {
   });
 });
 
-describe("isOlder", () => {
-  it("sees a patch, minor and major behind", () => {
-    expect(isOlder("0.2.1", "0.2.2")).toBe(true);
-    expect(isOlder("0.1.9", "0.2.0")).toBe(true);
-    expect(isOlder("0.9.9", "1.0.0")).toBe(true);
-  });
-
-  it("does not tell a maintainer running an unpublished build to downgrade", () => {
-    expect(isOlder("0.2.2", "0.2.0")).toBe(false);
-    expect(isOlder("1.0.0", "0.9.9")).toBe(false);
-  });
-
-  it("treats an identical version as current", () => {
-    expect(isOlder("0.2.2", "0.2.2")).toBe(false);
-  });
-
-  it("compares numerically, not as text", () => {
-    // "0.10.0" sorts before "0.9.0" as a string.
-    expect(isOlder("0.9.0", "0.10.0")).toBe(true);
-    expect(isOlder("0.10.0", "0.9.0")).toBe(false);
-  });
-
-  it("ignores a prerelease suffix rather than misreading it", () => {
-    expect(isOlder("0.2.2-beta.1", "0.2.2")).toBe(false);
-    expect(isOlder("0.2.1-beta.1", "0.2.2")).toBe(true);
-  });
-
-  it("says nothing when a version is unparseable", () => {
-    expect(isOlder("unknown", "0.2.2")).toBe(false);
-  });
-});

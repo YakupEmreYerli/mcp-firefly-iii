@@ -32,21 +32,30 @@ const TIMEOUT_MS = 3000;
 
 type Version = [number, number, number];
 
-/** `1.2.3` as numbers, or undefined for anything else.
- *
- * A prerelease (`1.2.3-rc.1`) parses to undefined rather than to its release:
- * treating it as the release would announce an update to someone who is
- * already ahead of it.
- */
+/** `1.2.3` as numbers, or undefined for anything else. */
 function parse(version: string): Version | undefined {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version.trim());
   if (!match) return undefined;
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
 
+/** Is `latest` a release beyond `current`?
+ *
+ * The two sides are read differently, on purpose.
+ *
+ * `latest` must be a plain triple. A prerelease is refused rather than
+ * resolved to its release: npm's `latest` tag never points at one, so a
+ * suffix here means something unexpected, and announcing it would push
+ * someone onto a build nobody released.
+ *
+ * `current` may carry a suffix, which is dropped. A maintainer running
+ * `1.2.0-beta.1` built from their own tree is *ahead* of the published
+ * `1.2.0` and must not be told to reinstall over it — but they are still
+ * behind `1.3.0`, and saying nothing would be the less useful mistake.
+ */
 export function isNewer(latest: string, current: string): boolean {
   const a = parse(latest);
-  const b = parse(current);
+  const b = parse(current.split("-")[0] ?? "");
   if (!a || !b) return false;
   for (let index = 0; index < 3; index++) {
     if (a[index]! !== b[index]!) return a[index]! > b[index]!;

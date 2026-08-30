@@ -92,6 +92,17 @@ describe("comparing versions", () => {
     expect(isNewer("1.0.0", "1.0.1")).toBe(false);
   });
 
+  it("reads the running version leniently and the published one strictly", () => {
+    // These moved here with isOlder, which said the same things in reverse.
+    // A maintainer's own build of 0.2.2 is ahead of the published 0.2.2 and
+    // must not be told to reinstall over it...
+    expect(isNewer("0.2.2", "0.2.2-beta.1")).toBe(false);
+    // ...but a build of 0.2.1 is still behind 0.2.2, and saying nothing there
+    // would be the less useful mistake.
+    expect(isNewer("0.2.2", "0.2.1-beta.1")).toBe(true);
+    expect(isNewer("0.2.2", "unknown")).toBe(false);
+  });
+
   it("says nothing about a version it cannot read", () => {
     // A prerelease resolving to its release would announce an "update" to
     // someone who is already ahead of it.

@@ -7,6 +7,8 @@
  * configuration.
  */
 import { createInterface, type Interface } from "node:readline/promises";
+import * as ui from "./ui.js";
+import { isNewer, latestVersion, updateCheckEnabled } from "./update.js";
 import { Writable } from "node:stream";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -197,7 +199,12 @@ function ask(rl: Interface, question: string): Promise<string> {
         if (settled) return;
         settled = true;
         rl.off("close", onClose);
-        reject(error instanceof Error ? error : new Error(String(error)));
+        // Input that ended between two questions closes the interface while
+        // nothing is pending, so the next `question` throws instead of firing
+        // the close handler above. Same situation, same answer — otherwise
+        // Ctrl+D during setup printed a readline stack trace.
+        const closed = (error as NodeJS.ErrnoException | undefined)?.code === "ERR_USE_AFTER_CLOSE";
+        reject(closed ? new SetupAborted() : error instanceof Error ? error : new Error(String(error)));
       },
     );
   });
@@ -292,56 +299,30 @@ function addToClaudeCode(answers: Answers): boolean {
   return spawnSync("claude", args, { stdio: "inherit" }).status === 0;
 }
 
-/** True when `running` is an earlier release than `latest`.
- *
- * Only the numeric triple is compared. A maintainer running an unpublished
- * build is ahead, not behind, and must not be told to uninstall it.
- */
-export function isOlder(running: string, latest: string): boolean {
-  const parse = (value: string): number[] =>
-    value.split("-")[0]!.split(".").map((part) => Number.parseInt(part, 10));
-
-  const a = parse(running);
-  const b = parse(latest);
-  if (a.some(Number.isNaN) || b.some(Number.isNaN)) return false;
-
-  for (let i = 0; i < 3; i += 1) {
-    const left = a[i] ?? 0;
-    const right = b[i] ?? 0;
-    if (left !== right) return left < right;
-  }
-  return false;
-}
-
 /** Warn when the running copy is behind what npm publishes.
  *
  * A stale copy is easy to end up with by accident: `npm install` into a
- * directory leaves a version there, and `npx` prefers a local install over the
- * registry, so it silently keeps running the old one. Never fails setup — a
- * version check is not worth blocking a working install over.
+ * directory leaves a version there, and `npx` prefers a local install over
+ * the registry, so it silently keeps running the old one — which is worth
+ * saying here, where someone is configuring the thing.
+ *
+ * The lookup itself belongs to `update.ts`: it already asks this question,
+ * with a cache, a timeout and an off switch. A second copy here had its own
+ * of each and honoured none of the settings, so someone who had turned update
+ * checks off still got one.
  */
 async function warnIfOutdated(): Promise<void> {
   const running = packageVersion();
-  if (running === "unknown") return;
+  if (running === "unknown" || !updateCheckEnabled()) return;
 
-  try {
-    const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}/latest`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!response.ok) return;
+  const latest = await latestVersion();
+  if (latest === undefined || !isNewer(latest, running)) return;
 
-    const payload: unknown = await response.json();
-    if (!isRecord(payload) || typeof payload.version !== "string") return;
-    const latest = payload.version;
-    if (!isOlder(running, latest)) return;
-
-    console.log(`  You are running ${running}; npm has ${latest}.`);
-    console.log("  If that is a copy installed into a directory, npx will keep using it:");
-    console.log(`    npm uninstall ${PACKAGE_NAME}`);
-    console.log(`  Then run this again with: npx -y ${PACKAGE_NAME}@latest setup\n`);
-  } catch {
-    // Offline, slow, or the registry is down. None of that should stop setup.
-  }
+  ui.warn(`You are running ${running}; npm has ${ui.bold(latest)}.`);
+  ui.note("If that is a copy installed into a directory, npx keeps using it:");
+  ui.note(`  npm uninstall ${PACKAGE_NAME}`);
+  ui.note(`Then run: npx -y ${PACKAGE_NAME}@latest setup`);
+  process.stdout.write("\n");
 }
 
 export async function runSetup(): Promise<void> {
@@ -349,9 +330,10 @@ export async function runSetup(): Promise<void> {
   const rl = createInterface({ input: process.stdin, output, terminal: true });
 
   try {
-    console.log("\nFirefly III MCP server — setup\n");
-    console.log("This asks for your Firefly III address and API token, checks that they");
-    console.log("work, and writes the configuration your AI client needs.\n");
+    ui.heading("Firefly III MCP server — setup", [
+      "Asks for your Firefly III address and API token, checks that they",
+      "work, and writes the configuration your AI client needs.",
+    ]);
 
     await warnIfOutdated();
 
@@ -360,25 +342,30 @@ export async function runSetup(): Promise<void> {
     let version: string | undefined;
 
     while (version === undefined) {
-      const typed = await ask(rl, "Firefly III address (e.g. https://firefly.example.com): ");
+      ui.step(1, 3, "Where is your Firefly III?");
+      ui.note("A bare domain is enough — https:// and /api/v1 are filled in.");
+      const typed = await ask(rl, `\n  ${ui.bold("Address")} ${ui.dim("(e.g. firefly.example.com)")}: `);
       apiUrl = normalizeApiUrl(typed);
       if (apiUrl === "") {
-        console.log("  An address is required.\n");
+        ui.bad("An address is required.");
         continue;
       }
-      if (apiUrl !== typed.trim()) console.log(`  Using ${apiUrl}`);
+      if (apiUrl !== typed.trim()) ui.note(`Reading it as ${apiUrl}`);
 
-      console.log("\n  Find the token in Firefly III under Options -> Profile -> OAuth ->");
-      console.log("  Create New Personal Access Token. It is not shown as you type.\n");
-      apiToken = await askSecret(rl, output, "Personal Access Token: ");
+      ui.step(2, 3, "Personal Access Token");
+      ui.note("Firefly III -> Options -> Profile -> OAuth -> Create New Personal");
+      ui.note("Access Token. Nothing is shown as you type.");
+      apiToken = await askSecret(rl, output, `\n  ${ui.bold("Token")}: `);
       if (apiToken === "") {
-        console.log("  A token is required.\n");
+        ui.bad("A token is required.");
         continue;
       }
 
-      process.stdout.write("\nChecking the connection... ");
+      ui.step(3, 3, "Checking the connection");
+      const check = ui.spinner("Asking your instance who it is...");
       version = await verifyConnection(apiUrl, apiToken);
-      if (version !== undefined) console.log(`connected to Firefly III ${version}.\n`);
+      if (version === undefined) check.fail("Could not reach it with those details.");
+      else check.succeed(`Connected to Firefly III ${ui.bold(version)}.`);
     }
 
     // No read-only question any more: a stdio client holds the Firefly token
@@ -392,10 +379,10 @@ export async function runSetup(): Promise<void> {
       const answer = await ask(rl, "Claude Code found. Add this server to it? [Y/n]: ");
       if (!/^n(o)?$/i.test(answer.trim())) {
         if (addToClaudeCode(answers)) {
-          console.log("  Added to Claude Code.\n");
+          ui.ok("Added to Claude Code.");
           configured += 1;
         } else {
-          console.log("  `claude mcp add` failed. Add it by hand, or run this again later.\n");
+          ui.bad("`claude mcp add` failed. Add it by hand, or run this again later.");
         }
       }
     }
@@ -410,22 +397,26 @@ export async function runSetup(): Promise<void> {
 
       try {
         const { replaced, backup } = writeTarget(target, entry);
-        if (backup !== undefined) console.log(`  Backed up to ${backup}`);
-        console.log(`  ${replaced ? "Replaced" : "Added"} the "firefly" entry in ${target.path}\n`);
+        ui.ok(`${replaced ? "Replaced" : "Added"} the "firefly" entry in ${target.path}`);
+        if (backup !== undefined) ui.note(`The previous file is at ${backup}`);
         configured += 1;
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
-        console.log(`  Left ${target.path} untouched: ${reason}\n`);
+        ui.bad(`Left ${target.path} untouched: ${reason}`);
       }
     }
 
     if (configured === 0) {
-      console.log("Nothing was configured. Add this to your client's MCP configuration:\n");
+      ui.heading("Nothing was configured", ["Add this to your client's MCP configuration:"]);
       console.log(JSON.stringify({ mcpServers: { firefly: entry } }, null, 2));
       console.log("");
     } else {
-      console.log("Restart your client to pick up the change.");
-      console.log('Then try: "list my Firefly III accounts"\n');
+      ui.heading("Done", [
+        `${configured === 1 ? "One client is" : `${configured} clients are`} configured.`,
+        "Restart it to pick up the change.",
+      ]);
+      ui.note("Then try:");
+      console.log(`    ${ui.cyan('"list my Firefly III accounts"')}\n`);
     }
   } finally {
     rl.close();
