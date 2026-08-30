@@ -35,6 +35,37 @@ A flat, one-tool-per-operation mapping (`account_list`, `transaction_create`,
 ...) would register 152 separate tools. Most MCP clients degrade past roughly
 40 — the five meta-tools exist to stay well under that.
 
+### Relative periods
+
+Every operation that filters by date takes `period` instead of `start` and
+`end`:
+
+```json
+{ "entity": "summary", "operation": "overview", "params": { "period": "last_month" } }
+```
+
+`today`, `yesterday`, `this_week`, `last_week`, `this_month`, `last_month`,
+`this_quarter`, `last_quarter`, `this_year`, `last_year`, `last_7_days`,
+`last_30_days`, `last_90_days`, `last_365_days`. Weeks run Monday to Sunday,
+per ISO-8601. The rolling windows include today, so `last_7_days` covers today
+and the six days before it — not eight days.
+
+The range is resolved on the server, against the machine's own calendar rather
+than UTC's, and `end` is inclusive like every other date range here. The point
+is that a model asked for "last month" otherwise does the arithmetic itself and
+gets it wrong in the ways calendars are hard — month lengths, leap days, year
+boundaries — and gets it wrong *quietly*: a range off by one day comes back as
+a plausible number, not an error.
+
+Sending `period` together with `start` or `end` is refused rather than letting
+one of them win. Whoever sent both does not know which range they asked for.
+
+The shortcut only computes dates; it does not paper over the endpoints.
+`period: "today"` produces `start == end`, and `/summary/basic` still refuses
+that with a 422 — now with an explanation and a suggestion to ask for a longer
+period, because widening the range there would answer a different question
+rather than the same one more successfully.
+
 ### Trimming responses
 
 Firefly III returns every attribute it knows about, and most of them are null.

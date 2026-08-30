@@ -5,7 +5,9 @@ another. This page covers the second: what was spent, where it went, and where a
 particular record lives.
 
 In every date range, **`end` is inclusive**: `start=2026-08-01, end=2026-08-31`
-covers the whole of August.
+covers the whole of August. Every operation on this page also takes
+[`period`](operations.md#relative-periods) — `"last_month"`, `"last_7_days"` —
+in place of the pair, resolved on the server.
 
 ## Start here: `summary.overview`
 
@@ -75,9 +77,13 @@ left to spend, and net worth — per currency.
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `start` | yes | `YYYY-MM-DD` |
-| `end` | yes | `YYYY-MM-DD`, inclusive |
+| `start` | unless `period` | `YYYY-MM-DD` |
+| `end` | unless `period` | `YYYY-MM-DD`, inclusive |
+| `period` | unless `start`/`end` | A [relative period](operations.md#relative-periods) such as `last_month` |
 | `currency_code` | no | Limit to one currency, e.g. `EUR` |
+
+This endpoint refuses a single-day range with a 422, so `period: "today"` is
+turned away — with an explanation, and a suggestion to ask for a longer period.
 
 ## `analysis.compare_periods`
 
