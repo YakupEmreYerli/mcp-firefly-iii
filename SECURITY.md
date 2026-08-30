@@ -6,6 +6,19 @@ This server holds a Firefly III Personal Access Token and can read — and, unle
 that token is itself read-only, modify — the full financial history of whoever
 configured it. Treat a vulnerability here as you would one in a banking client.
 
+## What leaves your machine
+
+Every request carrying your data goes to the Firefly III instance you
+configured, and nowhere else. There is one exception, and it carries no data:
+once a day the server asks the public npm registry which version of this
+package is current, so that an operator running a release with a known fix
+against it hears about it. That request is an anonymous `GET` of public
+metadata — no token, no instance address, no identifier, nothing about your
+records — and `MCP_UPDATE_CHECK=false`, `NO_UPDATE_NOTIFIER` or `CI` stops it.
+
+What the AI client and model you connect to do with a response once they have
+one is a property of that client, not of this server.
+
 ## Reporting a vulnerability
 
 Please report privately, not in a public issue.

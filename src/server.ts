@@ -20,6 +20,7 @@ import { resolveModule } from "./entities/resolve.js";
 import { searchModule } from "./entities/search.js";
 import { currenciesModule, exchangeRatesModule, attachmentsModule, recurringModule, autocompleteModule } from "./entities/financial.js";
 import { availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModule, preferencesModule, configurationModule, dataExportModule } from "./entities/advanced.js";
+import { startUpdateCheck, takeUpdateNotice } from "./update.js";
 
 /** Entity modules registered on startup.
  *
@@ -129,10 +130,18 @@ function securityMetadata(scope: string): { securitySchemes: OAuthSecurityScheme
  * travels under `result`.
  */
 function toolResult(payload: unknown, structured: boolean): ToolResult {
-  if (!structured) return { content: [{ type: "text", text: JSON.stringify(payload) }] };
+  // Its own block, never appended to the payload: the text block is a JSON
+  // document, and a sentence glued to the end of one stops being parseable.
+  // This is also the single exception to "two shapes, never both" above — one
+  // sentence alongside the structure is not the doubling that rule prevents.
+  const update = takeUpdateNotice();
+  const extra = update === undefined ? [] : [{ type: "text" as const, text: update }];
+  if (!structured) {
+    return { content: [{ type: "text", text: JSON.stringify(payload) }, ...extra] };
+  }
   const isObject = typeof payload === "object" && payload !== null && !Array.isArray(payload);
   return {
-    content: [],
+    content: extra,
     structuredContent: isObject ? (payload as Record<string, unknown>) : { result: payload },
   };
 }
@@ -159,6 +168,11 @@ export function createServer(registry: Registry, config: Config): McpServer {
   // copy that goes stale, and this one did — the server introduced itself as
   // 0.1.0 while the package shipped 0.3.2.
   const server = new McpServer({ name: "Firefly MCP Server", version: packageVersion() });
+
+  // Started, not awaited. Whether an answer arrives before the first tool call
+  // decides only whether the notice rides on that one or a later one; a caller
+  // never waits on the registry for a balance.
+  startUpdateCheck();
 
   registerMetaTools(server, registry, config);
 

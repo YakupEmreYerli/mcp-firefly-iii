@@ -6,6 +6,7 @@ import { Registry } from "./registry.js";
 import { ENTITY_MODULES, createServer } from "./server.js";
 import { runSetup } from "./setup.js";
 import { diagnostic, packageVersion, parseArgs, usage } from "./cli.js";
+import { cancelUpdateCheck } from "./update.js";
 
 async function serve(): Promise<void> {
   const config = loadConfig();
@@ -13,6 +14,9 @@ async function serve(): Promise<void> {
   for (const module of ENTITY_MODULES) registry.register(module);
 
   const server = createServer(registry, config);
+  // The client going away is the only shutdown signal a stdio server gets, and
+  // a background request still in flight would hold the process open past it.
+  server.server.onclose = () => cancelUpdateCheck();
   await server.connect(new StdioServerTransport());
 }
 

@@ -26,6 +26,7 @@ https://github.com/user-attachments/assets/4452cc05-387d-44c6-8db4-c71bf3cf21cc
 - **Okuma/yazma/silme ayrı ayrı yetkilendirilir ve uygulanır**, yalnızca ilan edilmez — stdio'da Firefly token'ı, HTTP'de OAuth kapsamı ya da sabit token belirler.
 - **Gömülü OAuth 2.1 authorization server**: Claude web, Claude mobil ve ChatGPT için ayrı bir Keycloak ya da Authentik kurmaya gerek yok.
 - **Docker imajları** (`linux/amd64`/`linux/arm64`) ve araç kataloğunu kodla eşzamanlı tutan kendi kendini denetleyen bir dokümantasyon hattı.
+- **Eskidiğini kendisi söyler.** Günde bir kez yeni sürüm var mı diye bakar; varsa bunu bir kez söyler — stderr'e bir satır, bir sonraki cevabın yanına bir cümle. `MCP_UPDATE_CHECK=false` ile kapanır.
 
 ## Ön koşullar
 
@@ -120,6 +121,7 @@ Hazır imajı kullanmak için `compose.example.yml` içindeki `build: .` yerine 
 | `FIREFLY_API_URL` | — | Zorunlu. Yalnızca alan adı, ya da `/api/v1` dahil tam URL. |
 | `FIREFLY_API_TOKEN` | — | Zorunlu. Personal Access Token. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Yalnızca kendinden imzalı sertifikalı yerel örnek için. |
+| `MCP_UPDATE_CHECK` | `true` | Günlük yeni sürüm kontrolü. Sunucunun Firefly örneğiniz dışında yaptığı tek istek, ve hiçbir veri taşımaz. |
 
 HTTP ve OAuth modu dahil tüm değişkenler: [docs/configuration.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md).
 

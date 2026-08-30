@@ -54,6 +54,25 @@ FIREFLY_API_URL=https://your-server:8080/firefly/api/v1  # taken as written
 self-signed certificate. Do not turn it on for a publicly reachable instance: it
 disables certificate verification completely.
 
+## Update notices
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MCP_UPDATE_CHECK` | `true` | Check once a day whether a newer version has been published |
+
+This project ships from a single `main` and has published a release with a
+remotely triggerable crash in it, so an operator who never hears that a fix
+exists keeps running the broken one. When the check finds a newer version, the
+server writes one line to stderr and adds one sentence to the next tool result
+— once per process, never on every call.
+
+It is the only request this server makes to anywhere other than your own
+Firefly instance: an anonymous `GET` of this package's public metadata on the
+npm registry, sending nothing about you, your instance or your records, at most
+once a day, cached under `XDG_CACHE_HOME`, with every failure ignored in
+silence. `MCP_UPDATE_CHECK=false` turns it off, as do `NO_UPDATE_NOTIFIER` and
+`CI`, which the npm ecosystem already uses for this.
+
 ## Remote HTTP and embedded OAuth
 
 | Variable | Default | Purpose |

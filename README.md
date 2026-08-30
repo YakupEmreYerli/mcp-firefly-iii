@@ -26,6 +26,7 @@ https://github.com/user-attachments/assets/4452cc05-387d-44c6-8db4-c71bf3cf21cc
 - **Read/write/destructive are separately scoped and enforced**, not just annotated — over stdio by the Firefly token, over HTTP by OAuth scope or a static token.
 - **Embedded OAuth 2.1 authorization server** for Claude web, Claude mobile, and ChatGPT — no separate Keycloak or Authentik install.
 - **Docker images** for `linux/amd64`/`linux/arm64`, and a self-checking documentation pipeline that keeps the tool catalogue in sync with the code.
+- **It tells you when it is out of date.** Once a day it checks whether a newer version exists and, if so, says so once — a line on stderr, a sentence beside the next answer. `MCP_UPDATE_CHECK=false` turns it off.
 
 ## Prerequisites
 
@@ -120,6 +121,7 @@ Swap `build: .` in `compose.example.yml` for `image: ghcr.io/yakupemreyerli/mcp-
 | `FIREFLY_API_URL` | — | Required. A bare domain, or a full base URL including `/api/v1`. |
 | `FIREFLY_API_TOKEN` | — | Required. Personal Access Token. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Only for a local instance with a self-signed certificate. |
+| `MCP_UPDATE_CHECK` | `true` | Daily check for a newer release. The only request this server makes to anywhere but your Firefly instance, and it carries no data. |
 
 Every variable, including HTTP and OAuth mode: [docs/configuration.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md).
 
