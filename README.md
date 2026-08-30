@@ -31,7 +31,7 @@ server's control.
 
 ## Demo
 
-https://github.com/user-attachments/assets/64c5a1d2-6239-48bd-9d60-ec1c0985133c
+https://github.com/user-attachments/assets/4452cc05-387d-44c6-8db4-c71bf3cf21cc
 
 **38-second demo:** ask a financial question, read the answer through MCP,
 preview a change with `dry_run`, approve it, and write it back to Firefly III.
