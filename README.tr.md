@@ -1,17 +1,8 @@
 # Firefly III MCP Sunucusu
 
-[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp)
-[![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml)
-[![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE)
-[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
+[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
 
-[MCP Registry](https://registry.modelcontextprotocol.io/)'de
-`io.github.YakupEmreYerli/mcp-firefly-iii` adıyla listelidir.
-
-Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ
-asistanının erişmesini sağlar — Model Context Protocol üzerinden, okuma, yazma
-ve silme işlemlerini ayrı ayrı yetkilendirilmiş üç ayrı yüzeyde tutarak, hepsini
-birden yapabilen tek bir araç yerine.
+Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ asistanının erişmesini sağlayan bir Model Context Protocol sunucusu — 152 operasyon, 5 yetkilendirilmiş araç arkasında; okuma, yazma ve silme hepsini birden yapabilen tek bir araçta değil, ayrı ayrı yetkilendirilen üç ayrı yüzeyde. [MCP Registry](https://registry.modelcontextprotocol.io/)'de `io.github.YakupEmreYerli/mcp-firefly-iii` adıyla listelidir.
 
 > English: [README.md](README.md)
 
@@ -19,106 +10,48 @@ birden yapabilen tek bir araç yerine.
 - *"Ağustos'taki kategorisiz işlemleri bul, kategori öner."*
 - *"Tutarı artan abonelikleri göster."*
 
-152 Firefly operasyonu, 5 MCP aracı olarak sunulur. Her yazma işlemi `dry_run`
-destekler; kayıt silmek ya da bir alanı birçok kayıtta birden değiştirmek gibi
-geri alınamaz işlemler kendi yetkisinin arkasında durur — yalnızca
-`firefly:read` verilmiş bir bağlantı bu araçları hiç görmez.
-
-Herkes **kendi** Firefly örneğine, **kendi** token'ıyla bağlanır — arada
-barındırılan bir sunucu ya da aktarıcı yoktur. Yanıtı aldıktan sonra
-bağladığınız yapay zekâ istemcisinin veya modelin onunla ne yaptığı bu
-sunucunun kontrolü dışındadır.
+Herkes kendi Firefly örneğine, kendi token'ıyla bağlanır — arada barındırılan bir sunucu ya da aktarıcı yoktur.
 
 ## Demo
 
 https://github.com/user-attachments/assets/4452cc05-387d-44c6-8db4-c71bf3cf21cc
 
-**38 saniyelik demo:** finansal bir soru sor, cevabı MCP üzerinden oku,
-değişikliği `dry_run` ile önizle, onayla ve Firefly III'e yaz.
+38 saniyelik demo: finansal bir soru sor, cevabı MCP üzerinden oku, değişikliği `dry_run` ile önizle, onayla ve Firefly III'e yaz. Sentetik bir örneğe karşı kaydedildi — görünen tüm finansal veriler uydurmadır.
 
-Claude Desktop'ta, sentetik bir Firefly III örneğine karşı kaydedildi.
-Demoda görünen tüm finansal veriler uydurmadır.
+## Özellikler
 
-## Neden beş araç?
+- **152 değil, 5 meta-tool.** `firefly_query`, `firefly_mutate`, `firefly_destructive`, keşif için de `firefly_list_operations` ve `firefly_get_schema` — tipli bir registry her Firefly ucunu bunların üzerine eşler, modelin araç listesini şişirmek yerine.
+- **Her yazmada `dry_run`**; gönderilecek isteği — çözülmüş kayıt id'leriyle birlikte — hiç göndermeden döndürür.
+- **Toplu yazmalar körlemesine çalışamaz.** Filtreyle çalışan güncellemeler `max_matches` ister ve eksik kalan bir taramayı ilk yazımdan önce reddeder; çok parçalı işlem gruplarını, tutarlarını katlama riskine girmektense tamamen reddeder.
+- **Okuma/yazma/silme ayrı ayrı yetkilendirilir ve uygulanır**, yalnızca ilan edilmez — stdio'da Firefly token'ı, HTTP'de OAuth kapsamı ya da sabit token belirler.
+- **Gömülü OAuth 2.1 authorization server**: Claude web, Claude mobil ve ChatGPT için ayrı bir Keycloak ya da Authentik kurmaya gerek yok.
+- **Docker imajları** (`linux/amd64`/`linux/arm64`) ve araç kataloğunu kodla eşzamanlı tutan kendi kendini denetleyen bir dokümantasyon hattı.
 
-Firefly III'ün API'si geniş. Her uca kendi MCP aracını vermek modelin önüne
-152 ayrı araç koymak demek olurdu — bu düz katalog büyüdükçe context'e mal
-olur ve bir MCP istemcisinin seçim yapmasını zorlaştırır.
+## Ön koşullar
 
-```
-152 Firefly operasyonu
-        │
-        ▼
-   typed operation registry
-        │
-        ▼
-    5 MCP meta-tool
-        │
-        ▼
-    yapay zekâ istemciniz
-```
+- Çalışan bir Firefly III örneği ve bir Personal Access Token (Firefly III → **Options → Profile → OAuth → Create New Personal Access Token**)
+- Docker kullanmıyorsanız Node.js 20.6+
 
-Okuma, yazma ve silme işlemleri tek bir genel giriş noktasında birleşmek yerine
-ayrı araçlarda kalır; böylece bir host — ya da yetki kapsamı sınırlı bir OAuth
-bağlantısı — her birine farklı bir politika uygulayabilir, hem de aracı seçim
-adımına kataloğun tamamını hiç yüklemeden.
+## Kullanım
 
-## Güvenlik ve kontrol
+| Yöntem | Taşıma | En uygun olduğu yer |
+| --- | --- | --- |
+| [`npx` — stdio](#1-stdio-claude-code-claude-desktop-cursor) | stdio | Claude Code, Claude Desktop, Cursor — en basit kurulum |
+| [Sabit token](#2-uzak-http-sabit-token-ile) | HTTP | n8n, otomasyon, tarayıcısız çağıranlar |
+| [OAuth](#3-uzak-http-oauth-ile-claude-web-claude-mobil-chatgpt) | HTTP + OAuth | Claude web, Claude mobil, ChatGPT — sabit token tutamazlar |
+| [Docker](#4-docker) | HTTP | Kendi sunucunuzda, yukarıdaki iki moddan biriyle |
 
-- **Tek bir açık/kapalı anahtar değil, kapsamlı erişim.** stdio üzerinde sınır
-  Firefly token'ının kendisidir — yalnızca soru cevaplayan bir oturum
-  isterseniz salt-okunur bir Personal Access Token üretin, çünkü sunucunun
-  kendi izin ayarı yok. HTTP üzerinde OAuth ile `firefly:read`,
-  `firefly:write` ve `firefly:destructive` bağlantı başına, onay ekranında
-  verilir; verilmeyen yüzey hem gizlenir hem de reddedilir.
-- **Her yazmada `dry_run`.** Bir yazma veya toplu işlem çalışmadan önce
-  `dry_run: true`, gönderilecek isteği — çözülmüş kayıt id'leriyle birlikte —
-  hiç göndermeden aynen döndürür.
-- **Toplu yazmalar körlemesine çalışamaz.** Filtreyle çalışan bir toplu
-  güncelleme `max_matches` ister; tarama bu sayıdan fazla satır bulursa, ya da
-  Firefly'ın sayfalama meta'sı taramanın tam bittiğini doğrulamazsa, işlem ilk
-  yazımdan önce durur. Çok parçalı işlem gruplarını, tutarlarını sessizce
-  katlayabilecek toplu operasyonlar tamamen reddeder — tek bir işlemi
-  değiştirmek için `update` kullanılır.
-- **Uzak mod şartsız açılmaz.** Uzak HTTP, sabit bir bearer token ile ya da
-  bağlantı başına yetki kapsamı gerekiyorsa gömülü OAuth ile çalışabilir.
-  Token modunda sunucu `MCP_HTTP_TOKEN` olmadan başlamayı reddeder, `/mcp`'ye
-  gelen her istek `Authorization: Bearer <token>` taşımak zorundadır.
-- **Bunun kapsamadığı şey:** bu sunucu verinizi üçüncü bir tarafa göndermez,
-  ama bağladığınız yapay zekâ istemcisinin veya modelin, eline geçen yanıtla
-  ne yapacağını kontrol etmez — bu, sunucunun değil, istemcinizin özelliğidir.
+### 1. stdio (Claude Code, Claude Desktop, Cursor)
 
-Tam tehdit modeli
-[SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md)'de.
+Kurulumu ona bırakın — Firefly III adresinizi ve token'ınızı sorar, gerçekten çalışıp çalışmadıklarını sınar, sonra bulursa Claude Code ve Claude Desktop'ı yapılandırır: `npx -y @yakupemreyerli/firefly-mcp setup`. Başka bir istemci kullanıyorsanız yapıştırmanız için yapılandırmayı ekrana basar.
 
-## Hızlı Başlangıç
-
-Node.js 20.6+ gerekir. En kısa yol, kurulumu ona bırakmak:
+Elle, Claude Code:
 
 ```bash
-npx -y @yakupemreyerli/firefly-mcp setup
+claude mcp add firefly --env FIREFLY_API_URL=kendi-firefly-adresiniz --env FIREFLY_API_TOKEN=token-degeriniz -- npx -y @yakupemreyerli/firefly-mcp
 ```
 
-Firefly III adresinizi ve API token'ınızı sorar, **gerçekten çalışıp
-çalışmadıklarını** örneğinize karşı sınar, sonra bulursa Claude Code ve Claude
-Desktop'ı yapılandırır — dokunduğu her dosyanın yedeğini alır ve diğer MCP
-sunucularınıza ilişmez. Başka bir istemci kullanıyorsanız yapıştırmanız için
-yapılandırmayı ekrana basar.
-
-Elle yapmayı tercih ederseniz:
-
-### Claude Code
-
-```bash
-claude mcp add firefly \
-  --env FIREFLY_API_URL=kendi-firefly-adresiniz \
-  --env FIREFLY_API_TOKEN=token-degeriniz \
-  -- npx -y @yakupemreyerli/firefly-mcp
-```
-
-### Claude Desktop, Cursor ve diğer istemciler
-
-İstemcinin MCP yapılandırma dosyasına ekleyin:
+Elle, Claude Desktop / Cursor / diğer istemciler — MCP yapılandırma dosyasına ekleyin:
 
 ```json
 {
@@ -126,41 +59,59 @@ claude mcp add firefly \
     "firefly": {
       "command": "npx",
       "args": ["-y", "@yakupemreyerli/firefly-mcp"],
-      "env": {
-        "FIREFLY_API_URL": "kendi-firefly-adresiniz",
-        "FIREFLY_API_TOKEN": "token-degeriniz"
-      }
+      "env": { "FIREFLY_API_URL": "kendi-firefly-adresiniz", "FIREFLY_API_TOKEN": "token-degeriniz" }
     }
   }
 }
 ```
 
-Token'ı Firefly III → **Options → Profile → OAuth → Create New Personal Access
-Token** yolundan alırsınız. URL için alan adınız yeterli — `https://` ve
-`/api/v1` tamamlanır. Örneğiniz bir alt yolda, özel bir portta ya da düz
-http üzerindeyse tam URL'i verin.
+### 2. Uzak HTTP, sabit token ile
 
-## Asistanın gördüğü yüzey
+n8n, otomasyon ya da tarayıcı üzerinden OAuth akışı yürütemeyen her çağıran için. `.env` içinde `MCP_HTTP_TOKEN` ayarlayın, sonra `npx -y -p @yakupemreyerli/firefly-mcp firefly-mcp-http` çalıştırın. `/mcp`'ye gelen her istek `Authorization: Bearer <token>` taşımak zorundadır — tek token, tam erişim, bağlantı başına yetki kapsamı yok.
 
-Beş meta-tool'un tamamı — çalıştırma riske göre bölünmüş, böylece istemci
-bakiye okumakla işlem silmeyi ayırt edebiliyor:
+### 3. Uzak HTTP, OAuth ile (Claude web, Claude mobil, ChatGPT)
 
-| Araç | Cevapladığı soru | Risk |
-| --- | --- | --- |
-| `firefly_query` | Her şeyi oku. Açıklaması kataloğu taşır, seçim ek bir çağrıya mal olmaz. | salt-okunur |
-| `firefly_mutate` | Kayıt oluştur veya değiştir. | yazar |
-| `firefly_destructive` | Kayıt sil, ya da tek çağrıda çok kaydın bir alanını değiştir. | geri alınamaz |
-| `firefly_list_operations` | Bu varlıkla ne yapabilirim? | salt-okunur |
-| `firefly_get_schema` | Bu operasyon hangi parametreleri alıyor? | salt-okunur |
+Bu istemcilerin hiçbiri sabit token tutamaz, hiçbiri yerel bir süreç de başlatamaz — herkese açık bir HTTPS adresine bağlanır ve OAuth beklerler. `MCP_AUTH_PASSWORD` ayarlıyken bu sunucu OAuth 2.1 authorization server'ın *kendisidir*: istemci kaydını, PKCE'yi ve token değişimini kendi yürütür, yani ne Keycloak gerekir, ne Google ile giriş, ne de bir yere kopyalanacak bir token.
 
-Her birinde MCP tool annotation'ları var (`readOnlyHint`, `destructiveHint`,
-`idempotentHint`) ve ayrım yalnızca ilan edilmiyor, **uygulanıyor**:
-`firefly_query` üzerinden çağrılan bir silme reddedilir. Yalnızca `firefly:read`
-verilmiş bir bağlantı, yazan iki aracı hiç görmez.
+**Adım 1 — sunucuya herkese açık bir HTTPS adresi verin.** Ev sunucusu için en kolay yol Cloudflare Tunnel (port yönlendirme yok, sertifika yok); VPS'te Caddy ya da Traefik iş görür. `compose.example.yml` tam bunun için `cloudflare` ve `caddy` profilleriyle gelir. Sonucun `https://mcp.example.com` olduğunu varsayalım.
 
-Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer,
-çalıştırma araçlarının hepsi, yalnızca adını verdiğiniz alanları tutan bir `fields`
-listesi alır — büyük bir işlem listesinde bu yaklaşık %90 küçülme demektir.
+**Adım 2 — `.env`'i yapılandırın:**
+
+```dotenv
+MCP_AUTH_PASSWORD=en-az-12-karakterlik-guclu-bir-parola
+MCP_RESOURCE_URL=https://mcp.example.com
+MCP_AUTH_STATE_DIR=/data/firefly-mcp-auth
+```
+
+`MCP_RESOURCE_URL`, **dışarıdan görünen origin'dir; birebir, yolsuz** — ne içerideki `http://firefly-mcp:3000`, ne de `/mcp` ile biten bağlantı URL'i. Uyuşmazsa token'ın audience kontrolü başarısız olur ve istemci yalnızca "invalid token" der. `MCP_AUTH_STATE_DIR` kalıcı bir volume üzerinde olmalı (`compose.example.yml` birini bağlıyor), yoksa her yeniden başlatma tüm istemcilerin yetkisini iptal eder.
+
+**Adım 3 — başlatın ve doğrulayın:**
+
+```bash
+docker compose -f compose.example.yml up -d
+curl https://mcp.example.com/health     # {"ok":true,"auth":"oauth-builtin"}
+```
+
+`auth` bunun yerine `bearer` diyorsa parola sürece hiç ulaşmamış demektir ve istemci sunucunun OAuth desteklemediğini bildirir.
+
+**Adım 4a — Claude (web, Desktop, iOS/Android).** **Settings → Connectors → Add custom connector**, URL `https://mcp.example.com/mcp`. Kimlik doğrulama seçeneklerini tespit edildiği gibi bırakın — Claude sunucuyu yoklayıp desteklediği akışı kendisi seçer. Connector sonrasında giriş yaptığınız her Claude yüzeyinde çalışır, telefon dahil.
+
+**Adım 4b — ChatGPT.** Özel connector / MCP ekranında aynı `https://mcp.example.com/mcp` adresini girin ve kimlik doğrulama yöntemi olarak **OAuth**'u seçin.
+
+**Adım 5 — parolayı girin.** Tarayıcıda bir Firefly giriş ekranı açılır; `MCP_AUTH_PASSWORD` değerini yazın. Karar tümüyle o tek ekrandır — bağlantıya, istemcinin ne istediğine bakılmaksızın üç yetki kapsamının (`firefly:read`, `firefly:write`, `firefly:destructive`) tamamı verilir. İkinci bir onay ekranı yoktur: parolayı elinde tutan kişi zaten o ekrandaki her kutuyu işaretleyebilirdi. Gerçekten yazamayan bir bağlantı vermek istiyorsanız, sunucuya salt-okunur bir Firefly Personal Access Token verin.
+
+Tüm TLS tarifleri ve sorun giderme: [docs/oauth.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) (İngilizce).
+
+### 4. Docker
+
+Yukarıdaki iki HTTP modu için de önerilen yol:
+
+```bash
+cp .env.example .env    # ihtiyacınız olan moda göre değerleri doldurun
+docker compose -f compose.example.yml up -d
+```
+
+Hazır imajı kullanmak için `compose.example.yml` içindeki `build: .` yerine `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:latest` yazın — bağımlı olduğunuz bir yerde `:latest` değil, bir sürüm etiketi sabitleyin. Compose olmadan tek container: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:latest`. Yukarıdaki iki kimlik doğrulama modundan biri olmadan başlamaz, ve `/mcp`'nin önünde TLS gerekir — `compose.example.yml` bunun için isteğe bağlı `cloudflare` ve `caddy` profilleri taşır. `/health` açıktır, container probe'ları içindir.
 
 ## Yapılandırma
 
@@ -170,25 +121,23 @@ listesi alır — büyük bir işlem listesinde bu yaklaşık %90 küçülme dem
 | `FIREFLY_API_TOKEN` | — | Zorunlu. Personal Access Token. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Yalnızca kendinden imzalı sertifikalı yerel örnek için. |
 
-## Uzak HTTP modu
+HTTP ve OAuth modu dahil tüm değişkenler: [docs/configuration.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md).
 
-Süreç başlatmak yerine HTTP üzerinden bağlanan istemciler için — örneğin n8n —
-aynı sunucu streamable HTTP konuşur:
+## Araçlar
 
-```bash
-export MCP_HTTP_TOKEN=$(openssl rand -hex 32)
-npx -y -p @yakupemreyerli/firefly-mcp firefly-mcp-http
-```
+| Araç | Cevapladığı soru | Risk |
+| --- | --- | --- |
+| `firefly_query` | Her şeyi oku. Açıklaması kataloğu taşır, seçim ek bir çağrıya mal olmaz. | salt-okunur |
+| `firefly_mutate` | Kayıt oluştur veya değiştir. | yazar |
+| `firefly_destructive` | Kayıt sil, ya da tek çağrıda çok kaydın bir alanını değiştir. | geri alınamaz |
+| `firefly_list_operations` | Bu varlıkla ne yapabilirim? | salt-okunur |
+| `firefly_get_schema` | Bu operasyon hangi parametreleri alıyor? | salt-okunur |
 
-`firefly-mcp-http`, aynı paketin içindeki ikinci bir çalıştırılabilirdir; `npx`
-bu yüzden `-p` ile paketi ve komutu ayrı ayrı ister.
+Ayrım yalnızca ilan edilmiyor, uygulanıyor — `firefly_query` üzerinden çağrılan bir silme reddedilir, yalnızca `firefly:read` verilmiş bir bağlantı yazan iki aracı hiç görmez. Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer, çalıştırma araçlarının hepsi bir `fields` listesi alır — büyük bir işlem listesinde yaklaşık %90 küçülme. Tam referans: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
 
-`MCP_HTTP_TOKEN` verilmeden başlamaz ve `/mcp` uçlarına gelen her istek
-`Authorization: Bearer <token>` taşımak zorundadır. `/health` açıktır, container
-probe'ları içindir. Depoda bir `Dockerfile` ve `compose.example.yml` bulunur.
+## Güvenlik
 
-TLS arkasına koyun. Bu token, internet ile finansal geçmişinize yazma erişimi
-arasındaki tek şey — portu doğrudan açmayın.
+Bu sunucu verinizi üçüncü bir tarafa göndermez, ama bağladığınız yapay zekâ istemcisinin veya modelin eline geçen yanıtla ne yapacağını kontrol etmez. Tam tehdit modeli: [SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md). Güvenlik açığı bulduysanız lütfen oradan özel olarak bildirin.
 
 ## Dokümantasyon
 
@@ -196,6 +145,7 @@ arasındaki tek şey — portu doğrudan açmayın.
 | --- | --- |
 | [Quickstart](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/quickstart.md) | Token alma, istemciyi bağlama, ilk denemeler, sorun giderme |
 | [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Tüm ortam değişkenleri, izin politikası, HTTP modu |
+| [Remote access with embedded OAuth](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) | Claude web, Claude mobil ve ChatGPT için deploy |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n ve uzak HTTP |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | 152 operasyonun tamamı, yanıt kırpma, Firefly'ın tuzakları |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, arama ve sekiz insight ucu |
@@ -203,32 +153,10 @@ arasındaki tek şey — portu doğrudan açmayın.
 
 Dokümantasyon sayfaları İngilizcedir.
 
-## Docker
-
-HTTP modu için hazır imaj var, `linux/amd64` ve `linux/arm64` için:
-
-```bash
-docker run -d \
-  -e FIREFLY_API_URL=kendi-firefly-adresiniz \
-  -e FIREFLY_API_TOKEN=token-degeriniz \
-  -e MCP_HTTP_HOST=0.0.0.0 \
-  -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
-  -p 3000:3000 \
-  ghcr.io/yakupemreyerli/mcp-firefly-iii:latest
-```
-
-`/health` token istemez, container probe'ları içindir. `/mcp` üzerindeki her
-şey `Authorization: Bearer <MCP_HTTP_TOKEN>` ister.
-
-Bağımlı olduğunuz bir yerde `:latest` yerine bir sürüm etiketi sabitleyin
-([releases sayfasına](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases)
-bakın — örneğin `:v1.1.1`).
-
 ## Geliştirme
 
 ```bash
-git clone https://github.com/YakupEmreYerli/mcp-firefly-iii.git
-cd mcp-firefly-iii
+git clone https://github.com/YakupEmreYerli/mcp-firefly-iii.git && cd mcp-firefly-iii
 npm install
 cp .env.example .env    # kendi örneğinizi girin
 npm test                # mock'lu; canlı örneğe hiç dokunmaz
@@ -236,14 +164,7 @@ npm run build
 npm run check           # .env'deki örneğe salt-okunur bağlantı kontrolü
 ```
 
-## Katkı
-
-Hata bildirimleri ve pull request'ler açığa. Kodun düzeni, testlerin nasıl
-çalıştırılacağı ve dokunmadan önce bilinmesi gereken Firefly III tuhaflıkları
-için [CONTRIBUTING.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/CONTRIBUTING.md).
-
-Güvenlik açığı bulduysanız lütfen özel olarak bildirin —
-[SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md).
+Testler mock'ludur ve ağa hiç çıkmaz. `npm run smoke:live`, `.env`'deki örneğe karşı her okuma operasyonunu gezen bir bakım aracıdır; salt-okunurdur ve yayınlanan pakette yer almaz. Hata bildirimleri ve pull request'ler açığa — [CONTRIBUTING.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/CONTRIBUTING.md).
 
 ## Lisans
 

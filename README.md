@@ -1,17 +1,8 @@
 # Firefly III MCP Server
 
-[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp)
-[![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml)
-[![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE)
-[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
+[![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest)
 
-Listed on the [MCP Registry](https://registry.modelcontextprotocol.io/) as
-`io.github.YakupEmreYerli/mcp-firefly-iii`.
-
-Give an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/)
-instance over the Model Context Protocol — with reading, writing and deleting
-kept as three separate, explicitly-scoped surfaces, not one tool that can do
-all three.
+A Model Context Protocol server that gives an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/) instance — 152 operations behind 5 scoped tools, with reading, writing and deleting kept as three separate, explicitly-authorized surfaces instead of one tool that can do all three. Listed on the [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.YakupEmreYerli/mcp-firefly-iii`.
 
 > Türkçe: [README.tr.md](README.tr.md)
 
@@ -19,107 +10,48 @@ all three.
 - *"Find uncategorised transactions from August and suggest categories."*
 - *"Show me subscriptions whose amount went up."*
 
-152 Firefly operations, exposed as 5 MCP tools. Every write supports
-`dry_run`, and destructive actions — deleting a record, or rewriting one field
-across many at once — sit behind their own scope: a connection granted only
-`firefly:read` never even sees them.
-
-Everyone runs this against their **own** Firefly instance with their **own**
-token — there is no hosted backend or relay in between. What the AI client
-or model you connect it to does with a response afterward is outside this
-server's control.
+Everyone runs this against their own Firefly instance with their own token — there is no hosted backend or relay in between.
 
 ## Demo
 
 https://github.com/user-attachments/assets/4452cc05-387d-44c6-8db4-c71bf3cf21cc
 
-**38-second demo:** ask a financial question, read the answer through MCP,
-preview a change with `dry_run`, approve it, and write it back to Firefly III.
+38-second demo: ask a financial question, read the answer through MCP, preview a change with `dry_run`, approve it, and write it back to Firefly III. Recorded against a synthetic instance — all financial data shown is fabricated.
 
-Recorded in Claude Desktop against a synthetic Firefly III instance. All
-financial data shown in the demo is fabricated.
+## Features
 
-## Why five tools?
+- **5 meta-tools, not 152.** `firefly_query`, `firefly_mutate`, `firefly_destructive`, plus `firefly_list_operations` and `firefly_get_schema` for discovery — a typed registry maps every Firefly endpoint onto these instead of flooding the model's tool list.
+- **`dry_run` on every write**, returning the exact request — resolved record IDs included — without sending it.
+- **Bulk writes can't run blind.** Filter-driven updates require `max_matches` and refuse an incomplete scan before the first write; multi-split transaction groups are rejected outright rather than risk folding their amounts together.
+- **Read/write/destructive are separately scoped and enforced**, not just annotated — over stdio by the Firefly token, over HTTP by OAuth scope or a static token.
+- **Embedded OAuth 2.1 authorization server** for Claude web, Claude mobile, and ChatGPT — no separate Keycloak or Authentik install.
+- **Docker images** for `linux/amd64`/`linux/arm64`, and a self-checking documentation pipeline that keeps the tool catalogue in sync with the code.
 
-Firefly III's API is large. Mapping every endpoint to its own MCP tool would
-put 152 individual tools in front of the model — a flat catalogue that costs
-context and gets harder for an MCP client to choose from as it grows.
+## Prerequisites
 
-```
-152 Firefly operations
-        │
-        ▼
- typed operation registry
-        │
-        ▼
-   5 MCP meta-tools
-        │
-        ▼
-     your AI client
-```
+- A running Firefly III instance and a Personal Access Token (Firefly III → **Options → Profile → OAuth → Create New Personal Access Token**)
+- Node.js 20.6+, unless you're using Docker
 
-Read, write and destructive operations stay on separate tools instead of one
-generic entry point, so a host — or a scoped OAuth connection — can apply a
-different policy to each without ever loading the full catalogue into its
-tool-selection step.
+## Usage
 
-## Security & control
+| Method | Transport | Best for |
+| --- | --- | --- |
+| [`npx` — stdio](#1-stdio-claude-code-claude-desktop-cursor) | stdio | Claude Code, Claude Desktop, Cursor — simplest setup |
+| [Static token](#2-remote-http-with-a-static-token) | HTTP | n8n, automation, headless callers |
+| [OAuth](#3-remote-http-with-oauth-claude-web-claude-mobile-chatgpt) | HTTP + OAuth | Claude web, Claude mobile, ChatGPT — can't hold a static token |
+| [Docker](#4-docker) | HTTP | Self-hosted, either auth mode above |
 
-- **Scoped access, not a single on/off switch.** Over stdio, the limit is the
-  Firefly token itself — issue a read-only Personal Access Token for a
-  session that should only answer questions, since the server has no
-  permission setting of its own to fall back on. Over HTTP with OAuth,
-  `firefly:read`, `firefly:write` and `firefly:destructive` are granted per
-  connection at the authorization screen, and a surface that was not granted
-  is hidden as well as refused.
-- **`dry_run` on every write.** Before a mutation or bulk operation runs,
-  `dry_run: true` returns the exact request it would send — resolved record
-  IDs included — without sending it.
-- **Bulk writes can't run blind.** A filter-driven bulk update requires
-  `max_matches`; if the scan finds more rows than that, or Firefly's paging
-  doesn't confirm the scan was complete, the operation stops before the
-  first write. Multi-split transaction groups are rejected outright by bulk
-  operations that could silently fold their amounts together — `update` on
-  a single transaction is the way to change those.
-- **Remote mode won't start unqualified.** Remote HTTP can use a static
-  bearer token, or embedded OAuth when you need per-connection scopes. In
-  token mode, the server refuses to boot without `MCP_HTTP_TOKEN`, and every
-  request to `/mcp` needs `Authorization: Bearer <token>`.
-- **What this doesn't cover:** this server doesn't send your data to a third
-  party, but it doesn't control what the AI client or model you connect it
-  to does with a response once it has one — that's a property of your
-  client, not of this server.
+### 1. stdio (Claude Code, Claude Desktop, Cursor)
 
-Full threat model in
-[SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md).
+Let setup do it — it asks for your Firefly III address and token, checks that they actually work, then configures Claude Code and Claude Desktop if it finds them: `npx -y @yakupemreyerli/firefly-mcp setup`. For any other client it prints the configuration to paste.
 
-## Quick Start
-
-Requires Node.js 20.6+. The quickest way is to let setup do it:
+By hand, Claude Code:
 
 ```bash
-npx -y @yakupemreyerli/firefly-mcp setup
+claude mcp add firefly --env FIREFLY_API_URL=your-firefly.example --env FIREFLY_API_TOKEN=your-token -- npx -y @yakupemreyerli/firefly-mcp
 ```
 
-It asks for your Firefly III address and API token, **checks that they actually
-work** against your instance, and then configures Claude Code and Claude Desktop
-if it finds them — backing up anything it touches and leaving your other MCP
-servers alone. For any other client it prints the configuration to paste.
-
-If you would rather do it by hand:
-
-### Claude Code
-
-```bash
-claude mcp add firefly \
-  --env FIREFLY_API_URL=your-firefly.example \
-  --env FIREFLY_API_TOKEN=your-token \
-  -- npx -y @yakupemreyerli/firefly-mcp
-```
-
-### Claude Desktop, Cursor, and other clients
-
-Add this to the client's MCP configuration file:
+By hand, Claude Desktop / Cursor / other clients — add to the MCP config file:
 
 ```json
 {
@@ -127,41 +59,59 @@ Add this to the client's MCP configuration file:
     "firefly": {
       "command": "npx",
       "args": ["-y", "@yakupemreyerli/firefly-mcp"],
-      "env": {
-        "FIREFLY_API_URL": "your-firefly.example",
-        "FIREFLY_API_TOKEN": "your-token"
-      }
+      "env": { "FIREFLY_API_URL": "your-firefly.example", "FIREFLY_API_TOKEN": "your-token" }
     }
   }
 }
 ```
 
-Get the token from Firefly III → **Options → Profile → OAuth → Create New
-Personal Access Token**. For the URL, your domain is enough — `https://` and
-`/api/v1` are filled in. Give the full URL if your instance sits behind a
-subpath, on a custom port, or on plain http.
+### 2. Remote HTTP with a static token
 
-## What the assistant sees
+For n8n, automation, or any caller that can't drive a browser-based OAuth flow. Set `MCP_HTTP_TOKEN` in `.env`, then run `npx -y -p @yakupemreyerli/firefly-mcp firefly-mcp-http`. Every request to `/mcp` must carry `Authorization: Bearer <token>` — one token, full access, no per-connection scoping.
 
-The five meta-tools, in full — execution is split by risk, so a host can tell
-reading a balance from deleting a transaction:
+### 3. Remote HTTP with OAuth (Claude web, Claude mobile, ChatGPT)
 
-| Tool | Answers | Risk |
-| --- | --- | --- |
-| `firefly_query` | Read anything. Its description carries the catalogue, so choosing an operation costs no extra call. | read-only |
-| `firefly_mutate` | Create or change a record. | writes |
-| `firefly_destructive` | Delete a record, or rewrite one field across many records at once. | cannot be undone |
-| `firefly_list_operations` | What can I do with this entity? | read-only |
-| `firefly_get_schema` | What parameters does this operation take? | read-only |
+None of these clients can hold a static token, and none of them can spawn a local process — they connect to a public HTTPS URL and expect OAuth. With `MCP_AUTH_PASSWORD` set, this server *is* the OAuth 2.1 authorization server: it handles client registration, PKCE and token exchange itself, so there is no Keycloak, no Google sign-in, and no token to copy anywhere.
 
-Each carries MCP tool annotations (`readOnlyHint`, `destructiveHint`,
-`idempotentHint`), and the split is enforced, not merely advertised: a delete
-reached through `firefly_query` is refused. A connection granted only
-`firefly:read` never sees the two writing tools at all.
+**Step 1 — give the server a public HTTPS address.** Cloudflare Tunnel is the easiest route for a home server (no port forwarding, no certificate); Caddy or Traefik work on a VPS. `compose.example.yml` ships `cloudflare` and `caddy` profiles for exactly this. Say the result is `https://mcp.example.com`.
 
-Responses are trimmed before they reach the model: empty and null attributes are
-always dropped, and every execution tool takes a `fields` list that keeps only the
-attributes you name — on a large transaction list that is roughly a 90% cut.
+**Step 2 — configure `.env`:**
+
+```dotenv
+MCP_AUTH_PASSWORD=a-strong-password-of-at-least-12-characters
+MCP_RESOURCE_URL=https://mcp.example.com
+MCP_AUTH_STATE_DIR=/data/firefly-mcp-auth
+```
+
+`MCP_RESOURCE_URL` is the **external origin, character for character, with no path** — not the internal `http://firefly-mcp:3000`, and not the `/mcp` connection URL. A mismatch fails the token audience check and the client only reports "invalid token". `MCP_AUTH_STATE_DIR` must sit on a persistent volume (`compose.example.yml` mounts one) or every restart de-authorizes every client.
+
+**Step 3 — start it and verify:**
+
+```bash
+docker compose -f compose.example.yml up -d
+curl https://mcp.example.com/health     # {"ok":true,"auth":"oauth-builtin"}
+```
+
+If `auth` says `bearer` instead, the password never reached the process and the client will report that the server doesn't support OAuth.
+
+**Step 4a — Claude (web, Desktop, iOS/Android).** **Settings → Connectors → Add custom connector**, URL `https://mcp.example.com/mcp`. Leave the authentication choices as detected — Claude probes the server and picks the flow it supports. The connector then works on every Claude surface you're signed into, phone included.
+
+**Step 4b — ChatGPT.** In the custom connector / MCP screen, enter the same `https://mcp.example.com/mcp` and choose **OAuth** as the authentication method.
+
+**Step 5 — enter the password.** A Firefly login screen opens in the browser; type `MCP_AUTH_PASSWORD`. That one screen is the whole decision — the connection is granted all three scopes (`firefly:read`, `firefly:write`, `firefly:destructive`), whatever the client itself asked for. There is no second consent screen: whoever holds the password could have ticked every box on it. To hand out a connection that genuinely cannot write, give the server a read-only Firefly Personal Access Token instead.
+
+Full TLS recipes and troubleshooting: [docs/oauth.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md).
+
+### 4. Docker
+
+Recommended for either HTTP mode above:
+
+```bash
+cp .env.example .env    # fill in the values for the mode you need
+docker compose -f compose.example.yml up -d
+```
+
+Swap `build: .` in `compose.example.yml` for `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:latest` to use the prebuilt image — pin a version tag, not `:latest`, for anything you depend on. Single container without Compose: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:latest`. It refuses to start without one of the two auth modes above, and `/mcp` needs TLS in front — `compose.example.yml` has optional `cloudflare` and `caddy` profiles for that. `/health` is open, for container probes.
 
 ## Configuration
 
@@ -171,25 +121,23 @@ attributes you name — on a large transaction list that is roughly a 90% cut.
 | `FIREFLY_API_TOKEN` | — | Required. Personal Access Token. |
 | `FIREFLY_DISABLE_SSL_VERIFY` | `false` | Only for a local instance with a self-signed certificate. |
 
-## Remote HTTP mode
+Every variable, including HTTP and OAuth mode: [docs/configuration.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md).
 
-For clients that connect over HTTP rather than spawning a process — n8n, for
-example — the same server speaks streamable HTTP:
+## Tools
 
-```bash
-export MCP_HTTP_TOKEN=$(openssl rand -hex 32)
-npx -y -p @yakupemreyerli/firefly-mcp firefly-mcp-http
-```
+| Tool | Answers | Risk |
+| --- | --- | --- |
+| `firefly_query` | Read anything. Its description carries the catalogue, so choosing an operation costs no extra call. | read-only |
+| `firefly_mutate` | Create or change a record. | writes |
+| `firefly_destructive` | Delete a record, or rewrite one field across many records at once. | cannot be undone |
+| `firefly_list_operations` | What can I do with this entity? | read-only |
+| `firefly_get_schema` | What parameters does this operation take? | read-only |
 
-`firefly-mcp-http` is a second binary inside the same package, which is why
-`npx` needs `-p` to name the package and the command separately.
+The split is enforced, not just advertised — a delete reached through `firefly_query` is refused, and a connection granted only `firefly:read` never even sees the two writing tools. Responses are trimmed before they reach the model: empty and null attributes are always dropped, and every execution tool takes a `fields` list — roughly a 90% cut on a large transaction list. Full reference: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
 
-It refuses to start without `MCP_HTTP_TOKEN`, and every request to `/mcp` must
-carry `Authorization: Bearer <token>`. `/health` is open, for container probes.
-A `Dockerfile` and `compose.example.yml` are in the repository.
+## Security
 
-Put it behind TLS. The token is the only thing between the internet and write
-access to your financial history — do not expose the port directly.
+This server never sends your data to a third party, but it doesn't control what the AI client or model you connect it to does with a response once it has one. Full threat model: [SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md). Found a vulnerability? Report it privately there.
 
 ## Documentation
 
@@ -197,38 +145,16 @@ access to your financial history — do not expose the port directly.
 | --- | --- |
 | [Quickstart](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/quickstart.md) | Getting a token, wiring up your client, first things to try, troubleshooting |
 | [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Every environment variable, the permission policy, HTTP mode |
+| [Remote access with embedded OAuth](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) | Deploying for Claude web, Claude mobile, and ChatGPT |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n and remote HTTP |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | All 152 operations, response trimming, the Firefly quirks that bite |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, search, and the eight insight endpoints |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Poking at the server interactively while developing |
 
-## Docker
-
-For the HTTP mode there is a prebuilt image, for `linux/amd64` and
-`linux/arm64`:
-
-```bash
-docker run -d \
-  -e FIREFLY_API_URL=your-firefly.example \
-  -e FIREFLY_API_TOKEN=your-token \
-  -e MCP_HTTP_HOST=0.0.0.0 \
-  -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
-  -p 3000:3000 \
-  ghcr.io/yakupemreyerli/mcp-firefly-iii:latest
-```
-
-`/health` answers without a token, for container probes. Everything on `/mcp`
-needs `Authorization: Bearer <MCP_HTTP_TOKEN>`.
-
-Pin a version tag (see the
-[releases page](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases)
-— for example `:v1.1.1`) rather than `:latest` for anything you depend on.
-
 ## Development
 
 ```bash
-git clone https://github.com/YakupEmreYerli/mcp-firefly-iii.git
-cd mcp-firefly-iii
+git clone https://github.com/YakupEmreYerli/mcp-firefly-iii.git && cd mcp-firefly-iii
 npm install
 cp .env.example .env    # fill in your instance
 npm test                # mocked; never touches a live instance
@@ -236,18 +162,7 @@ npm run build
 npm run check           # read-only connection check against .env
 ```
 
-Tests are mocked and never reach the network. `npm run smoke:live` is a
-maintainer tool that walks every read operation against the instance in `.env`;
-it is read-only and is not part of the published package.
-
-## Contributing
-
-Bug reports and pull requests are welcome. See
-[CONTRIBUTING.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/CONTRIBUTING.md) for the layout of the code, how to run
-the tests, and the Firefly III quirks worth knowing before you touch anything.
-
-Found a security problem? Please report it privately — see
-[SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md).
+Tests are mocked and never reach the network. `npm run smoke:live` is a maintainer tool that walks every read operation against the instance in `.env`; it is read-only and not part of the published package. Bug reports and pull requests are welcome — see [CONTRIBUTING.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/CONTRIBUTING.md).
 
 ## License
 
