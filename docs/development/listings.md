@@ -36,6 +36,32 @@ hand — the first through a pull request against
 [`firefly-iii/docs`](https://github.com/firefly-iii/docs), in
 `docs/docs/references/firefly-iii/third-parties/apps.md`.
 
+## Where it is not yet, and what each one needs
+
+Searching for "firefly iii mcp" today returns four competing servers, two
+directories and a Firefly III discussion thread — and none of them us. The
+gap is not quality; it is that none of these pages has heard of the project.
+Each row below is a page that already ranks, and what it takes to appear on
+it. The artefacts they ask for are committed: `docs/assets/icon-400.png` for
+the ones wanting a square icon, `llms-install.md` for the ones that install
+by handing a file to an agent.
+
+| Where | How | Worth it because |
+|-------|-----|------------------|
+| [Firefly III Discussions](https://github.com/orgs/firefly-iii/discussions) | Post in General | The maintainer answered the last MCP announcement there with "Very cool, I'll add it to the documentation for sure!" — and that thread now ranks for the search this project loses |
+| [Cline MCP Marketplace](https://github.com/cline/mcp-marketplace) | An issue from their template: repo URL, a 400×400 PNG, and why | One-click install for every Cline user. They warn of "increased scrutiny to projects in sensitive domains (such as financial services)" — so lead with the threat model, which is the strongest thing here |
+| [MCP Market](https://mcpmarket.com/submit) | A web form; it reads the repository | Already ranks on the front page for this search |
+| [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) | Pull request | 93k stars, and the word "firefly" appears in it nowhere at all — no competitor holds this either |
+| [wong2/awesome-mcp-servers](https://github.com/wong2/awesome-mcp-servers) | Pull request | The same, smaller and faster to merge |
+
+Two things not to bother with. **Renaming the repository** to match the search
+phrase exactly, the way three competitors are named, would break the MCP
+Registry entry that publishing was just automated for, move the documentation
+site, and churn every link written so far — for one ranking signal among many.
+And **buying attention** for a tool that asks people for a token to their bank
+history is the wrong trade: the reason to trust this one is that its threat
+model is written down, and that argument only works where it can be read.
+
 ## What an entry hosted elsewhere may say
 
 **No number that changes.** The operation count is the obvious one: it moves
@@ -44,6 +70,12 @@ everywhere it appears in this repository — the two READMEs, every page under
 `docs/`, `package.json` and `server.json` — precisely because a hand-maintained
 copy goes stale without anyone noticing. A copy on someone else's website is a
 hand-maintained copy that also needs their review to correct.
+
+The generated images are the exception, and only because they are covered:
+`npm run media` renders the count from the registry rather than from anything
+typed, and stamps it into the PNG's own text field, which `docs:check` reads
+back out. The image is the only copy of what it was rendered from, and a stale
+card fails the same check a stale page does.
 
 So the counts stay here, where the pipeline can reach them, and an entry
 written for somewhere else describes what the server *is*:
@@ -61,3 +93,59 @@ That paragraph has no version, no count, and no claim that a release can
 invalidate. It has needed no correction across every release so far, which is
 the whole point: the cheapest listing to keep current is one that was never
 written to go out of date.
+
+## Ready to send
+
+Written out here so submitting costs nothing later. Each is complete; check
+the facts still hold, then paste.
+
+### Firefly III Discussions — General
+
+> **A security-first MCP server for Firefly III**
+>
+> I have been running Firefly III against an AI assistant through the Model
+> Context Protocol, and put the server behind it up as
+> [mcp-firefly-iii](https://github.com/YakupEmreYerli/mcp-firefly-iii).
+>
+> It is self-hosted, like Firefly III itself — your own instance, your own
+> token, nothing hosted in between. What is different from the other MCP
+> servers around: reading, writing and deleting are three separate tools with
+> separate scopes, enforced by the server rather than advertised, so a client
+> can require confirmation for the destructive one alone. Every write takes
+> `dry_run`, which returns the exact request it would send without sending it.
+> Bulk edits driven by a filter refuse to run unless you say how many rows you
+> expect, because Firefly answers 200 to every write and there is no undo.
+>
+> The Firefly quirks it works around are written down rather than patched over
+> — `opening_balance: "0"` being silently ignored, a PUT with an unknown
+> wrapper key returning 200 and changing nothing, splits collapsing when one
+> amount is spread across a group. They are in the docs with what was measured.
+>
+> Works over stdio with Claude Code, Claude Desktop and Cursor, and over
+> authenticated HTTP with OAuth for Claude web, Claude mobile and ChatGPT.
+> Feedback welcome, especially from anyone whose ledger is shaped differently
+> from mine.
+
+### Cline MCP Marketplace — issue body
+
+> **GitHub Repo URL:** https://github.com/YakupEmreYerli/mcp-firefly-iii
+> **Logo:** `docs/assets/icon-400.png` in the repository (400×400 PNG)
+>
+> **Reason for addition:** Firefly III is a widely self-hosted personal
+> finance manager, and this connects it to Cline over MCP. Since this is a
+> financial-services tool, the parts your review looks at are deliberate:
+> reading, writing and deleting are separate tools behind separate scopes and
+> the split is enforced in the server, so Cline can confirm destructive
+> actions specifically instead of treating every call alike; every write
+> supports a dry run that returns the exact request without sending it; and
+> filter-driven bulk edits refuse to run unless the caller states how many
+> rows they expect. The threat model, including how untrusted record text is
+> handled, is in SECURITY.md. Releases are published by CI from a tagged
+> commit with npm provenance, and the server is listed in the official MCP
+> Registry and in Firefly III's own third-party documentation.
+>
+> `llms-install.md` is in the repository for the one-click install path.
+
+### awesome-mcp-servers — the list entry
+
+> - [Firefly III](https://github.com/YakupEmreYerli/mcp-firefly-iii) 📇 🏠 — Self-hosted personal finance. Read, write and delete are separate scoped tools; every write supports a dry run.

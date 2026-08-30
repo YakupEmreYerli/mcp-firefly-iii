@@ -11,6 +11,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { readText, STAMP_KEY } from "../png-text.mjs";
 
 const LINK_PATTERN = /\[[^\]]*\]\(([^)]+)\)/g;
 const HEADING_PATTERN = /^#{1,6}\s+(.+)$/gmu;
@@ -147,11 +148,38 @@ export function checkSharedParameterCoverage(model) {
   return problems;
 }
 
+/** The generated images still show the number the registry has.
+ *
+ * The count is rendered into the social preview, which is the one copy of it
+ * nothing can correct after the fact: GitHub caches that image and so does
+ * every platform that ever scraped it. The image carries the number it was
+ * rendered from in its own tEXt field, so this reads it back out of the
+ * artefact rather than out of a file kept beside it — one copy, not two.
+ *
+ * Comparing pixels was the other option, and a worse one: it needs ffmpeg and
+ * the exact fonts wherever it runs, and fails on a freetype version rather
+ * than on a wrong number.
+ */
+export function checkGeneratedMedia(model, file = "docs/assets/social-preview.png") {
+  const p = path.resolve(file);
+  if (!fs.existsSync(p)) return [`${file}: missing`];
+  const recorded = readText(p, STAMP_KEY);
+  if (recorded === undefined) {
+    return [`${file}: carries no operation count, so nothing says what it was rendered from (run \`npm run media\`)`];
+  }
+  if (Number(recorded) === model.operations.length) return [];
+  return [
+    `${file}: was rendered from ${recorded} operations, the registry has ` +
+      `${model.operations.length} (run \`npm run media\`)`,
+  ];
+}
+
 export function runAll(model) {
   return [
     ...checkConfigCoverage(model),
     ...checkLinks(model),
     ...checkOperationReferences(model),
     ...checkSharedParameterCoverage(model),
+    ...checkGeneratedMedia(model),
   ];
 }

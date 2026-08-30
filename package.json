@@ -46,7 +46,7 @@
     "smoke:live": "npm run build && node --env-file=.env scripts/live-smoke.mjs",
     "docs:check": "npm run build && node scripts/docs/cli.mjs check",
     "docs:update": "npm run build && node scripts/docs/cli.mjs update",
-    "media": "node scripts/build-media.mjs"
+    "media": "npm run build && node scripts/build-media.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

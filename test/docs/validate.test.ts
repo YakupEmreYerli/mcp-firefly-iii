@@ -6,8 +6,10 @@ import {
   checkConfigCoverage,
   checkLinks,
   checkOperationReferences,
+  checkGeneratedMedia,
   checkSharedParameterCoverage,
 } from "../../scripts/docs/validate.mjs";
+import { STAMP_KEY, readText, writeText } from "../../scripts/png-text.mjs";
 
 // Every check reads real files by the path the model names, so these tests
 // write real (throwaway) files under a temp dir and point the model at them
@@ -154,5 +156,73 @@ describe("checkSharedParameterCoverage", () => {
     const a = writeDoc("tmp-a.md", "Nothing relevant here.\n");
     const b = writeDoc("tmp-b.md", "Pass `period` instead of the pair.\n");
     expect(checkSharedParameterCoverage({ docFiles: [a, b], sharedParams: ["period"] })).toEqual([]);
+  });
+});
+
+/** A 1x1 PNG, so the stamping tests need no ffmpeg and no fixture file. */
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+function writePng(relPath: string): string {
+  const full = path.resolve(relPath);
+  fs.writeFileSync(full, TINY_PNG);
+  written.push(full);
+  return relPath;
+}
+
+describe("stamping a PNG", () => {
+  it("round-trips a value and replaces it rather than adding a second", () => {
+    const file = path.resolve(writePng("tmp-stamp.png"));
+    expect(readText(file, STAMP_KEY)).toBeUndefined();
+    writeText(file, STAMP_KEY, 152);
+    expect(readText(file, STAMP_KEY)).toBe("152");
+    // Stamped twice, one answer — two would leave a reader choosing.
+    writeText(file, STAMP_KEY, 160);
+    expect(readText(file, STAMP_KEY)).toBe("160");
+    const data = fs.readFileSync(file);
+    let chunks = 0;
+    for (let offset = 8; offset + 8 <= data.length; ) {
+      const length = data.readUInt32BE(offset);
+      if (data.toString("latin1", offset + 4, offset + 8) === "tEXt") chunks += 1;
+      offset += 12 + length;
+    }
+    expect(chunks).toBe(1);
+  });
+
+  it("leaves the image itself intact", () => {
+    const file = path.resolve(writePng("tmp-intact.png"));
+    writeText(file, STAMP_KEY, 152);
+    const data = fs.readFileSync(file);
+    expect(data.subarray(0, 8)).toEqual(TINY_PNG.subarray(0, 8));
+    // IEND stays last, which the format requires.
+    expect(data.toString("latin1", data.length - 8, data.length - 4)).toBe("IEND");
+  });
+});
+
+describe("checkGeneratedMedia", () => {
+  /** The count is rendered into the social preview, the one copy of it nothing
+   * can correct after the fact — GitHub caches that image, and so does every
+   * platform that ever scraped it. The image carries the number it was
+   * rendered from, so there is one copy rather than a file kept beside it. */
+  it("reports an image rendered from a different count", () => {
+    const file = path.resolve(writePng("tmp-media.png"));
+    writeText(file, STAMP_KEY, 140);
+    const problems = checkGeneratedMedia({ operations: new Array(152) }, file);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("140");
+    expect(problems[0]).toContain("152");
+  });
+
+  it("is quiet when they agree", () => {
+    const file = path.resolve(writePng("tmp-media-ok.png"));
+    writeText(file, STAMP_KEY, 152);
+    expect(checkGeneratedMedia({ operations: new Array(152) }, file)).toEqual([]);
+  });
+
+  it("says so when the image carries no count at all", () => {
+    const file = path.resolve(writePng("tmp-media-bare.png"));
+    expect(checkGeneratedMedia({ operations: [] }, file)).toHaveLength(1);
   });
 });
