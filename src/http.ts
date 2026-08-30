@@ -135,7 +135,18 @@ export function createHttpServer(config: Config): Server {
   }
 
   return createNodeServer((req, res) => {
-    void handle(req, res);
+    // Every rejection has to land somewhere. A client that hangs up mid-body
+    // rejects the read in flight with ECONNRESET, and Node turns an unhandled
+    // rejection into an uncaught exception: one aborted request — a phone
+    // losing signal during the login POST, or one deliberate socket — used to
+    // take the whole server down, from an endpoint that runs before any
+    // credential is checked.
+    handle(req, res).catch((error: unknown) => {
+      if (res.writableEnded || res.destroyed) return;
+      const message = error instanceof Error ? error.message : String(error);
+      if (res.headersSent) res.end();
+      else writeJson(res, 400, { error: message });
+    });
   });
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
