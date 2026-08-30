@@ -196,6 +196,27 @@ export function listDocFiles() {
  * count nothing kept honest. Not doc files: no links, no operation
  * references, only the sentence.
  */
+/** The published demo: where it is hosted, and the size of the file that was
+ * uploaded there.
+ *
+ * GitHub will not play a video from a repository path — its raw API serves
+ * mp4 as application/octet-stream, so the browser downloads it — which leaves
+ * `user-attachments`, and that upload is a manual step nothing can automate
+ * away. What can be automated is noticing that it did not happen: rebuild the
+ * video and the byte count here stops matching the file, which is exactly the
+ * state the READMEs were in while they embedded a card telling people to run
+ * an install this project warns against.
+ */
+export function demoRecord() {
+  const path = "docs/assets/demo.json";
+  if (!fs.existsSync(path)) return undefined;
+  try {
+    return JSON.parse(fs.readFileSync(path, "utf8"));
+  } catch {
+    return undefined;
+  }
+}
+
 export function listManifestFiles() {
   return ["package.json", "server.json"];
 }
@@ -223,5 +244,6 @@ export async function buildModel() {
     docFiles: listDocFiles(),
     manifestFiles: listManifestFiles(),
     sharedParams: await listSharedParameters(),
+    demo: demoRecord(),
   };
 }

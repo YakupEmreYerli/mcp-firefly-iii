@@ -174,6 +174,43 @@ export function checkGeneratedMedia(model, file = "docs/assets/social-preview.pn
   ];
 }
 
+/** The video the world sees is the video in this repository.
+ *
+ * Both READMEs embed the demo through a `user-attachments` URL, which is a
+ * separate upload from `docs/assets/demo.mp4` — GitHub will not play the file
+ * from a repository path. So rebuilding the video changes nothing anyone sees
+ * until it is uploaded again and the URL swapped, and for several days it did
+ * not: the README played a closing card recommending `npm i -g`, the one
+ * install the setup command warns about, long after the file here had stopped
+ * saying it.
+ *
+ * The record holds the URL and the byte count of what was uploaded to it.
+ * Rebuild the video and the count stops matching, which is the only local,
+ * network-free way to notice.
+ */
+export function checkDemoVideo(model, video = "docs/assets/demo.mp4") {
+  const record = model.demo;
+  if (record === undefined) return ["docs/assets/demo.json: missing, so nothing records where the demo is published"];
+  const file = path.resolve(video);
+  if (!fs.existsSync(file)) return [`${video}: missing`];
+  const problems = [];
+  const size = fs.statSync(file).size;
+  if (record.bytes !== size) {
+    problems.push(
+      `${video} is ${size} bytes but docs/assets/demo.json records ${record.bytes} as uploaded — ` +
+        "re-upload it to GitHub, then put the new URL and size in demo.json",
+    );
+  }
+  for (const readme of ["README.md", "README.tr.md"]) {
+    const readmePath = path.resolve(readme);
+    if (!fs.existsSync(readmePath)) continue;
+    if (!fs.readFileSync(readmePath, "utf8").includes(record.url)) {
+      problems.push(`${readme}: does not embed ${record.url}, the URL docs/assets/demo.json records`);
+    }
+  }
+  return problems;
+}
+
 export function runAll(model) {
   return [
     ...checkConfigCoverage(model),
@@ -181,5 +218,6 @@ export function runAll(model) {
     ...checkOperationReferences(model),
     ...checkSharedParameterCoverage(model),
     ...checkGeneratedMedia(model),
+    ...checkDemoVideo(model),
   ];
 }

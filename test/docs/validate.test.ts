@@ -6,6 +6,7 @@ import {
   checkConfigCoverage,
   checkLinks,
   checkOperationReferences,
+  checkDemoVideo,
   checkGeneratedMedia,
   checkSharedParameterCoverage,
 } from "../../scripts/docs/validate.mjs";
@@ -224,5 +225,37 @@ describe("checkGeneratedMedia", () => {
   it("says so when the image carries no count at all", () => {
     const file = path.resolve(writePng("tmp-media-bare.png"));
     expect(checkGeneratedMedia({ operations: [] }, file)).toHaveLength(1);
+  });
+});
+
+describe("checkDemoVideo", () => {
+  /** GitHub will not play a video from a repository path — its raw API serves
+   * mp4 as application/octet-stream — so both READMEs embed a
+   * `user-attachments` URL, which is a second upload of the same file. That
+   * upload cannot be automated; noticing it did not happen can be, and this is
+   * the only way to do it without a network call. */
+  it("reports a video rebuilt but not re-uploaded", () => {
+    const video = writeDoc("tmp-demo.mp4", "0123456789");
+    const problems = checkDemoVideo(
+      { demo: { url: "https://example.invalid/v", bytes: 999 } },
+      video,
+    );
+    expect(problems.some((line) => line.includes("999"))).toBe(true);
+  });
+
+  it("reports a README that still embeds the previous upload", () => {
+    const video = writeDoc("tmp-demo2.mp4", "0123456789");
+    // Both READMEs are the real ones, which carry the real URL, so a record
+    // naming a different one must be reported against them.
+    const problems = checkDemoVideo(
+      { demo: { url: "https://example.invalid/not-the-one", bytes: 10 } },
+      video,
+    );
+    expect(problems).toHaveLength(2);
+    expect(problems[0]).toContain("README");
+  });
+
+  it("says so when nothing records where the demo is published", () => {
+    expect(checkDemoVideo({ demo: undefined })).toHaveLength(1);
   });
 });

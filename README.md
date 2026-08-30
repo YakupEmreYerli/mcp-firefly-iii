@@ -16,7 +16,7 @@ Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/)
 
 ## Demo
 
-https://github.com/user-attachments/assets/4452cc05-387d-44c6-8db4-c71bf3cf21cc
+https://github.com/user-attachments/assets/4866f13e-ff09-43b0-b99c-2b4789a30224
 
 38-second demo: ask a financial question, read the answer through MCP, preview a change with `dry_run`, approve it, and write it back to Firefly III. Recorded against a synthetic instance — all financial data shown is fabricated.
 

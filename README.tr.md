@@ -16,7 +16,7 @@ Resmî [MCP Registry](https://registry.modelcontextprotocol.io/)'de `io.github.Y
 
 ## Demo
 
-https://github.com/user-attachments/assets/4452cc05-387d-44c6-8db4-c71bf3cf21cc
+https://github.com/user-attachments/assets/4866f13e-ff09-43b0-b99c-2b4789a30224
 
 38 saniyelik demo: finansal bir soru sor, cevabı MCP üzerinden oku, değişikliği `dry_run` ile önizle, onayla ve Firefly III'e yaz. Sentetik bir örneğe karşı kaydedildi — görünen tüm finansal veriler uydurmadır.
 

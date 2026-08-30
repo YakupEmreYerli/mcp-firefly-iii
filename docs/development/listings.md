@@ -96,6 +96,29 @@ invalidate. It has needed no correction across every release so far, which is
 the whole point: the cheapest listing to keep current is one that was never
 written to go out of date.
 
+## The demo video, and the step that cannot be automated
+
+GitHub will not play a video from a repository path: its raw API serves mp4 as
+`application/octet-stream`, so the browser downloads it. The only URL that
+renders as a player is a `user-attachments` one, and those come from dragging
+the file into a GitHub comment box. There is no API for it.
+
+So rebuilding `docs/assets/demo.mp4` changes what the documentation site shows
+and nothing else. Both READMEs keep playing whatever was uploaded last — which
+is how they spent several days showing a closing card that recommended
+`npm i -g`, the one install `setup` warns about, after the file here had
+stopped saying it.
+
+`docs/assets/demo.json` records the URL and the byte count of the file that was
+uploaded to it, and `docs:check` holds both against reality. Rebuild the video
+and the count stops matching; change the URL in one README and not the other
+and it says which. The upload stays manual, in three steps:
+
+1. Drag `docs/assets/demo.mp4` into any GitHub comment box and copy the
+   `user-attachments` URL it produces. Do not submit the comment.
+2. Put that URL and the file's size in `docs/assets/demo.json`.
+3. `npm run docs:check` — it fails until both READMEs carry the new URL.
+
 ## Ready to send
 
 Written out here so submitting costs nothing later. Each is complete; check
