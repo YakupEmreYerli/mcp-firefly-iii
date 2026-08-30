@@ -31,7 +31,7 @@ server's control.
 
 ## Demo
 
-[![Firefly III MCP demo](docs/assets/demo-poster.jpg)](docs/assets/demo.mp4)
+https://github.com/user-attachments/assets/64c5a1d2-6239-48bd-9d60-ec1c0985133c
 
 **38-second demo:** ask a financial question, read the answer through MCP,
 preview a change with `dry_run`, approve it, and write it back to Firefly III.

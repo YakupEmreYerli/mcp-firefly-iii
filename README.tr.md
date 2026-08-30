@@ -31,7 +31,7 @@ sunucunun kontrolü dışındadır.
 
 ## Demo
 
-[![Firefly III MCP demosu](docs/assets/demo-poster.jpg)](docs/assets/demo.mp4)
+https://github.com/user-attachments/assets/64c5a1d2-6239-48bd-9d60-ec1c0985133c
 
 **38 saniyelik demo:** finansal bir soru sor, cevabı MCP üzerinden oku,
 değişikliği `dry_run` ile önizle, onayla ve Firefly III'e yaz.

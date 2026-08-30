@@ -29,6 +29,17 @@ assistant looks at your own instance and answers.
 - **Context economy.** Empty and null attributes are stripped from every
   response, and `fields` keeps only the attributes you name.
 
+## Demo
+
+<video controls preload="metadata" poster="assets/demo-poster.jpg" style="width:100%;max-width:960px;border-radius:8px">
+  <source src="assets/demo.mp4" type="video/mp4">
+  <a href="assets/demo.mp4">Download the demo (MP4, 38s)</a>
+</video>
+
+A 38-second run in Claude Desktop: ask a financial question, read the answer
+through MCP, preview a change with `dry_run`, approve it, and write it back to
+Firefly III. All financial data in the demo is fabricated.
+
 ## What it looks like
 
 Once installed, you talk to your assistant in plain language:
