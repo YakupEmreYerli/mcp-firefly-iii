@@ -1,13 +1,41 @@
 import { z } from "zod";
 import { defineOperation, type EntityModule, type Operation } from "../registry.js";
-import { dateRange, entityId, isoDate, pagination } from "../schemas/common.js";
+import { dateRange, entityId, isoDate, pagination, periodOrDates } from "../schemas/common.js";
 import { EntityType } from "../types.js";
 import type { FireflyClient } from "../firefly.js";
-import { FireflyApiError } from "../errors.js";
+import { FireflyApiError, ValidationError } from "../errors.js";
 
 const id = z.object({ id: entityId }).strict();
 const dates = { ...dateRange };
-const analysisInput = z.object({ start: isoDate, end: isoDate, currency_code: z.string().optional() }).strict();
+// `start` and `end` are optional in the schema only because `period` may stand
+// in for them. `StrictInput` admits a plain strict object, so "one of these two
+// forms" cannot be expressed as a refinement without becoming a ZodEffects that
+// `getSchema` could not publish. `withPeriod` enforces it instead, and does so
+// where the dates are used rather than in a list of operation names somewhere
+// else that a new operation could be forgotten from.
+const analysisInput = z
+  .object({
+    ...periodOrDates,
+    currency_code: z.string().optional(),
+  })
+  .strict();
+
+/** The dates an analysis needs, once the shortcut has been resolved.
+ *
+ * Registry.execute turns `period` into the pair before a handler runs, so
+ * reaching here without them means the caller sent neither form. Refusing is
+ * the point: Firefly answers a range-less insight query with a default period,
+ * so a missing date would come back as a real-looking total for a period nobody
+ * asked about.
+ */
+function withPeriod<T extends { start?: string; end?: string }>(query: T): T & { start: string; end: string } {
+  if (query.start === undefined || query.end === undefined) {
+    throw new ValidationError(
+      "This operation needs a period: give start and end (YYYY-MM-DD), or a period shortcut such as last_month.",
+    );
+  }
+  return query as T & { start: string; end: string };
+}
 const deleteResult = async (path: string, record: { id: string }, client: { del: (path: string) => Promise<unknown> }) => { await client.del(path); return { deleted: true, id: record.id }; };
 
 const budgetData = z.object({ name: z.string().min(1), active: z.boolean().optional(), notes: z.string().optional() }).strict();
@@ -85,23 +113,66 @@ export const ruleGroupOperations: Record<string, Operation> = {
 };
 export const ruleGroupsModule: EntityModule = { entity: EntityType.RuleGroup, hint: "groups of automation rules", operations: ruleGroupOperations };
 
+/** Why `/summary/basic` refused a single-day range, and what to ask instead.
+ *
+ * Firefly answers `start === end` here with a bare 422, which leaves a caller
+ * guessing between malformed dates, an empty period, and a wrong endpoint. The
+ * hint is attached only when the request really was one day, so it never
+ * explains a refusal it cannot account for.
+ *
+ * It deliberately does not offer to widen the range: `balance-in-*` measures
+ * movement across the period, so a wider range answers a different question
+ * rather than the same one more successfully.
+ */
+function singleDayRefusal(start: string, end: string): string | undefined {
+  if (start !== end) return undefined;
+  return (
+    `/summary/basic does not accept a single-day range (start and end are both ${start}). ` +
+    "Widening it would change the answer rather than repair it, because balance figures here " +
+    "measure movement over the period. Ask for a longer period instead, such as last_7_days."
+  );
+}
+
 export const insightOperations: Record<string, Operation> = {};
 for (const name of ["expense_total", "expense_category", "expense_budget", "expense_tag", "expense_no_category", "income_total", "income_category", "transfer_total"]) {
   const parts = name.split("_");
   const path = `/insight/${parts[0]}/${parts.slice(1).join("-")}`;
-  insightOperations[name] = defineOperation({ description: `What is the ${name.replaceAll("_", " ")} for this period?`, access: "read", input: analysisInput, handler: (q, c) => c.get(path, q) });
+  insightOperations[name] = defineOperation({ description: `What is the ${name.replaceAll("_", " ")} for this period?`, access: "read", input: analysisInput, handler: (q, c) => c.get(path, withPeriod(q)) });
 }
 export const insightModule: EntityModule = { entity: EntityType.Insight, hint: "period totals and financial breakdowns", operations: insightOperations };
 export const summaryModule: EntityModule = { entity: EntityType.Summary, hint: "combined financial summaries", operations: {
-  basic: defineOperation({ description: "What is Firefly's basic summary for this period?", access: "read", input: analysisInput, handler: (q, c) => c.get("/summary/basic", q) }),
-  overview: defineOperation({ description: "How did this period go across income, spending, transfers, and balances?", access: "read", input: analysisInput, handler: (q, c) => buildOverview(q, c) }),
+  basic: defineOperation({
+    description: "What is Firefly's basic summary for this period?",
+    access: "read",
+    input: analysisInput,
+    handler: async (q, c) => {
+      const dated = withPeriod(q);
+      try {
+        return await c.get("/summary/basic", dated);
+      } catch (error) {
+        const hint = error instanceof FireflyApiError && error.status === 422
+          ? singleDayRefusal(dated.start, dated.end)
+          : undefined;
+        if (hint === undefined) throw error;
+        throw new FireflyApiError(
+          (error as FireflyApiError).status,
+          `${(error as FireflyApiError).detail} — ${hint}`,
+          (error as FireflyApiError).errors,
+        );
+      }
+    },
+  }),
+  overview: defineOperation({ description: "How did this period go across income, spending, transfers, and balances?", access: "read", input: analysisInput, handler: (q, c) => buildOverview(withPeriod(q), c) }),
 } };
 export const searchModule: EntityModule = { entity: EntityType.Search, hint: "find transactions and accounts by text", operations: {
   transactions: defineOperation({ description: "Which transactions match this search?", access: "read", input: z.object({ query: z.string().min(1), ...pagination }).strict(), handler: (q, c) => c.get("/search/transactions", q) }),
   accounts: defineOperation({ description: "Which accounts match this search?", access: "read", input: z.object({ query: z.string().min(1), field: z.enum(["all", "iban", "name", "number", "id"]).default("all"), type: z.string().optional(), ...pagination }).strict(), handler: (q, c) => c.get("/search/accounts", q) }),
 } };
 
-export async function buildOverview(query: z.infer<typeof analysisInput>, client: FireflyClient): Promise<unknown> {
+export async function buildOverview(
+  query: z.infer<typeof analysisInput> & { start: string; end: string },
+  client: FireflyClient,
+): Promise<unknown> {
   const period = { start: query.start, end: query.end };
   // Firefly rejects start === end on /summary/basic with a 422 while every
   // insight endpoint accepts it, so a single-day overview used to fail whole.
@@ -116,7 +187,7 @@ export async function buildOverview(query: z.infer<typeof analysisInput>, client
     client.get("/insight/expense/category", period),
     client.get("/summary/basic", query).then(
       (value) => ({ ok: true as const, value, reason: "" }),
-      (error: unknown) => ({ ok: false as const, value: undefined, reason: balanceFailure(error) }),
+      (error: unknown) => ({ ok: false as const, value: undefined, reason: balanceFailure(error, query.start, query.end) }),
     ),
   ]);
   const totals: Record<string, Record<string, number>> = {};
@@ -162,9 +233,15 @@ export async function buildOverview(query: z.infer<typeof analysisInput>, client
  * the connection is broken. Worse, it would keep calling the totals
  * "unaffected" when they came from the same instance.
  */
-function balanceFailure(error: unknown): string {
+function balanceFailure(error: unknown, start: string, end: string): string {
   if (error instanceof FireflyApiError && error.status === 422) {
-    return "Firefly refused the balance query for this period; the totals above are unaffected.";
+    // The first sentence is the guarantee this report already made: the
+    // balances are missing rather than zero. The hint is added to it, not
+    // swapped for it — a caller that only learns how to retry has still lost
+    // the reason the numbers are absent.
+    const refused = "Firefly refused the balance query for this period; the totals above are unaffected.";
+    const hint = singleDayRefusal(start, end);
+    return hint === undefined ? refused : `${refused} ${hint}`;
   }
   const detail = error instanceof Error ? error.message : String(error);
   return `The balance query failed for a reason that is not about the date range: ${detail}. The totals above came from the same instance, so treat them with the same suspicion.`;

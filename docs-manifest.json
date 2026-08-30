@@ -48,7 +48,7 @@
       "entity": "account",
       "operation": "list_transactions",
       "access": "read",
-      "fingerprint": "3ec99481ddcd64ed"
+      "fingerprint": "44852c4b90989d90"
     },
     {
       "name": "account.update",
@@ -209,14 +209,14 @@
       "entity": "bill",
       "operation": "get",
       "access": "read",
-      "fingerprint": "16da1553c460c4c6"
+      "fingerprint": "f2b5aacfe74dc7da"
     },
     {
       "name": "bill.list",
       "entity": "bill",
       "operation": "list",
       "access": "read",
-      "fingerprint": "3d038a0109687998"
+      "fingerprint": "968e70ff0d83d7f1"
     },
     {
       "name": "bill.list_attachments",
@@ -237,7 +237,7 @@
       "entity": "bill",
       "operation": "list_transactions",
       "access": "read",
-      "fingerprint": "23dd2a4e86352dde"
+      "fingerprint": "68cf46937069ffc5"
     },
     {
       "name": "bill.update",
@@ -279,7 +279,7 @@
       "entity": "budget",
       "operation": "get",
       "access": "read",
-      "fingerprint": "a31e196729e75f7e"
+      "fingerprint": "69d52c5d31354be8"
     },
     {
       "name": "budget.get_limit",
@@ -293,7 +293,7 @@
       "entity": "budget",
       "operation": "list",
       "access": "read",
-      "fingerprint": "775c3107d77c1023"
+      "fingerprint": "085cbf947b3f3850"
     },
     {
       "name": "budget.list_attachments",
@@ -307,21 +307,21 @@
       "entity": "budget",
       "operation": "list_limits",
       "access": "read",
-      "fingerprint": "aabe5f0968cba516"
+      "fingerprint": "991611de2d81fb7a"
     },
     {
       "name": "budget.list_transactions",
       "entity": "budget",
       "operation": "list_transactions",
       "access": "read",
-      "fingerprint": "1f78ef47e8e08e0d"
+      "fingerprint": "0912a746b8028d24"
     },
     {
       "name": "budget.list_transactions_without_budget",
       "entity": "budget",
       "operation": "list_transactions_without_budget",
       "access": "read",
-      "fingerprint": "7b5f75c59d8441a6"
+      "fingerprint": "b9358f3581453dc4"
     },
     {
       "name": "budget.update",
@@ -356,7 +356,7 @@
       "entity": "category",
       "operation": "get",
       "access": "read",
-      "fingerprint": "0a888dd231d43d3c"
+      "fingerprint": "17148c0da41de730"
     },
     {
       "name": "category.list",
@@ -377,7 +377,7 @@
       "entity": "category",
       "operation": "list_transactions",
       "access": "read",
-      "fingerprint": "7d7b45532e44e3bf"
+      "fingerprint": "84af371a300318da"
     },
     {
       "name": "category.update",
@@ -531,56 +531,56 @@
       "entity": "insight",
       "operation": "expense_budget",
       "access": "read",
-      "fingerprint": "14ea15ee56a90ccc"
+      "fingerprint": "00bcb88506a13245"
     },
     {
       "name": "insight.expense_category",
       "entity": "insight",
       "operation": "expense_category",
       "access": "read",
-      "fingerprint": "7a1ee180f385f276"
+      "fingerprint": "5a709b0b32b0bfb2"
     },
     {
       "name": "insight.expense_no_category",
       "entity": "insight",
       "operation": "expense_no_category",
       "access": "read",
-      "fingerprint": "4a6e0dee67d4b155"
+      "fingerprint": "729692804e374d71"
     },
     {
       "name": "insight.expense_tag",
       "entity": "insight",
       "operation": "expense_tag",
       "access": "read",
-      "fingerprint": "b873e3998c47cd83"
+      "fingerprint": "059f203e692958ae"
     },
     {
       "name": "insight.expense_total",
       "entity": "insight",
       "operation": "expense_total",
       "access": "read",
-      "fingerprint": "6e03a1d73c0dce18"
+      "fingerprint": "5f7320fc621fae26"
     },
     {
       "name": "insight.income_category",
       "entity": "insight",
       "operation": "income_category",
       "access": "read",
-      "fingerprint": "c170dd476662ac4e"
+      "fingerprint": "8952d8bcbb3af770"
     },
     {
       "name": "insight.income_total",
       "entity": "insight",
       "operation": "income_total",
       "access": "read",
-      "fingerprint": "64320d7ec7ed59b1"
+      "fingerprint": "32c3a5ea06eedc43"
     },
     {
       "name": "insight.transfer_total",
       "entity": "insight",
       "operation": "transfer_total",
       "access": "read",
-      "fingerprint": "db1e113cad4a69a2"
+      "fingerprint": "342739d9eeb99e6a"
     },
     {
       "name": "link_type.get",
@@ -783,14 +783,14 @@
       "entity": "rule_group",
       "operation": "test",
       "access": "read",
-      "fingerprint": "64e1fccd1bc944ef"
+      "fingerprint": "096d0674937a0f31"
     },
     {
       "name": "rule_group.trigger",
       "entity": "rule_group",
       "operation": "trigger",
       "access": "write",
-      "fingerprint": "782e0b828f730626"
+      "fingerprint": "3b08f2417ee6ea89"
     },
     {
       "name": "rule_group.update",
@@ -832,14 +832,14 @@
       "entity": "rule",
       "operation": "test",
       "access": "read",
-      "fingerprint": "572fe0dbbc0a0643"
+      "fingerprint": "bffef965090c2718"
     },
     {
       "name": "rule.trigger",
       "entity": "rule",
       "operation": "trigger",
       "access": "write",
-      "fingerprint": "b29e54e24ade891b"
+      "fingerprint": "0664beba3aebc050"
     },
     {
       "name": "rule.update",
@@ -867,14 +867,14 @@
       "entity": "summary",
       "operation": "basic",
       "access": "read",
-      "fingerprint": "812f96cee0b21c4c"
+      "fingerprint": "6de26138c577d49e"
     },
     {
       "name": "summary.overview",
       "entity": "summary",
       "operation": "overview",
       "access": "read",
-      "fingerprint": "b1d5b8b8b9e5695d"
+      "fingerprint": "0921efb8dbb41a46"
     },
     {
       "name": "tag.create",
@@ -916,7 +916,7 @@
       "entity": "tag",
       "operation": "list_transactions",
       "access": "read",
-      "fingerprint": "7aebf805d0e73bc4"
+      "fingerprint": "f5d9754fa2a59efa"
     },
     {
       "name": "tag.update",
@@ -1035,7 +1035,7 @@
       "entity": "transaction",
       "operation": "list",
       "access": "read",
-      "fingerprint": "ba095734d78197c2"
+      "fingerprint": "e1c8bf551b567c9f"
     },
     {
       "name": "transaction.list_attachments",

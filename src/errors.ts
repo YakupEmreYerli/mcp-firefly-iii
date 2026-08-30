@@ -37,10 +37,15 @@ export class SetupAborted extends FireflyMcpError {
 export class FireflyApiError extends FireflyMcpError {
   readonly status: number;
   readonly errors: Record<string, unknown>;
+  /** Firefly's own message, without the status prefix `message` carries. A
+   * caller adding context to a refusal needs the sentence, not the sentence
+   * with a status glued to its front. */
+  readonly detail: string;
 
   constructor(status: number, message: string, errors: Record<string, unknown> = {}) {
     super(`${status} – ${message}`);
     this.status = status;
+    this.detail = message;
     this.errors = errors;
   }
 

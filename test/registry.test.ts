@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { Registry, defineOperation, type EntityModule } from "../src/registry.js";
+import { dateRange } from "../src/schemas/common.js";
+import { localToday, resolvePeriod } from "../src/period.js";
 import { EntityType, type Access } from "../src/types.js";
 import type { Config } from "../src/config.js";
 import type { FireflyClient } from "../src/firefly.js";
@@ -198,5 +200,73 @@ describe("getSchema", () => {
       properties: Record<string, unknown>;
     };
     expect(Object.keys(schema.properties)).toEqual(["type"]);
+  });
+});
+
+describe("relative period shortcuts", () => {
+  /** The shortcut has to reach the wire as the dates Firefly expects. A model
+   * that says "last month" and gets a range one day out is told nothing: the
+   * answer comes back as a believable total. */
+  function periodRegistry(): { registry: Registry; sent: unknown[] } {
+    const sent: unknown[] = [];
+    const spy = {
+      ...client,
+      get: vi.fn(async (_path: string, query?: unknown) => {
+        sent.push(query);
+        return { data: [] };
+      }),
+    } as unknown as FireflyClient;
+    const registry = new Registry(makeConfig(), spy);
+    registry.register({
+      entity: EntityType.Insight,
+      hint: "totals",
+      operations: {
+        expense_category: defineOperation({
+          description: "What was spent per category?",
+          access: "read",
+          input: z.object({ ...dateRange }).strict(),
+          handler: (params, api) => api.get("/insight/expense/category", params),
+        }),
+      },
+    });
+    return { registry, sent };
+  }
+
+  it("sends the dates the shortcut names, and no period field", async () => {
+    const { registry, sent } = periodRegistry();
+    await registry.execute("insight", "expense_category", { period: "last_month" });
+    const { start, end } = resolvePeriod("last_month", localToday());
+    expect(sent[0]).toEqual({ start, end });
+  });
+
+  it("leaves explicit dates untouched", async () => {
+    const { registry, sent } = periodRegistry();
+    await registry.execute("insight", "expense_category", { start: "2026-07-01", end: "2026-07-31" });
+    expect(sent[0]).toEqual({ start: "2026-07-01", end: "2026-07-31" });
+  });
+
+  it("refuses a shortcut sent alongside explicit dates instead of picking one", async () => {
+    const { registry } = periodRegistry();
+    await expect(
+      registry.execute("insight", "expense_category", { period: "last_month", start: "2026-07-01" }),
+    ).rejects.toThrow(/cannot be combined with start or end/);
+  });
+
+  it("refuses a period that is not one of the shortcuts", async () => {
+    const { registry } = periodRegistry();
+    await expect(
+      registry.execute("insight", "expense_category", { period: "fortnight" }),
+    ).rejects.toThrow(/Invalid parameters/);
+  });
+
+  /** `period: "today"` must behave exactly as typing the same day twice does.
+   * Widening it to dodge the endpoints that reject start == end would change
+   * what `/summary/basic` measures, and the caller would get a different
+   * number rather than the 422 that tells them to ask differently. */
+  it("does not widen a single-day range to avoid Firefly's 422", async () => {
+    const { registry, sent } = periodRegistry();
+    await registry.execute("insight", "expense_category", { period: "today" });
+    const today = localToday();
+    expect(sent[0]).toEqual({ start: today, end: today });
   });
 });

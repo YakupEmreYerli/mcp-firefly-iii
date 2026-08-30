@@ -5,6 +5,7 @@ import type { Config } from "../../src/config.js";
 import type { FireflyClient, Query } from "../../src/firefly.js";
 import { ENTITY_MODULES } from "../../src/server.js";
 import { FireflyApiError } from "../../src/errors.js";
+import { localToday, resolvePeriod } from "../../src/period.js";
 
 type Call = { method: string; path: string; body?: unknown; query?: Query };
 
@@ -222,5 +223,103 @@ describe("overview currency filter", () => {
     });
     const result = await overview(client, range);
     expect(Object.keys(result.totals as object).sort()).toEqual(["EUR", "TRY"]);
+  });
+});
+
+describe("period shortcuts on the analysis operations", () => {
+  /** "What did I spend last month" lands on an insight endpoint, so a shortcut
+   * that skipped these would leave the question it was built for unanswered. */
+  it("reaches Firefly as the two dates the shortcut names", async () => {
+    const { registry, calls } = setup();
+    await registry.execute("insight", "expense_category", { period: "last_month" });
+    const { start, end } = resolvePeriod("last_month", localToday());
+    expect(calls[0]?.query).toEqual({ start, end });
+  });
+
+  it("works the same way on the composite overview", async () => {
+    const { registry, calls } = setup();
+    await registry.execute("summary", "overview", { period: "this_month" });
+    const { start, end } = resolvePeriod("this_month", localToday());
+    for (const call of calls) expect(call.query).toMatchObject({ start, end });
+  });
+
+  /** Firefly answers a range-less insight query with a period of its own
+   * choosing, so a missing date would return a real-looking total for a period
+   * nobody asked about. Loosening the schema to admit the shortcut must not
+   * open that door. */
+  it("still refuses when neither a shortcut nor dates arrive", async () => {
+    const { registry, calls } = setup();
+    await expect(registry.execute("insight", "expense_total", {})).rejects.toThrow(/needs a period/);
+    await expect(registry.execute("summary", "basic", {})).rejects.toThrow(/needs a period/);
+    expect(calls).toEqual([]);
+  });
+
+  it("names both accepted forms when it refuses, so the retry is obvious", async () => {
+    const { registry } = setup();
+    await expect(registry.execute("summary", "overview", {})).rejects.toThrow(
+      /start and end .*or a period shortcut such as last_month/s,
+    );
+  });
+
+  it("still refuses a half-given range", async () => {
+    const { registry, calls } = setup();
+    await expect(registry.execute("insight", "expense_total", { start: "2026-08-01" })).rejects.toThrow(
+      /needs a period/,
+    );
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("Firefly's single-day refusal is made actionable", () => {
+  function refusing(status: number, message = "Unprocessable"): { registry: Registry; calls: Call[] } {
+    const { registry, calls } = setup();
+    const client = (registry as unknown as { client: FireflyClient }).client;
+    client.get = async (path, query) => {
+      calls.push({ method: "GET", path, query });
+      if (path === "/summary/basic") throw new FireflyApiError(status, message);
+      return {};
+    };
+    return { registry, calls };
+  }
+
+  /** A bare "422 – Unprocessable" leaves the model to guess between malformed
+   * dates, an empty period and a wrong endpoint, and guessing costs a retry
+   * that fails the same way. */
+  it("names the cause and a period that works", async () => {
+    const { registry } = refusing(422);
+    await expect(registry.execute("summary", "basic", { period: "today" })).rejects.toThrow(
+      /single-day range.*last_7_days/s,
+    );
+  });
+
+  it("keeps Firefly's own wording rather than replacing it", async () => {
+    const { registry } = refusing(422, "The given data was invalid.");
+    await expect(registry.execute("summary", "basic", { period: "today" })).rejects.toThrow(
+      /The given data was invalid\./,
+    );
+  });
+
+  /** The hint is an explanation, and an explanation that might be wrong is
+   * worse than none: a 422 over a real range has some other cause. */
+  it("says nothing extra about a 422 it cannot account for", async () => {
+    const { registry } = refusing(422);
+    await expect(
+      registry.execute("summary", "basic", { start: "2026-07-01", end: "2026-07-31" }),
+    ).rejects.toThrow(/^(?!.*single-day).*Unprocessable/s);
+  });
+
+  it("does not explain a refusal that is not a 422 at all", async () => {
+    const { registry } = refusing(500, "Server exploded");
+    await expect(registry.execute("summary", "basic", { period: "today" })).rejects.toThrow(
+      /^(?!.*single-day).*Server exploded/s,
+    );
+  });
+
+  /** overview survives this refusal by design — it reports the loss instead of
+   * failing whole — so the report is where the advice has to appear. */
+  it("tells the overview's reader the same thing, without failing the call", async () => {
+    const { registry } = refusing(422);
+    const result = await registry.execute("summary", "overview", { period: "today" });
+    expect(JSON.stringify(result)).toMatch(/single-day range.*last_7_days/s);
   });
 });

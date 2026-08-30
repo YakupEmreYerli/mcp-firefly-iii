@@ -13,6 +13,7 @@ import {
 } from "./errors.js";
 import { projectFields, stripEmpty, markThirdPartyText } from "./projection.js";
 import { flattenTransactions } from "./flatten.js";
+import { localToday, resolvePeriod, type Period } from "./period.js";
 
 /** An input schema that rejects unknown keys.
  *
@@ -237,13 +238,15 @@ export class Registry {
       );
     }
 
+    const args = resolveDateShortcut(entity, operation, parsed.data);
+
     // A preview runs the handler against a client that reads for real and only
     // records writes, so the plan comes back with ids resolved and the payload
     // shaped as Firefly would receive it — not an echo of the parameters. A
     // read has nothing to preview, so it simply runs.
     if (dryRun && found.access !== "read") {
       const plan: PlannedWrite[] = [];
-      const outcome = await found.handler(parsed.data, previewClient(this.client, plan));
+      const outcome = await found.handler(args, previewClient(this.client, plan));
       const warnings = await duplicateWarnings(plan, this.client);
       // Only a refusal is carried over from the handler. An operation that
       // declines — a filter matching more rows than the caller allowed — writes
@@ -264,11 +267,35 @@ export class Registry {
       });
     }
 
-    const result = await found.handler(parsed.data, this.client);
+    const result = await found.handler(args, this.client);
     // Flatten before projecting, so `fields` names the attributes the caller
     // actually sees rather than the ones buried in a split.
     return markThirdPartyText(projectFields(flattenTransactions(stripEmpty(result)), fields));
   }
+}
+
+/** Turns a `period` shortcut into the `start`/`end` every handler already reads.
+ *
+ * Resolved here rather than in each schema for two reasons: the shortcut has to
+ * mean the same thing on every date-filtered operation, and "today" depends on
+ * the clock, which a schema cannot see.
+ *
+ * A shortcut given alongside explicit dates is refused rather than one of them
+ * silently winning. The caller who sent both does not know which range they
+ * asked for, and a wrong range comes back as a plausible number, not an error.
+ */
+function resolveDateShortcut(entity: string, operation: string, params: unknown): unknown {
+  if (typeof params !== "object" || params === null) return params;
+  const record = params as Record<string, unknown>;
+  if (record.period === undefined) return params;
+  const { period, ...rest } = record;
+  if (rest.start !== undefined || rest.end !== undefined) {
+    throw new ValidationError(
+      `Invalid parameters for ${entity}.${operation}: period cannot be combined with start or end. ` +
+        "Send the shortcut or the two dates, not both.",
+    );
+  }
+  return { ...rest, ...resolvePeriod(period as Period, localToday()) };
 }
 
 /** Did a handler decline to act?
