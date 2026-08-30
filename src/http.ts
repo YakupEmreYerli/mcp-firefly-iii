@@ -21,10 +21,7 @@ import {
   verifyToken,
 } from "./oauth.js";
 import { BuiltinAuth } from "./auth/routes.js";
-
-/** Bodies above this are refused unread. An MCP request is kilobytes; anything
- * larger is a mistake or an attempt to exhaust memory. */
-const MAX_BODY_BYTES = 1_048_576;
+import { readBody } from "./body.js";
 
 const MCP_METHODS = new Set(["GET", "POST", "DELETE"]);
 const MCP_PATHS = new Set(["/", "/mcp"]);
@@ -39,15 +36,7 @@ function writeJson(res: ServerResponse, status: number, body: unknown): void {
 }
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    const buffer = Buffer.from(chunk);
-    size += buffer.length;
-    if (size > MAX_BODY_BYTES) throw new Error("Request body is too large.");
-    chunks.push(buffer);
-  }
-  const body = Buffer.concat(chunks).toString("utf8");
+  const body = await readBody(req);
   return body === "" ? undefined : (JSON.parse(body) as unknown);
 }
 

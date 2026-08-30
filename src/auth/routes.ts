@@ -8,8 +8,16 @@ import { findClient, registerClient } from "./clients.js";
 import { AuthorizationCodes } from "./codes.js";
 import { issueAccessToken, issueRefreshToken, rotateRefreshToken } from "./tokens.js";
 import { loginPage } from "./pages.js";
+import { readBody } from "../body.js";
 
 const ALL_SCOPES = [SCOPES.read, SCOPES.write, SCOPES.destructive];
+
+/** How long a form token stays spendable; matches the JWT's own expiry. */
+const FORM_TOKEN_TTL_MS = 10 * 60 * 1000;
+
+/** Logins that may be in flight at once. A person has one; the number only
+ * matters as a ceiling on what a flood can hold in memory. */
+const MAX_PENDING_FORMS = 512;
 
 type FormClaims = {
   clientId: string;
@@ -66,7 +74,15 @@ function first(value: string | string[] | undefined): string | undefined {
 export class BuiltinAuth {
   readonly state: AuthState;
   readonly codes = new AuthorizationCodes();
-  private readonly formTokens = new Set<string>();
+  /** Form tokens issued and not yet spent, so one cannot be replayed.
+   *
+   * A Set here grew without limit: /oauth/authorize is reachable before any
+   * credential is checked, and a token nobody submits was never removed, so a
+   * stranger could grow this until the process ran out of memory. Expired
+   * entries are swept on each mint and the oldest is evicted past a cap —
+   * whoever loses a form that way sees the same "expired" page a slow login
+   * already gets, and asks for another one. */
+  private readonly formTokens = new Map<string, number>();
   private readonly failures = new Map<string, { count: number; at: number }>();
 
   constructor(private readonly config: Config) {
@@ -81,7 +97,16 @@ export class BuiltinAuth {
       .setExpirationTime("10m")
       .setJti(randomBytes(16).toString("hex"))
       .sign(this.state.privateKey);
-    this.formTokens.add(token);
+    const now = Date.now();
+    for (const [issued, expiresAt] of this.formTokens) {
+      if (expiresAt <= now) this.formTokens.delete(issued);
+    }
+    while (this.formTokens.size >= MAX_PENDING_FORMS) {
+      const oldest = this.formTokens.keys().next().value;
+      if (oldest === undefined) break;
+      this.formTokens.delete(oldest);
+    }
+    this.formTokens.set(token, now + FORM_TOKEN_TTL_MS);
     return token;
   }
 
@@ -166,7 +191,7 @@ export class BuiltinAuth {
     }
     if (path === "/oauth/register" && req.method === "POST") {
       try {
-        const input = JSON.parse(await readRequest(req)) as Parameters<typeof registerClient>[1];
+        const input = JSON.parse(await readBody(req)) as Parameters<typeof registerClient>[1];
         send(res, 201, registerClient(this.state, input));
       } catch (error) {
         send(res, 400, {
@@ -202,30 +227,33 @@ export class BuiltinAuth {
       return true;
     }
 
-    // Every scope, whatever the client asked for. ChatGPT asks for firefly:read
-    // alone, so a grant limited to the request left the assistant unable to
-    // record a transaction. RFC 6749 §3.3 allows a grant wider than the request
-    // as long as the token response reports it, which /oauth/token does.
-    const scopes = scopesWithin();
-    const formToken = await this.formToken({
-      clientId: client.client_id,
-      redirectUri,
-      state,
-      codeChallenge: params.get("code_challenge")!,
-      scopes,
-      ip,
-    });
-
-    if (req.method === "GET") {
-      send(res, 200, loginPage(formToken), "text/html; charset=utf-8");
-      return true;
-    }
-    if (req.method !== "POST") {
+    // Refused methods are turned away before anything is minted. Issuing first
+    // and checking after meant a request this endpoint never intended to serve
+    // still left a token behind.
+    if (req.method !== "GET" && req.method !== "POST") {
       send(res, 405, { error: "method_not_allowed", iss: issuer(this.config) });
       return true;
     }
 
-    const values = formBody(await readRequest(req));
+    if (req.method === "GET") {
+      // Every scope, whatever the client asked for. ChatGPT asks for
+      // firefly:read alone, so a grant limited to the request left the
+      // assistant unable to record a transaction. RFC 6749 §3.3 allows a grant
+      // wider than the request as long as the token response reports it, which
+      // /oauth/token does.
+      const formToken = await this.formToken({
+        clientId: client.client_id,
+        redirectUri,
+        state,
+        codeChallenge: params.get("code_challenge")!,
+        scopes: scopesWithin(),
+        ip,
+      });
+      send(res, 200, loginPage(formToken), "text/html; charset=utf-8");
+      return true;
+    }
+
+    const values = formBody(await readBody(req));
     const claims = await this.consumeForm(first(values.form_token) ?? "");
     if (!claims || claims.ip !== ip) {
       this.responseError(res, redirectUri, state, "invalid_request", "The authorization form expired.");
@@ -259,7 +287,7 @@ export class BuiltinAuth {
   }
 
   private async token(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-    const values = formBody(await readRequest(req));
+    const values = formBody(await readBody(req));
     const grant = first(values.grant_type);
     const clientId = first(values.client_id);
     const base = issuer(this.config);
@@ -311,8 +339,3 @@ export class BuiltinAuth {
   }
 }
 
-async function readRequest(req: IncomingMessage): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
-  return Buffer.concat(chunks).toString("utf8");
-}

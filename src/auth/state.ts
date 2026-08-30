@@ -26,6 +26,10 @@ type StateDocument = {
   refreshTokens: StoredRefresh[];
 };
 
+/** Registered clients kept at once. Far above what any real deployment reaches
+ * once identical registrations are handed back rather than duplicated. */
+const MAX_CLIENTS = 200;
+
 export class AuthState {
   readonly filePath: string;
   readonly privateKey: KeyObject;
@@ -105,10 +109,26 @@ export class AuthState {
 
   addClient(client: StoredClient): void {
     this.document.clients.push(client);
+    // Registration is open by necessity — a client has nothing to present
+    // before it has registered — so this store cannot be bounded by good
+    // behaviour and is bounded by size instead. The oldest goes first, and a
+    // client whose registration is gone simply registers again: doing that
+    // without being asked is what dynamic registration is for.
+    const overflow = this.document.clients.length - MAX_CLIENTS;
+    if (overflow > 0) {
+      const evicted = new Set(this.document.clients.splice(0, overflow).map((entry) => entry.client_id));
+      this.document.refreshTokens = this.document.refreshTokens.filter((token) => !evicted.has(token.clientId));
+    }
     this.save();
   }
 
   addRefresh(refresh: StoredRefresh): void {
+    // An expired refresh token is already refused on use, but nothing ever
+    // removed it: a connection set up once and dropped left its record in the
+    // file for good. Sweeping on write keeps the store the size of what is
+    // actually live.
+    const now = Date.now();
+    this.document.refreshTokens = this.document.refreshTokens.filter((token) => token.expiresAt > now);
     this.document.refreshTokens.push(refresh);
     this.save();
   }
