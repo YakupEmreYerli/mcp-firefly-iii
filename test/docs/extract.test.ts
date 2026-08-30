@@ -58,3 +58,22 @@ describe("buildModel against the real, built server", () => {
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 });
+
+describe("the manifests people read without opening the repository", () => {
+  /** npm renders one of these and the MCP Registry serves the other, so the
+   * sentence in them is the one most likely to be quoted somewhere this
+   * project cannot edit. It carries the operation count from a copy that
+   * nothing used to check. */
+  it("state the operation count the registry actually has", async () => {
+    const { readFileSync } = await import("node:fs");
+    const model = await buildModel();
+    expect(model.manifestFiles).toEqual(["package.json", "server.json"]);
+
+    for (const file of model.manifestFiles) {
+      const manifest = JSON.parse(readFileSync(file, "utf8")) as { description: string };
+      const stated = /\b(\d+)\b(?= operations)/.exec(manifest.description);
+      expect(stated, `${file} should say how many operations there are`).not.toBeNull();
+      expect(Number(stated![1]), file).toBe(model.operations.length);
+    }
+  });
+});

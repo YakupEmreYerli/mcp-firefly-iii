@@ -83,6 +83,16 @@ jobs:
             echo "Publishing would put the wrong version on npm under this tag." >&2
             exit 1
           fi
+          # server.json is what the MCP Registry serves, and it names the npm
+          # version separately from its own. A copy left behind would publish a
+          # registry entry pointing at a release that is not this one — which
+          # is worse than not publishing, because it looks current.
+          server="$(node -p "require('./server.json').version")"
+          package="$(node -p "require('./server.json').packages[0].version")"
+          if [ "$tag" != "$server" ] || [ "$tag" != "$package" ]; then
+            echo "Tag is v$tag but server.json says $server (package $package)." >&2
+            exit 1
+          fi
 
       - name: Check npm is new enough for trusted publishing
         run: |
@@ -105,3 +115,22 @@ jobs:
       # prepublishOnly runs the typecheck, the tests and the build, so a broken
       # tree cannot reach npm even from here.
       - run: npm publish --access public
+
+      # The MCP Registry does not follow npm. Without these three steps its
+      # entry stays at whatever version was last published by hand — and it did:
+      # the listing sat at 1.1.1 while releases carried on without it, which is
+      # the failure this whole step exists to end. It runs after npm because the
+      # registry validates that the package it points at actually exists.
+      #
+      # OIDC, like the npm publish above: the registry trusts this repository
+      # and workflow by name, so there is no token here either.
+      - name: Install mcp-publisher
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to the MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json to the MCP Registry
+        run: ./mcp-publisher publish

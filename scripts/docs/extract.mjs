@@ -140,6 +140,17 @@ export function listDocFiles() {
   return results.sort();
 }
 
+/** The manifests whose descriptions are read by people who never open the
+ * repository: npm renders one and the MCP Registry serves the other. They
+ * carry the same operation count the docs do, from a copy nothing checked —
+ * so the count in the two places most likely to be quoted elsewhere was the
+ * count nothing kept honest. Not doc files: no links, no operation
+ * references, only the sentence.
+ */
+export function listManifestFiles() {
+  return ["package.json", "server.json"];
+}
+
 export function toPosix(p) {
   return p.split(path.sep).join("/");
 }
@@ -160,5 +171,6 @@ export async function buildModel() {
     envVars: extractEnvVars(configSource).filter((name) => !retiredSet.has(name)),
     retiredEnvVars: retired,
     docFiles: listDocFiles(),
+    manifestFiles: listManifestFiles(),
   };
 }

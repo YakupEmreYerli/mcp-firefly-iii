@@ -182,7 +182,10 @@ export function rendererFor(file) {
  * this, so there is exactly one place that decides what "in sync" means. */
 export function planEdits(model) {
   const edits = [];
-  for (const file of model.docFiles) {
+  // Manifests ride along: `rendererFor` sends anything unrecognised to
+  // `renderCountOnly`, which only ever substitutes digits in front of the word
+  // "operations", so a JSON description is rewritten and its structure is not.
+  for (const file of [...model.docFiles, ...(model.manifestFiles ?? [])]) {
     const p = path.resolve(file);
     if (!fs.existsSync(p)) continue;
     const text = fs.readFileSync(p, "utf8");
