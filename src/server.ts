@@ -265,7 +265,12 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
       ...securityMetadata("firefly:read"),
       _meta: securityMetadata("firefly:read"),
       ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
-      inputSchema: { entity: z.nativeEnum(EntityType).optional() },
+      inputSchema: {
+        entity: z
+          .nativeEnum(EntityType)
+          .optional()
+          .describe("Limit the catalogue to one entity. Omit it to list every operation."),
+      },
     },
     // `entity` is already a validated EntityType and listOperations filters a
     // missing module rather than throwing, so there is nothing to catch here.
@@ -280,7 +285,15 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
       ...securityMetadata("firefly:read"),
       _meta: securityMetadata("firefly:read"),
       ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
-      inputSchema: { entity: z.string(), operation: z.string() },
+      // `entity` was a bare string while firefly_list_operations took the enum,
+      // so the same argument was discoverable on one tool and a guess on the
+      // other — and a guess costs a round-trip to find out it was wrong.
+      inputSchema: {
+        entity: z.nativeEnum(EntityType).describe("Entity the operation belongs to."),
+        operation: z
+          .string()
+          .describe('Operation name within that entity, as firefly_list_operations reports it, e.g. "list".'),
+      },
     },
     ({ entity, operation }) => {
       const payload = ((): unknown => {

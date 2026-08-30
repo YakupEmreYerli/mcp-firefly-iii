@@ -118,6 +118,24 @@ async function toolAnnotations(overrides: Partial<Config> = {}): Promise<Record<
   }
 }
 
+/** Full tool descriptors as the client receives them, keyed by tool name. */
+async function registeredTools(): Promise<Record<string, { description?: string; inputSchema?: { properties?: Record<string, { description?: string; enum?: string[] }> } }>> {
+  const registry = new Registry(config, client);
+  registry.register(module);
+  registry.register(accessModule);
+  const server = createServer(registry, config);
+  const mcpClient = new Client({ name: "test", version: "0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
+  try {
+    const { tools } = await mcpClient.listTools();
+    return Object.fromEntries(tools.map((tool) => [tool.name, tool]));
+  } finally {
+    await mcpClient.close();
+    await server.close();
+  }
+}
+
 describe("untrusted record content", () => {
   /** The ledger holds counterparty-written text. Anyone who can send this user
    * money picks the description that lands in the model's context, so the one
@@ -152,6 +170,33 @@ describe("untrusted record content", () => {
     } finally {
       await mcpClient.close();
       await server.close();
+    }
+  });
+});
+
+
+describe("the discovery tools", () => {
+  /** These two are where a model starts, so what they fail to say costs a
+   * round-trip: an undocumented parameter is guessed, and a guess that is
+   * wrong comes back as an error instead of a schema. */
+  it("document every parameter they accept", async () => {
+    const tools = await registeredTools();
+    for (const name of ["firefly_list_operations", "firefly_get_schema"]) {
+      const properties = tools[name]?.inputSchema?.properties ?? {};
+      expect(Object.keys(properties), name).not.toHaveLength(0);
+      for (const [parameter, schema] of Object.entries(properties)) {
+        expect(schema.description, `${name}.${parameter}`).toBeTruthy();
+      }
+    }
+  });
+
+  it("offer the same entity vocabulary as each other", async () => {
+    // firefly_list_operations took the enum and firefly_get_schema took a bare
+    // string, so the same argument was discoverable on one and a guess on the
+    // other.
+    const tools = await registeredTools();
+    for (const name of ["firefly_list_operations", "firefly_get_schema"]) {
+      expect(tools[name]?.inputSchema?.properties?.entity?.enum, name).toContain(EntityType.Insight);
     }
   });
 });
