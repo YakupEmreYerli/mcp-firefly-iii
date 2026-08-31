@@ -97,9 +97,32 @@ their behalf, use it first and show them the result.
 | What they see | What it is |
 |---|---|
 | No Firefly tools in the client | The client was not restarted, or the JSON is invalid |
+| The server fails to launch, `npx` not found | The client cannot see `npx` — see below |
 | `401` or an authentication error | The token is wrong, or was copied with whitespace |
 | `404` on every call | The address is wrong — try the full URL including `/api/v1` |
 | A certificate error | A self-signed certificate; `FIREFLY_DISABLE_SSL_VERIFY=true` is for local instances only |
 | Writes refused | The Firefly token is read-only, which may well be deliberate |
+
+## When the client cannot find `npx`
+
+Version managers put `node` and `npx` on the `PATH` from a shell profile, and
+an editor started from a desktop launcher or dock never reads one. The package
+runs perfectly from their terminal and the same client reports that it cannot
+launch it — which reads as a broken server rather than as a missing `PATH`.
+
+Ask them for the absolute path and use it as `command`:
+
+```bash
+which npx
+```
+
+```json
+{ "command": "/home/them/.nvm/versions/node/v24.16.0/bin/npx", "args": ["-y", "@yakupemreyerli/firefly-mcp"] }
+```
+
+The version number in that path changes when they upgrade Node, so mention
+that this is the one line to revisit if the server stops launching later. If
+they are not using a version manager, `npx` is on the system `PATH` and the
+plain `"npx"` is right.
 
 Full documentation: <https://yakupemreyerli.github.io/mcp-firefly-iii/>
