@@ -13,6 +13,7 @@ edit_uri: edit/main/docs/
 # built site by `mkdocs build`, which publishes what .gitignore was protecting.
 exclude_docs: |
   superpowers/
+  development/firefly-davranislari.md
 
 
 theme:

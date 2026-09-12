@@ -1,213 +1,130 @@
+# CLAUDE.md
+
+> İkiz dosya: bu dosyanın eşi `AGENTS.md`. İki dosya birebir aynıdır (tek fark bu satır ve başlık); birini değiştirirsen diğerini de aynı commit'te değiştir.
+
 # Firefly III MCP Sunucusu
 
-Kişisel bir [Firefly III](https://www.firefly-iii.org/) örneğini yapay zekâ
-asistanlarına açan bir MCP sunucusu. Tek bir canlı örnek için geliştiriliyor;
-bu yüzden burada genellik değil, **gerçek finansal veri üzerinde doğruluk** önemli.
+Kişisel bir [Firefly III](https://www.firefly-iii.org/) örneğini yapay zekâ asistanlarına
+açan MCP sunucusu; npm'de `@yakupemreyerli/firefly-mcp` olarak yayınlanır. Herkes kendi
+örneğine kendi token'ıyla bağlanır. Burada genellik değil, **gerçek finansal veri
+üzerinde doğruluk** önemli.
 
-Proje dili Türkçe: dokümantasyon ve bu dosya Türkçe yazılır. Kod içi docstring ve
-yorumlar İngilizce kalır.
+## Dil
+
+- Bu dosya Türkçe. Herkese açık belgeler İngilizce: `README.md`, `docs/` (MkDocs sitesi),
+  `CONTRIBUTING.md`, `CHANGELOG.md`. `README.tr.md` Türkçe eşidir; ikisi de
+  `npm run docs:check` kapsamındadır.
+- Kod yorumları, tanımlayıcılar ve commit mesajları İngilizce.
+- **Operasyon açıklamaları İngilizce kalır.** Türkçeye çevirmek, modelin gördüğü metinle
+  Firefly'ın alan adları (`category_id`, `source_name`) arasına bir çeviri katmanı koyar
+  ve araç seçimini zayıflatır.
 
 ## Komutlar
 
 ```bash
-make test        # tüm testler, mock'lu, ağa çıkmaz        (~3sn)
-make check       # canlı örneğe karşı salt-okunur sağlık kontrolü
-make run         # sunucuyu stdio üzerinden çalıştır
-make coverage    # kapsam raporu (kapı yok, isteğe bağlı)
-make inspector   # tarayıcıda interaktif araç gezgini
+make test            # npm test — Vitest, fetch mock'lu, ağa çıkmaz
+npm run typecheck    # tsc --noEmit -p tsconfig.test.json
+make run             # build + stdio sunucu (.env)
+make check           # build + canlı örneğe salt-okunur bağlantı kontrolü (.env)
+make smoke           # bakımcı: her read operasyonunu canlı örnekte yürütür (.env)
+make inspector       # build + tarayıcıda MCP Inspector
+npm run docs:update  # build + üretilen doküman sayfaları ve docs-manifest.json
+npm run docs:check   # build + senkron, bağlantı ve operasyon referansı denetimi
+make docs-serve      # MkDocs, .venv-docs içinde
 ```
 
-Her şey Node.js/npm üzerinden çalışır. Testler `.env.test`, `run`, `check` ve
-`parity` ise `.env` dosyasını okur.
+`prepublishOnly` = typecheck + build + test + docs:check. Sürüm süreci:
+`CONTRIBUTING.md` → Releases.
 
 ## Mimari
 
 ```
 src/
-  entities/  entity operations and Firefly request mapping
-  schemas/   hand-written strict Zod input schemas
-  registry   operation registration, validation, read-only gate, projection
-  firefly    HTTP client and Firefly error translation
+  index.ts, http.ts  stdio ve HTTP giriş noktaları
+  server.ts          MCP sunucusu, meta-araçlar, varlık modülü kaydı
+  registry.ts        operasyon kaydı, doğrulama, erişim kapısı, katalog
+  firefly.ts         HTTP istemcisi, Firefly hata çevirisi
+  projection.ts      yanıt kırpma
+  oauth.ts, auth/    HTTP modunda gömülü OAuth
+  entities/          varlık başına operasyonlar ve istek eşlemesi
+  schemas/           paylaşılan strict Zod parçaları
 ```
 
-Operasyonlar `defineOperation` ile tanımlanır ve meta-araçlar üzerinden sunulur
-— çoğu MCP istemcisi ~40 aracın üzerinde bozulduğu için. Çalıştırma riske göre
-üçe bölünmüştür (`firefly_query`, `firefly_mutate`, `firefly_destructive`),
-yanına `firefly_list_operations` ve `firefly_get_schema` gelir. Bölme
-`Registry.execute` içinde **uygulanır**: yanlış yüzeyden çağrılan bir operasyon
-`WrongAccessSurfaceError` ile reddedilir, yoksa tool annotation'ı sunucunun
-tutmadığı bir iddia olurdu.
+Operasyonlar tek tek araç olarak değil, meta-araçlar üzerinden sunulur: düz bir katalog
+bağlamı tüketir ve büyüdükçe istemcinin seçimini zorlaştırır. Çalıştırma riske göre
+üçe bölünür (`firefly_query`, `firefly_mutate`, `firefly_destructive`), yanında
+`firefly_list_operations` ve `firefly_get_schema` durur. Bölme `Registry.execute` içinde
+**uygulanır**: yanlış yüzeyden çağrılan operasyon `WrongAccessSurfaceError` ile
+reddedilir; yoksa tool annotation'ı sunucunun tutmadığı bir iddia olurdu.
 
 ## Operasyon ekleme
 
-1. `src/schemas/` — strict input schema
-2. `src/entities/<varlık>.ts` — `defineOperation` ile operation ve HTTP mapping
-3. `src/server.ts` — yeni module kaydı
-4. `test/` — mocked request/response and validation tests
+1. Varlığın `*Operations` nesnesine `defineOperation` ile girdi: strict input şeması,
+   HTTP eşlemesi, `access`.
+2. Yeni varlıksa modülü `src/server.ts`'e kaydet; `EntityModule.hint` zorunludur.
+3. `test/` altında mock'lu istek/yanıt ve doğrulama testleri.
+4. `npm run docs:update` — manifest ve üretilen sayfalar; yoksa `docs:check` düşer.
 
-İki şeyi atlamak kolay:
+**Her operasyonu `read`, `write` veya `destructive` diye etiketle.** Üç yüzey ve OAuth
+kapsamları bu etikete bakar; `access` zorunlu alan olduğu için eksik etiket derleme
+hatasıdır. `destructive`, çağıranın geri alamayacağı alt kümedir: kaydı siler ya da tek
+çağrıda çok kaydın bir alanını yeniden yazar.
 
-**Her operasyonu `read`, `write` veya `destructive` diye etiketleyin.**
-Üç çalıştırma yüzeyi ve OAuth kapsamları bu etiketlere bakar.
-`destructive`, çağıranın geri alamayacağı alt kümedir: kaydı siler, ya da tek
-çağrıda çok kaydın bir alanını yeniden yazar. Kapı tek bir yerde, `permits` ile
-seviye karşılaştırarak çalışır — etiketi tamamen unutulmuş bir operasyonu
-yakalayacak ikinci bir isim listesi yok, ama `access` zorunlu alan olduğu için
-eksik etiket derleme hatası olur.
+**Sunucunun kendi izin ayarı yok.** Erişimi bağlantı belirler: stdio istemcisi Firefly
+token'ının izin verdiği her şeyi yapar, OAuth istemcisi onaylanan kapsamları taşır.
+`FIREFLY_PERMISSIONS`, `FIREFLY_READ_ONLY` ve `FIREFLY_ENABLED_ENTITIES` kısıtlayan bir
+değerle tanımlıysa sunucu **açılmayı reddeder** (`src/config.ts`) — sessizce yok saymak
+operatörün yazdığından geniş bir sunucu bırakırdı. Kapsam kapısı `Registry`'de tek
+yerdedir: verilmeyen operasyon hem reddedilir hem katalogdan gizlenir.
 
-Sunucunun kendi izin ayarı yok. `FIREFLY_PERMISSIONS`, `FIREFLY_READ_ONLY` ve
-`FIREFLY_ENABLED_ENTITIES` kaldırıldı; erişimi bağlantının kendisi belirler —
-stdio istemcisi Firefly token'ının izin verdiği her şeyi yapar, OAuth istemcisi
-onay ekranında onaylanan kapsamları taşır. Kısıtlayan bir değerle hâlâ
-tanımlıysalar sunucu **açılmayı reddeder**: sessizce yok saymak, operatörün
-yazdığından daha geniş bir sunucu bırakırdı.
+**Açıklamayı, operasyonun cevapladığı soru olarak yaz.** "How much was spent per category
+in a period?", "expense category insight"tan iyidir. Çalıştırma araçlarına gömülü katalog
+yalnızca operasyon adlarını ve varlık ipucunu listeler; ipucu yalnızca `firefly_query`'de
+tekrarlanır (üç yüzeyde birden katalog metnini %55 büyütüyordu, ölçüldü).
 
-Kapsam kapısı `Registry`'de tek yerdedir: bağlantıya verilen `Access` kümesi
-constructor'a geçer, verilmeyen operasyon hem reddedilir hem katalogdan
-gizlenir. Katalogda görünüp yalnızca hata döndüren bir operasyon, modeli her
-seferinde çıkmaz sokağa sokar.
+## Veriye yazarken
 
-**Açıklamaları, operasyonun cevapladığı soru olarak yazın.**
-`"Dönemde kategoriye göre ne kadar harcandı?"`, `"Gider kategori insight'ı"`ndan
-iyidir. Bu açıklamalar `firefly_list_operations` ve `firefly_get_schema`
-üzerinden görünür.
+Gerekçeler ve ölçümler: `docs/development/firefly-davranislari.md` (yayınlanmaz).
 
-Çalıştırma araçlarının açıklamasına gömülü katalog ise açıklamaları değil,
-yalnızca **operasyon adlarını** listeler — yanına `EntityModule.hint`'ten gelen
-tek satırlık varlık ipucunu ekler. İpucu yalnızca `firefly_query` yüzeyinde
-tekrarlanır: üç yüzeyde birden tekrarlamak katalog metnini %55 büyütüyordu,
-ölçüldü. Model çoğu zaman varlığı bu ipuçlarına bakarak seçer, o yüzden yeni bir
-varlık eklerken ipucunu da ekleyin (tip sistemi zorunlu kılıyor).
+- Bileşik operasyon (`summary.overview`) istisnadır; ince operasyonlar altta kalır.
+- Filtreyle yazan operasyonlar (`bulk_update_where`, `bulk_rewrite`): `max_matches`
+  zorunlu, kesilen tarama reddeder, önce `dry_run`.
+- Desen dili **regex değildir** (`#` rakam dizisi, `*` herhangi); regex'e dönme (ReDoS).
+- Paylaşılan `set` `tags` taşıyamaz; etiket için `bulk_tag` ya da satır başına `bulk_update`.
+- Firefly dizileri baştan yazar, skalerleri birleştirir; çok parçalı gruplar
+  `bulk_update`/`bulk_update_where`'de reddedilir.
 
-**Açıklamalar İngilizce kalır.** Türkçeye çevirmek, modelin gördüğü metinle
-Firefly'ın kendi alan adları (`category_id`, `source_name`) arasına bir çeviri
-katmanı daha koyar ve araç seçimini zayıflatır. Türkçe olan yer dokümanlardır.
+## Sessizce yanlış cevap veren Firefly III (6.6.3, canlı doğrulandı)
 
-## İnce operasyonlar ve bileşik operasyonlar
+Hata değil yanlış cevap üretirler; ayrıntı yukarıdaki belgede.
 
-Operasyonların çoğu tek bir Firefly ucunu aynalar. `summary.overview` bilerek
-aynalamaz: dört insight ucuna dağılıp tek bir normalize edilmiş nesne döndürür,
-çünkü "bu ay nasıl geçti?" sorusu aksi hâlde ajana dört gidiş-dönüş artı elle
-toplama maliyeti çıkarıyor.
+- Tarih aralığında `end` dahildir.
+- `start == end`: `/accounts/{id}/transactions` ve `/summary/basic` 422 verir; bakiyeyi
+  aralığı genişleterek kurtarma (`balances_unavailable`).
+- Bilinmeyen sarmalayıcı anahtarlı PUT 200 döner, hiçbir şey değişmez.
+- İşlem güncellemesi her split'te `transaction_journal_id` ister.
+- `/search/accounts` `field` ister.
+- `opening_balance: "0"` yok sayılır; temizlemek için `null`.
+- Arayüz bakiyesi `virtual_balance` içerir, API `current_balance` içermez.
+- Insight giderleri negatiftir.
 
-Bileşim kural değil, istisnadır. Bir soru hem *sık* soruluyorsa *hem de* ham uçlar
-birleştirme işini çağırana yıkıyorsa hak eder. İnce operasyonlar her hâlükârda
-altta durmaya devam eder.
+**Yazmayı bağımsız bir okumayla doğrula.** Firefly'dan gelen 200 kanıt değildir.
 
-Filtreyle bir yazı operasyonu (`bulk_update_where`, `bulk_rewrite`) bu ilkeyi
-çiğnemek için bir düzenleme Yapar: `where` + `set` tek çağrıda seçim ve yazımı
-birleştirir. Onu buna izin veren iki şart vardır — ikisi de zorunludur:
-
-- **`max_matches` şarttır.** Filtre kolayca yanlış olur, Firefly her yazıma 200
-  cevap verir ve geri alma yoktur. Çağıran kaç satır beklediğini söyler; daha geniş
-  bir eşleşme ilk PUT'tan önce durur. `max_matches` verilmezse şema reddeder.
-- **Kesilen tarama da reddeder.** Sayfa tavanına ulaşan veya Firefly'nin sayfalama
-  meta'sı vermeyen bir tarama "belki daha çok eşleşme var" demektir; kısmi
-  eşleşmeye yazmak, daha küçük bir sayıyla aynı hatadır.
-
-## Toplu operasyonlarda desen ve etiket
-
-**Desen dili regex değildir, olmamalıdır.** `description_like` ve `bulk_rewrite`
-`#` (rakam dizisi) ile `*` (herhangi) jokerlerini alır; eşleştirici geri
-izlemesiz ve tek geçişlidir. Bir ara regex kabul edildi: `^(a+)+$` deseni 31
-karakterlik bir açıklamada olay döngüsünü 25 saniyeden fazla kilitledi — üstelik
-onay istenmeyen `firefly_query` yüzeyinden. JavaScript çalışan bir regex'i
-kesemez ve işlem açıklaması bu projenin kendi tehdit modelinde güvenilmez
-metindir: enjekte edilmiş bir not modelden o deseni aratabilir.
-
-**Paylaşılan bir `set` nesnesi `tags` taşıyamaz.** Firefly etiket listesinin
-tamamını değiştirir; tek liste birçok satıra yazılırsa her birinin kendi
-etiketlerini siler, ve alanın açıklamasındaki çözüm (önce oku, hepsini geri
-gönder) satırların adı anılmadığında uygulanamaz. Etiket eklemek için birleştiren
-`bulk_tag`, ya da her satırın kendi listesini taşıdığı `bulk_update`.
-
-**Filtreyle yazan bir operasyon önce `dry_run` ile çağrılır.** Ön izleme,
-gönderilecek PUT'ları çözülmüş journal id'leriyle gösterir; reddedildiyse bunu da
-söyler. Handler'ın başarı sayaçları ön izlemede taşınmaz — ön izleme istemcisinde
-her yazma "başarılı" olur, ve "hiçbir şey yazılmadı" notunun yanındaki
-`updated: 10` çağıranı işi bitmiş sanmaya iter.
-
-## Sessizce yanlış sonuç veren Firefly III davranışları
-
-Firefly III 6.6.3 üzerinde canlı doğrulandı. Hepsinin ortak özelliği **hata değil,
-yanlış cevap** üretmeleri — yazılı olmalarının sebebi bu.
-
-- **Tarih aralıklarında `end` dahildir.** `start=2026-08-25&end=2026-08-26` iki
-  günü birden döndürür. "Tek gün" demek için `end`'i bir gün ileri almayın; ertesi
-  günü içeri alır.
-- **`start == end` bazı uçlarda reddedilir** (422). `/accounts/{id}/transactions`
-  ve `/summary/basic` reddeder; insight uçlarının hepsi kabul eder. İlkinin geçici
-  çözümü `src/entities/accounts.ts` içinde. İkincisi için aralığı genişletmek
-  **çözüm değil**: `balance-in-*` dönem hareketidir, anlık bakiye değil — canlı
-  ölçüldü, `start` değişince değer değişiyor. `buildOverview` bu yüzden bakiye
-  çağrısını ölümcül saymaz ve kaybı `balances_unavailable` ile açıkça bildirir.
-- **Bilinmeyen bir sarmalayıcı anahtarıyla yapılan PUT 200 döner ve hiçbir şeyi
-  değiştirmez.** Firefly tanımadığı üst düzey anahtarları reddetmez; bozuk bir
-  güncelleme başarılı görünür. Bu bir kez gerçek bir hata olarak yayınlandı,
-  bkz. `tests/test_transaction_update.py`.
-- **İşlem güncellemeleri her split içinde `transaction_journal_id` ister**, yoksa
-  split eşleşmez ve hiçbir şey olmaz.
-- **`/search/accounts` `field` parametresi ister**, yoksa 422 döner.
-- **`opening_balance: "0"` sessizce yok sayılır.** Hesap PUT'u 200 döner ve
-  açılış bakiyesi olduğu gibi kalır. `"0.01"` uygulanır, `null` ise alanı
-  gerçekten temizler. Yani bir açılış bakiyesini sıfırlamak isteyen kod, `"0"`
-  gönderdiğinde başarılı görünüp hiçbir şey değiştirmez — canlı ölçüldü.
-- **Diziler baştan yazılır, skalerler birleşir.** Bir `PUT`'ta göndermediğiniz
-  skaler alan korunur (kategori notu ölçüldü), ama gönderdiğiniz dizi kümenin
-  tamamının yerine geçer: iki trigger'lı bir kurala tek trigger göndermek onu
-  tek trigger'lı bırakır, iki etiketli bir işleme tek etiket göndermek diğerini
-  siler. `bulk_tag` bu yüzden bir kez veri sildi. Etiket/trigger/action/accounts
-  gibi alanların şemasında bu yazılıdır, `test/replace-semantics.test.ts`
-  düşmesini engeller.
-- **Çok parçalı gruba tek bir tutar yazmak toplamı sessizce katlar.** Bir
-  grubun üç split'ine tek `amount` yaymak, o tutarı üç kez kaydeder ve Firefly
-  200 cevap verir — geri alma yok. Aynı tehlike `source_id`/`destination_id`
-  için de geçerli: üç bacaklı bir split'in bacakları tek hesaba çöker. Bu yüzden
-  `bulk_update` ve `bulk_update_where` çok parçalı grupları **tamamen reddeder**
-  (alana göre muafiyet listesi tutmazlar); operasyonun yerine tek işlem `update`.
-  `bulk_categorize` ve `bulk_tag` istisnadır — kategori ve etiket gerçekten tüm
-  gruba aittir, yayılımları uzun süredir testlidir.
-- **Arayüzün "bakiye"si `virtual_balance` içerir, API'nin `current_balance`'ı
-  içermez.** Ekranda 501,47 yazarken `/accounts/{id}` 500,00 döner; iki değer de
-  "bakiye" diye sunulur. Fark, gerçek para kaydı değildir (kullanıcının
-  cüzdanındaki senaryo), ancak arayüzle API arasında karşılaştırma yapan her kod
-  bunu bilmelidir.
-- **Insight giderleri negatiftir**; gelir ve transferler pozitif.
-
-## Kayıt içeriği güvenilmezdir
-
-İşlem açıklaması, notlar, etiketler ve karşı taraf hesap adları parayı hareket
-ettiren kişi tarafından yazılır — gelen bir ödemede bu, hesap sahibi değildir.
-Bu metin `firefly_query` sonucuyla modelin context'ine girer ve aynı oturumda
-`firefly_mutate` ile `firefly_destructive` hazırdır.
-
-Yapısal savunma yüzey ayrımıdır: enjekte edilmiş bir talimatın işe yaraması için
-host'un annotation'la işaretlediği ve onay isteyebildiği bir aracı çağırması
-gerekir. Metinsel savunma ise `UNTRUSTED_CONTENT_NOTICE` — üç çalıştırma
-çalıştırma yüzeyinin açıklamasında durur. Araç açıklaması
-sunucunun yazdığı, dolayısıyla güvenilir metindir; araç **sonucu** değildir.
-Yeni bir çalıştırma yüzeyi eklerseniz bu notu da taşıyın.
-
-**Yazma işlemlerini bağımsız bir okumayla doğrulayın.** Firefly'dan gelen 200,
-bir şeyin değiştiğinin kanıtı değildir.
+**Kayıt içeriği güvenilmezdir.** Açıklama, not, etiket ve karşı taraf adlarını parayı
+gönderen yazar ve `firefly_query` sonucuyla bağlama girer. Savunma yüzey ayrımı ve
+`UNTRUSTED_CONTENT_NOTICE`'tır (`src/server.ts`); yeni bir çalıştırma yüzeyi eklersen
+bu notu da taşı.
 
 ## Test
 
-Testler mock'ludur ve canlı örneğe asla dokunmaz. `core.<varlık>.client` ve
-`core.<varlık>.raise_api_error_if_any` yamalanır.
-
-Kapsam ölçülür ama kapı olarak kullanılmaz — eşik, neyin test edildiğini raporlamak
-yerine şekillendiriyordu. Testi, **hatanın sessiz kalacağı** yerlere yazın: istek
-şekilleri, normalizasyonlar ve yukarıdaki geçici çözümler. Yalnızca bir mock'un
-kendisine söyleneni döndürdüğünü doğrulayan test, bakım maliyetini hak etmez.
-
-Bir hatayı düzeltirken, yeni testin **eski kodda düştüğünü** doğrulamadan
-saklamayın.
+Testler mock'ludur (`fetch` stub'lanır), canlı örneğe asla dokunmaz. Kapsam kapı olarak
+kullanılmaz. Testi **hatanın sessiz kalacağı** yere yaz: istek şekilleri,
+normalizasyonlar, yukarıdaki Firefly tuzakları. Yalnızca mock'un söyleneni döndürdüğünü
+doğrulayan test bakımını hak etmez. Hata düzeltirken yeni testin **eski kodda düştüğünü**
+doğrulamadan saklama.
 
 ## Notlar
 
-- `README.md` ve `LICENSE` bilerek silindi. İstenmeden geri eklenmez. README
-  eklenecek olursa Türkçe birincil, İngilizce ikincil dil olur.
-- Commit'ler doğrudan `main`'e atılır. Özellik dalı açılmaz.
-- Kaynak kodda veya `.env`'de yapılan değişiklikler, MCP istemcisi yeniden
-  başlatılana kadar (Claude Code'da `/mcp`) çalışan sürece yansımaz.
+- Commit'ler doğrudan `main`'e atılır; özellik dalı açılmaz.
+- Kaynak kodda veya `.env`'de yapılan değişiklik, MCP istemcisi yeniden başlatılana kadar
+  (Claude Code'da `/mcp`) çalışan sürece yansımaz.

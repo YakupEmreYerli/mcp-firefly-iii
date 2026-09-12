@@ -78,9 +78,12 @@ produce a **wrong answer, not an error** — which is why they are written down.
 - **`end` is inclusive in date ranges.** `start=2026-08-25&end=2026-08-26`
   returns both days. Do not shift `end` forward to mean "one day"; that pulls in
   the next day.
-- **`start == end` is rejected only on `/accounts/{id}/transactions`** (422).
-  The other transaction endpoints accept it. `src/entities/accounts.ts` carries
-  the workaround.
+- **`start == end` is rejected on `/accounts/{id}/transactions` and
+  `/summary/basic`** (422); the insight endpoints accept it.
+  `src/entities/accounts.ts` carries the workaround for the first. For the
+  second, widening the range is not a fix — `balance-in-*` is movement over the
+  period, not a point-in-time balance — so `summary.overview` reports
+  `balances_unavailable` instead.
 - **A PUT with an unknown wrapper key returns 200 and changes nothing.** Firefly
   does not reject top-level keys it does not recognise, so a malformed update
   looks successful. Strict input schemas are what prevent constructing one.
