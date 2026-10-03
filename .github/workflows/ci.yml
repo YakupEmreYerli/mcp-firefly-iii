@@ -14,8 +14,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 20.6 is the floor the package declares; 22 is current LTS.
-        node-version: ["20.6", "22"]
+        # Vitest 4 needs node:util styleText (Node 20.12+), so the test leg runs the
+        # latest 20.x; the package itself still only needs 20.6 (--env-file).
+        node-version: ["20.19", "22"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
