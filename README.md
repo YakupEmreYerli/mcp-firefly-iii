@@ -173,3 +173,5 @@ Tests are mocked and never reach the network. `npm run smoke:live` is a maintain
 ## License
 
 MIT — see [LICENSE](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/LICENSE).
+
+The flame-and-piggy logo in the banner and in `docs/assets/` is Firefly III's own logo, not covered by this licence. It is used, as its [logo guidelines](https://docs.firefly-iii.org/explanation/more-information/logo/) allow, to refer to Firefly III; this project is not made or endorsed by Firefly III.

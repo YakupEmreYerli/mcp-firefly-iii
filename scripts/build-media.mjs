@@ -83,46 +83,34 @@ function drawtext({ file, text, size, color, y, x = "(w-tw)/2" }) {
   ].join(":");
 }
 
-/** A square mark for directory listings, which want an icon rather than a
- * banner.
+/** The square icon for directory listings, which want an icon rather than a
+ * banner: Firefly III's own logo, the flame-and-piggy mark, centred on a
+ * transparent square.
  *
- * "F3" carries the small sizes — at forty pixels in a list it is the only
- * part still legible — and "FIREFLY III" underneath is what stops the
- * abbreviation being a riddle at full size. In an MCP directory every entry
- * is an MCP server, so that word earns no space; which ledger it speaks to
- * is the thing worth saying.
- *
- * The two glyphs are drawn separately because one size does not fit both:
- * a typeface gives round figures like 3 an optical overshoot past the cap
- * height of a flat letter like F, and set at the same nominal size the 3
- * reads as the larger of the two.
+ * `docs/assets/firefly-iii-logo.png` is the official PNG, committed exactly as
+ * published at https://docs.firefly-iii.org/explanation/more-information/logo/
+ * (`logo-flame.png` in the firefly-iii/docs repository). The logo belongs to
+ * Firefly III, not to this project, and its guidelines say not to modify it, so
+ * it is only scaled and padded here, never redrawn or recoloured.
  */
-/** How much smaller the 3 has to be set to stand exactly as tall as the F.
- *
- * Measured, not guessed: rendered on their own at 172px, the F's ink is 119
- * rows tall and the 3's is 121 — a typeface gives round figures an overshoot
- * past the cap height of a flat letter, so that they *look* equal in running
- * text. Set side by side and read as a monogram they do not; the 3 reads as
- * the larger of the two. At 169 the 3 measures 120 rows, one off 119 and the
- * closest an integer size gets.
- *
- * Both are drawn at the same `y`. drawtext positions by the layout box rather
- * than by the ink, so equal `y` already puts the tops on one line; an earlier
- * attempt moved the 3 down as well as shrinking it, and that — not the
- * typeface — is what made the misalignment visible.
- */
-const THREE = 169 / 172;
+const LOGO = "docs/assets/firefly-iii-logo.png";
 
 function icon(path, size) {
-  const mark = Math.round(size * 0.43);
-  const y = Math.round(size * 0.205);
+  // The logo is taller than wide; a tenth of the square stays empty around it
+  // so a directory that rounds the corners does not clip the flame.
+  const height = Math.round(size * 0.9);
   ffmpeg([
-    "-f", "lavfi", "-i", `color=c=${INK}:s=${size}x${size}`,
+    "-i", LOGO,
     "-frames:v", "1",
     "-vf", [
-      drawtext({ file: BOLD, text: "F", size: mark, color: ACCENT, y, x: "(w/2)-tw-5" }),
-      drawtext({ file: BOLD, text: "3", size: Math.round(mark * THREE), color: ACCENT, y, x: "(w/2)+5" }),
-      drawtext({ file: BOLD, text: "MCP", size: Math.round(size * 0.185), color: "white", y: Math.round(size * 0.61) }),
+      // The transparent pixels around the flame are transparent *black*;
+      // scaling without premultiplying blends that black into the edge and
+      // leaves a dark outline on a light page.
+      "format=rgba",
+      "premultiply=inplace=1",
+      `scale=-1:${height}:flags=lanczos`,
+      "unpremultiply=inplace=1",
+      `pad=${size}:${size}:(ow-iw)/2:(oh-ih)/2:color=black@0`,
     ].join(","),
     path,
   ]);
@@ -157,7 +145,7 @@ const targets = [
   })],
   // Square icon. Cline's marketplace asks for 400x400 by name; the other
   // directories want a square too and each crops it themselves.
-  ["icon-400.png", (p) => icon(p, 400)],
+  ["firefly-iii-logo-400.png", (p) => icon(p, 400)],
 ];
 
 const digest = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");

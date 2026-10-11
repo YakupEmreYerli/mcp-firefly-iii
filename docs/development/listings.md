@@ -42,9 +42,14 @@ Searching for "firefly iii mcp" today returns four competing servers, two
 directories and a Firefly III discussion thread — and none of them us. The
 gap is not quality; it is that none of these pages has heard of the project.
 Each row below is a page that already ranks, and what it takes to appear on
-it. The artefacts they ask for are committed: `docs/assets/icon-400.png` for
-the ones wanting a square icon, `llms-install.md` for the ones that install
-by handing a file to an agent.
+it. The artefacts they ask for are committed: `docs/assets/firefly-iii-logo-400.png`
+(Firefly III's own logo on a transparent square, built by `npm run media` from
+the official `docs/assets/firefly-iii-logo.png`) for the ones wanting a square
+icon, `llms-install.md` for the ones that install by handing a file to an agent.
+The logo is Firefly III's mark, not this project's: its
+[guidelines](https://docs.firefly-iii.org/explanation/more-information/logo/)
+allow it to refer to Firefly III, not to suggest that Firefly III endorses
+this server.
 
 | Where | How | Worth it because |
 |-------|-----|------------------|
@@ -154,7 +159,7 @@ the facts still hold, then paste.
 ### Cline MCP Marketplace — issue body
 
 > **GitHub Repo URL:** https://github.com/YakupEmreYerli/mcp-firefly-iii
-> **Logo:** `docs/assets/icon-400.png` in the repository (400×400 PNG)
+> **Logo:** `docs/assets/firefly-iii-logo-400.png` in the repository (400×400 PNG, Firefly III's logo)
 >
 > **Reason for addition:** Firefly III is a widely self-hosted personal
 > finance manager, and this connects it to Cline over MCP. Since this is a

@@ -175,3 +175,5 @@ Testler mock'ludur ve ağa hiç çıkmaz. `npm run smoke:live`, `.env`'deki örn
 ## Lisans
 
 MIT — bkz. [LICENSE](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/LICENSE).
+
+Banner'daki ve `docs/assets/` içindeki alev ve kumbara logosu Firefly III'ün kendi logosudur, bu lisansın kapsamında değildir. [Logo kurallarının](https://docs.firefly-iii.org/explanation/more-information/logo/) izin verdiği gibi Firefly III'ü anmak için kullanılır; bu proje Firefly III'ün yaptığı ya da onayladığı bir proje değildir.
