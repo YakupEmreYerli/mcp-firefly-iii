@@ -6,6 +6,8 @@ A Model Context Protocol server that gives an AI assistant access to your own [F
 
 > Türkçe: [README.tr.md](README.tr.md)
 
+![Firefly III MCP: a security-first, self-hosted MCP server for Firefly III, with 152 operations behind 5 scoped tools](docs/banner.en.png)
+
 - *"What did I spend the most on last month?"*
 - *"Find uncategorised transactions from August and suggest categories."*
 - *"Show me subscriptions whose amount went up."*

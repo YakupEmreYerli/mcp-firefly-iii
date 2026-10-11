@@ -6,6 +6,8 @@ Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ a
 
 > English: [README.md](README.md)
 
+![Firefly III MCP: Firefly III için kendi sunucunda çalışan MCP sunucusu; 152 işlem, yetkisi ayrı ayrı sınırlanmış 5 araç](docs/banner.tr.png)
+
 - *"Geçen ay en çok neye harcadım?"*
 - *"Ağustos'taki kategorisiz işlemleri bul, kategori öner."*
 - *"Tutarı artan abonelikleri göster."*
