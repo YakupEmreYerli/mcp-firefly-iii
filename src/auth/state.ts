@@ -2,6 +2,7 @@ import { accessSync, chmodSync, constants, mkdirSync, readFileSync, renameSync, 
 import { dirname, join } from "node:path";
 import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from "node:crypto";
 import type { Config } from "../config.js";
+import { TOMBSTONE_MS, refreshReuseGraceMs } from "./tokens.js";
 
 export type StoredClient = {
   client_id: string;
@@ -17,6 +18,14 @@ export type StoredRefresh = {
   subject: string;
   scopes: string[];
   expiresAt: number;
+  /** Hash of the first token of this login; every rotation inherits it. Absent on pre-upgrade records (= own hash). */
+  familyId?: string;
+  /** The token this one was minted from. */
+  parentHash?: string;
+  /** When a successor of this token was first used: from then on it is superseded. */
+  committedAt?: number;
+  /** Which successor that was. */
+  committedChild?: string;
 };
 
 type StateDocument = {
@@ -122,15 +131,36 @@ export class AuthState {
     this.save();
   }
 
-  addRefresh(refresh: StoredRefresh): void {
-    // An expired refresh token is already refused on use, but nothing ever
-    // removed it: a connection set up once and dropped left its record in the
-    // file for good. Sweeping on write keeps the store the size of what is
-    // actually live.
-    const now = Date.now();
-    this.document.refreshTokens = this.document.refreshTokens.filter((token) => token.expiresAt > now);
+  addRefresh(refresh: StoredRefresh, now: number = Date.now()): void {
+    // Sweep on write so the store stays the size of what is live: expired
+    // tokens, superseded tokens past their day as reuse tombstones, and
+    // successors that lost a race to a sibling that has since been used.
+    const graceMs = refreshReuseGraceMs();
+    const byHash = new Map(this.document.refreshTokens.map((token) => [token.hash, token]));
+    this.document.refreshTokens = this.document.refreshTokens.filter((token) => {
+      if (token.expiresAt <= now) return false;
+      if (token.committedAt !== undefined && now - token.committedAt > TOMBSTONE_MS) return false;
+      const parent = token.parentHash ? byHash.get(token.parentHash) : undefined;
+      if (parent?.committedAt !== undefined && parent.committedChild !== token.hash && now - parent.committedAt > graceMs) return false;
+      return true;
+    });
     this.document.refreshTokens.push(refresh);
     this.save();
+  }
+  commitRefresh(hash: string, child: string, at: number): void {
+    const record = this.document.refreshTokens.find((item) => item.hash === hash);
+    if (record && record.committedAt === undefined) {
+      record.committedAt = at;
+      record.committedChild = child;
+    }
+    this.save();
+  }
+  /** Remove every refresh token of one login. Returns how many went. */
+  revokeFamily(familyId: string): number {
+    const before = this.document.refreshTokens.length;
+    this.document.refreshTokens = this.document.refreshTokens.filter((item) => (item.familyId ?? item.hash) !== familyId);
+    this.save();
+    return before - this.document.refreshTokens.length;
   }
   removeRefresh(hash: string): void {
     this.document.refreshTokens = this.document.refreshTokens.filter((item) => item.hash !== hash);
