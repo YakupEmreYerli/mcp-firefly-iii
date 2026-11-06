@@ -9,3 +9,5 @@ exports
 .pytest_cache
 test
 docs
+candidate.json
+graphify-out

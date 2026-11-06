@@ -1,0 +1,87 @@
+name: Verified image candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check locked source in the Dockerfile base environment
+        env:
+          BASE: node:22-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+        run: |
+          set -euo pipefail
+          docker run --rm -e CI=true -v "$PWD:/workspace" -w /workspace "$BASE" \
+            sh -ec 'npm ci --no-audit --no-fund; npm run typecheck; npm run build; npm test; npm run docs:check'
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Choose commit and run specific image name
+        id: names
+        run: |
+          set -euo pipefail
+          repository="${GITHUB_REPOSITORY,,}"
+          echo "tag=ghcr.io/${repository}:candidate-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - name: Build once and load the candidate
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ steps.names.outputs.tag }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          provenance: false
+      - name: Test the exact runtime image offline
+        env:
+          IMAGE: ${{ steps.names.outputs.tag }}
+        run: python3 scripts/candidate-smoke.py "$IMAGE"
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Push the tested image without rebuilding it
+        env:
+          IMAGE: ${{ steps.names.outputs.tag }}
+        run: docker push "$IMAGE"
+      - name: Record the immutable tested artifact
+        env:
+          IMAGE: ${{ steps.names.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker image inspect "$IMAGE" --format '{{json .RepoDigests}}' > /tmp/repo-digests.json
+          python3 - <<'PY'
+          import json, os
+          repository = os.environ['GITHUB_REPOSITORY']
+          image_repo = 'ghcr.io/' + repository.lower()
+          images = [i for i in json.load(open('/tmp/repo-digests.json')) if i.startswith(image_repo + '@sha256:')]
+          assert len(images) == 1, 'exactly one pushed digest required'
+          result = dict(schema=1, repository=repository, commit=os.environ['GITHUB_SHA'],
+                        image=images[0], platform='linux/amd64', verified=True,
+                        run_url=os.environ['GITHUB_SERVER_URL'] + '/' + repository + '/actions/runs/' + os.environ['GITHUB_RUN_ID'])
+          with open('candidate.json', 'w') as stream: json.dump(result, stream, indent=2)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('Verified image: `' + images[0] + '`\n\nProduction was not deployed.\n')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verified-candidate-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate.json
+          retention-days: 30
+          if-no-files-found: error
