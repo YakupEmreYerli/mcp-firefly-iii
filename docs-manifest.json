@@ -804,7 +804,7 @@
       "entity": "rule",
       "operation": "create",
       "access": "write",
-      "fingerprint": "87c9b04815b39578"
+      "fingerprint": "55856d2062ba6353"
     },
     {
       "name": "rule.delete",
@@ -846,7 +846,7 @@
       "entity": "rule",
       "operation": "update",
       "access": "write",
-      "fingerprint": "834fbbb293b9d14b"
+      "fingerprint": "b93c25a783509dc7"
     },
     {
       "name": "search.accounts",

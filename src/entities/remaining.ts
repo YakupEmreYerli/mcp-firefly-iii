@@ -84,16 +84,24 @@ export const piggyBankOperations: Record<string, Operation> = {
 };
 export const piggyBanksModule: EntityModule = { entity: EntityType.PiggyBank, hint: "savings goals and their events", operations: piggyBankOperations };
 
-const ruleTrigger = z.object({ type: z.string().min(1), value: z.string() }).strict();
-const ruleAction = z.object({ type: z.string().min(1), value: z.string() }).strict();
+const ruleTrigger = z.object({ type: z.string().min(1), value: z.string(), active: z.boolean().optional(), stop_processing: z.boolean().optional() }).strict();
+const ruleAction = z.object({ type: z.string().min(1), value: z.string(), active: z.boolean().optional(), stop_processing: z.boolean().optional() }).strict();
 const ruleStore = z.object({ title: z.string().min(1), rule_group_id: entityId, description: z.string().optional(), active: z.boolean().optional(), strict: z.boolean().optional(), stop_processing: z.boolean().optional(), trigger: z.string().min(1), triggers: z.array(ruleTrigger).min(1), actions: z.array(ruleAction).min(1) }).strict();
 const ruleUpdate = z.object({ title: z.string().optional(), rule_group_id: entityId.optional(), description: z.string().optional(), active: z.boolean().optional(), strict: z.boolean().optional(), stop_processing: z.boolean().optional(), trigger: z.string().optional(), triggers: z.array(ruleTrigger).optional().describe("Sent as a complete list: Firefly REPLACES the whole set rather than merging into it, so any value already there and not repeated here is removed. To add one, read the current values first and send them all back."), actions: z.array(ruleAction).optional().describe("Sent as a complete list: Firefly REPLACES the whole set rather than merging into it, so any value already there and not repeated here is removed. To add one, read the current values first and send them all back.") }).strict();
+/** Firefly's rule update stores an action sent without `active` as inactive,
+ * although rule create and Firefly's own validator both treat a missing
+ * `active` as true. The rule stays active and silently does nothing, so an
+ * omitted `active` is filled in here to make update mean what create means. */
+function withActiveActions<T extends { actions?: Array<{ active?: boolean }> }>(update: T): T {
+  if (update.actions === undefined) return update;
+  return { ...update, actions: update.actions.map((action) => ({ ...action, active: action.active ?? true })) };
+}
 const ruleFilterShape = { ...dates, accounts: z.array(z.number().int().positive()).optional() };
 export const ruleOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which rules exist?", access: "read", input: z.object({ ...pagination }).strict(), handler: (q, c) => c.get("/rules", q) }),
   get: defineOperation({ description: "What are the details of this rule?", access: "read", input: id, handler: ({ id }, c) => c.get(`/rules/${id}`) }),
   create: defineOperation({ description: "Create a new rule.", access: "write", input: ruleStore, handler: (b, c) => c.post("/rules", b) }),
-  update: defineOperation({ description: "Change an existing rule.", access: "write", input: z.object({ id: entityId, rule_update: ruleUpdate }).strict(), handler: ({ id, rule_update }, c) => c.put(`/rules/${id}`, rule_update) }),
+  update: defineOperation({ description: "Change an existing rule.", access: "write", input: z.object({ id: entityId, rule_update: ruleUpdate }).strict(), handler: ({ id, rule_update }, c) => c.put(`/rules/${id}`, withActiveActions(rule_update)) }),
   delete: defineOperation({ description: "Delete a rule.", access: "destructive", input: id, handler: ({ id }, c) => deleteResult(`/rules/${id}`, { id }, c) }),
   test: defineOperation({ description: "Which transactions would this rule affect?", access: "read", input: z.object({ id: entityId, ...ruleFilterShape }).strict(), handler: ({ id, ...q }, c) => c.get(`/rules/${id}/test`, q) }),
   trigger: defineOperation({ description: "Apply this rule to matching transactions.", access: "write", input: z.object({ id: entityId, ...ruleFilterShape }).strict(), handler: ({ id, ...q }, c) => c.post(`/rules/${id}/trigger`, undefined, q) }),

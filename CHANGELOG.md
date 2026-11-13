@@ -5,6 +5,21 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `rule.trigger`, `rule.test`, `rule_group.trigger` and `rule_group.test` no
+  longer fail when given `accounts`. List-valued query parameters went out as
+  a bare repeated key (`accounts=1`), which Firefly reads as a single string;
+  `rule.trigger` answered with HTTP 500. They are now sent in PHP array form
+  (`accounts[]=1`). Reported by @airportibo (#15).
+- `rule.update` no longer turns replaced actions off. Firefly stores an action
+  sent without `active` as inactive on update, although it defaults to active
+  on create, so the rule kept firing and did nothing. An omitted `active` is
+  now sent as `true`, and rule triggers and actions accept `active` and
+  `stop_processing`. Reported by @airportibo (#16).
+
 ## [1.1.2] - 2026-08-30
 
 ### Security

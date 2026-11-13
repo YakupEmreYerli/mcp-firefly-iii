@@ -5,10 +5,11 @@ import { FireflyApiError } from "./errors.js";
 /** A single query parameter value. */
 export type QueryValue = string | number | boolean;
 
-/** Query parameters. An array value is emitted as one repeated key per
- * element (`accounts=1&accounts=2`), which is what Firefly expects for its
- * repeated list parameters; comma-joining them would be accepted and quietly
- * mean something else. `undefined` values are dropped. */
+/** Query parameters. An array value is emitted in PHP array form, one
+ * `key[]` per element (`accounts[]=1&accounts[]=2`). Firefly is PHP: a bare
+ * repeated key reaches it as a single string (the last one), which its rule
+ * trigger endpoint answers with a 500, and comma-joining would be accepted
+ * and quietly mean something else. `undefined` values are dropped. */
 export type Query = Record<string, QueryValue | QueryValue[] | undefined>;
 
 export interface FireflyClient {
@@ -29,7 +30,7 @@ function buildUrl(apiUrl: string, path: string, query?: Query): string {
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value === undefined) continue;
     if (Array.isArray(value)) {
-      for (const item of value) url.searchParams.append(key, String(item));
+      for (const item of value) url.searchParams.append(`${key}[]`, String(item));
     } else {
       url.searchParams.set(key, String(value));
     }

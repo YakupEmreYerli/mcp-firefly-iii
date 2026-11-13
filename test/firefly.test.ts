@@ -101,13 +101,16 @@ describe("createClient", () => {
     expect((init as RequestInit).body).toBeUndefined();
   });
 
-  it("repeats the key for an array query value instead of comma-joining it", async () => {
+  it("sends an array query value in PHP array form, not as a bare repeated key", async () => {
+    // Firefly reads `accounts=1` as a string and its rule trigger endpoint
+    // answers 500; only `accounts[]=1` arrives as an array.
     const fetchMock = mockFetch(200, { data: [] });
     await createClient(config).post("/rules/1/test", undefined, { accounts: [1, 2] });
 
-    expect(String(fetchMock.mock.calls[0]![0])).toBe(
-      "https://firefly.example/api/v1/rules/1/test?accounts=1&accounts=2",
-    );
+    const url = new URL(String(fetchMock.mock.calls[0]![0]));
+    expect(url.pathname).toBe("/api/v1/rules/1/test");
+    expect(url.searchParams.getAll("accounts[]")).toEqual(["1", "2"]);
+    expect(url.searchParams.has("accounts")).toBe(false);
   });
 
   it("passes an SSL-bypassing dispatcher only when the flag is on", async () => {
