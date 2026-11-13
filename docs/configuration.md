@@ -80,6 +80,7 @@ silence. `MCP_UPDATE_CHECK=false` turns it off, as do `NO_UPDATE_NOTIFIER` and
 | `MCP_RESOURCE_URL` | *(required for OAuth)* | Public MCP hostname, for example `https://mcp.example.com` |
 | `MCP_AUTH_PASSWORD` | empty | Enables the embedded OAuth 2.1 login flow |
 | `MCP_AUTH_STATE_DIR` | `/data/firefly-mcp-auth` | Persistent key, client and refresh-token state directory |
+| `MCP_REFRESH_REUSE_GRACE_SECONDS` | `120` | A rotated refresh token stays valid until one of its successors is used, then for this many seconds more (requests in flight together). Reuse after that revokes every token of that login and logs `oauth: SECURITY`. Max 3600 |
 
 `MCP_RESOURCE_URL` has to be a bare origin: `mcp.example.com` or
 `https://mcp.example.com`. A subpath such as `/mcp` is not supported. Firefly

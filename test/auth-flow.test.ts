@@ -78,6 +78,68 @@ describe("embedded authorization server", () => {
     rmSync(stateDir, { recursive: true, force: true }); stateDir = "";
   });
 
+  describe("refresh rotation (commit on use, reuse detection)", () => {
+    const resource = "https://mcp.example";
+    const H = 60 * 60 * 1000;
+    const rotate = (st: AuthState, token: string, now: number, client = "client") =>
+      rotateRefreshToken(st, token, client, resource, resource, { graceMs: 120_000, now });
+    function fresh(): { st: AuthState; t0: string; now: number } {
+      stateDir = mkdtempSync(join(tmpdir(), "firefly-auth-rot-"));
+      const st = new AuthState(config(resource));
+      const now = Date.now();
+      return { st, t0: issueRefreshToken(st, "client", ["firefly:read"], {}, now), now };
+    }
+
+    it("survives a lost response even when the retry comes hours later", async () => {
+      const { st, t0, now } = fresh();
+      await rotate(st, t0, now);                      // response lost: client never sees this successor
+      const retry = await rotate(st, t0, now + 12 * H); // next run, half a day later, still holding t0
+      const next = await rotate(st, retry.refresh_token, now + 13 * H);
+      expect(next.refresh_token).toBeTruthy();
+      rmSync(stateDir, { recursive: true, force: true }); stateDir = "";
+    });
+
+    it("lets two concurrent refreshes both succeed, then retires the loser after the grace", async () => {
+      const { st, t0, now } = fresh();
+      const a = await rotate(st, t0, now);
+      const b = await rotate(st, t0, now);
+      await rotate(st, b.refresh_token, now + 1_000);                  // b wins: t0 is now superseded
+      await expect(rotate(st, a.refresh_token, now + 60_000)).resolves.toBeTruthy(); // in flight together: allowed
+      const late = fresh();
+      const a2 = await rotate(late.st, late.t0, late.now);
+      const b2 = await rotate(late.st, late.t0, late.now);
+      await rotate(late.st, b2.refresh_token, late.now + 1_000);
+      await expect(rotate(late.st, a2.refresh_token, late.now + 10 * 60_000)).rejects.toMatchObject({ reason: "superseded_sibling" });
+      rmSync(stateDir, { recursive: true, force: true }); stateDir = "";
+    });
+
+    it("revokes the whole login when a superseded token is reused", async () => {
+      const { st, t0, now } = fresh();
+      const s1 = await rotate(st, t0, now);
+      const s2 = await rotate(st, s1.refresh_token, now + H);         // s1 used: t0 superseded
+      await expect(rotate(st, t0, now + H + 10 * 60_000)).rejects.toMatchObject({ reason: "reuse_detected" });
+      await expect(rotate(st, s2.refresh_token, now + H + 11 * 60_000)).rejects.toMatchObject({ reason: "unknown_token" });
+      expect(st.refreshTokens).toHaveLength(0);
+      rmSync(stateDir, { recursive: true, force: true }); stateDir = "";
+    });
+
+    it("still refuses another client's token and expired tokens", async () => {
+      const { st, t0, now } = fresh();
+      await expect(rotate(st, t0, now, "other-client")).rejects.toMatchObject({ reason: "client_mismatch" });
+      await expect(rotate(st, t0, now + 31 * 24 * H)).rejects.toMatchObject({ reason: "expired" });
+      await expect(rotate(st, "not-a-token", now)).rejects.toMatchObject({ reason: "unknown_token" });
+      rmSync(stateDir, { recursive: true, force: true }); stateDir = "";
+    });
+
+    it("keeps the store bounded: superseded records go after a day", async () => {
+      const { st, t0, now } = fresh();
+      let token = t0;
+      for (let i = 1; i <= 48; i += 1) token = (await rotate(st, token, now + i * H)).refresh_token;
+      expect(st.refreshTokens.length).toBeLessThanOrEqual(28);
+      rmSync(stateDir, { recursive: true, force: true }); stateDir = "";
+    });
+  });
+
   it("verifies its own access token without invoking network fetch", async () => {
     stateDir = mkdtempSync(join(tmpdir(), "firefly-auth-local-")); const resource = "https://mcp.example"; const cfg = config(resource); const authState = new AuthState(cfg); const token = await issueAccessToken(authState, "https://mcp.example", resource, ["firefly:read"]); let calls = 0;
     const result = await verifyToken(token, { resource, issuers: ["https://mcp.example"], local: { issuer: "https://mcp.example", publicKey: authState.publicKey }, fetchImpl: (async () => { calls += 1; throw new Error("network access"); }) as typeof fetch });
@@ -145,7 +207,8 @@ describe("embedded authorization server", () => {
     const claims = decodeJwt(tokenResponse.access_token); expect(claims.aud).toBe(resource); expect(claims.iss).toBe(new URL(resource).origin); expect(claims.scope).toBe("firefly:read firefly:write firefly:destructive");
     const rotated = await (await fetch(`${base}/oauth/token`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "refresh_token", client_id: registration.client_id, refresh_token: tokenResponse.refresh_token, resource }) })).json() as { refresh_token: string; access_token: string };
     expect(rotated.access_token).toBeTruthy(); expect(rotated.refresh_token).not.toBe(tokenResponse.refresh_token);
-    const oldRefresh = await fetch(`${base}/oauth/token`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "refresh_token", client_id: registration.client_id, refresh_token: tokenResponse.refresh_token, resource }) }); expect(oldRefresh.status).toBe(400);
+    // The successor has not been used yet, so the client may still not have it: a retry with the old token must work.
+    const replayed = await fetch(`${base}/oauth/token`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "refresh_token", client_id: registration.client_id, refresh_token: tokenResponse.refresh_token, resource }) }); expect(replayed.status).toBe(200);
     const jwks = await (await fetch(`${base}/oauth/jwks.json`)).json() as { keys: object[] }; expect(jwks.keys).toHaveLength(1);
   });
 
