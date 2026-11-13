@@ -48,6 +48,45 @@ describe("entity parity surface", () => {
     expect(calls[0]!.query).toEqual({ query: "cash", field: "all" });
   });
 
+  it("sends replaced rule actions as active unless the caller says otherwise", async () => {
+    // Firefly's rule update stores an action without `active` as inactive,
+    // unlike rule create; the rule then fires and does nothing.
+    const { registry, calls } = setup();
+    await registry.execute("rule", "update", {
+      id: "7",
+      rule_update: {
+        actions: [
+          { type: "set_category", value: "Food" },
+          { type: "add_tag", value: "review", active: false, stop_processing: true },
+        ],
+      },
+    });
+    await registry.execute("rule", "update", { id: "7", rule_update: { title: "Groceries" } });
+    expect(calls.map(({ path, body }) => ({ path, body }))).toEqual([
+      {
+        path: "/rules/7",
+        body: {
+          actions: [
+            { type: "set_category", value: "Food", active: true },
+            { type: "add_tag", value: "review", active: false, stop_processing: true },
+          ],
+        },
+      },
+      { path: "/rules/7", body: { title: "Groceries" } },
+    ]);
+  });
+
+  it("sends rule triggers with their active and stop_processing flags", async () => {
+    const { registry, calls } = setup();
+    await registry.execute("rule", "update", {
+      id: "7",
+      rule_update: { triggers: [{ type: "description_contains", value: "market", active: false, stop_processing: true }] },
+    });
+    expect(calls[0]!.body).toEqual({
+      triggers: [{ type: "description_contains", value: "market", active: false, stop_processing: true }],
+    });
+  });
+
   it("sends nested update payloads to their resource endpoint", async () => {
     const { registry, calls } = setup();
     await registry.execute("budget", "update", { id: "2", budget_update: { name: "Food" } });
