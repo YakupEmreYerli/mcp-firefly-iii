@@ -5,7 +5,7 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.3] - 2026-11-13
 
 ### Fixed
 
@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on create, so the rule kept firing and did nothing. An omitted `active` is
   now sent as `true`, and rule triggers and actions accept `active` and
   `stop_processing`. Reported by @airportibo (#16).
+- `transaction.bulk_rewrite` now describes the pattern language it actually
+  parses. Its schema asked for a JavaScript regular expression, but the
+  matcher has always used the anchored `#`/`*` language, where `.`, `\`, `(`
+  and `+` match themselves; a regex pattern matched nothing, or the wrong
+  rows.
+
+### Security
+
+- Dependency updates, including `undici`, `body-parser`, `fast-uri` and
+  `ip-address`.
+
+### Documentation
+
+- `llms-install.md` explains what to do when an editor-launched client
+  reports that it cannot find `npx`: use the absolute path from `which npx`
+  as the command.
 
 ## [1.1.2] - 2026-08-30
 
@@ -530,7 +546,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.1.3
 [1.1.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.1.2
 [1.0.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.0.0
 [0.3.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v0.3.2
