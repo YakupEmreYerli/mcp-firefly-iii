@@ -13,6 +13,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+const MCPB_VERSION = "2.1.2";
 const root = resolve(import.meta.dirname, "..");
 const stage = join(root, "build", "mcpb");
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -48,5 +49,10 @@ run(npm, ["ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"], st
 rmSync(join(stage, "package-lock.json"));
 
 const output = join(root, `firefly-mcp-${pkg.version}.mcpb`);
-run(join(root, "node_modules", ".bin", process.platform === "win32" ? "mcpb.cmd" : "mcpb"), ["pack", stage, output]);
+// Pinned and fetched on demand rather than a devDependency: the CLI's own
+// dependency tree (an interactive prompt library among it) carries audit
+// findings that have nothing to do with the server, and would otherwise sit in
+// this package's lockfile and alerts.
+const npx = process.platform === "win32" ? "npx.cmd" : "npx";
+run(npx, ["--yes", `@anthropic-ai/mcpb@${MCPB_VERSION}`, "pack", stage, output]);
 console.log(`Wrote ${output}`);
