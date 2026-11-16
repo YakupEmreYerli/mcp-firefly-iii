@@ -21,6 +21,7 @@ import { searchModule } from "./entities/search.js";
 import { currenciesModule, exchangeRatesModule, attachmentsModule, recurringModule, autocompleteModule } from "./entities/financial.js";
 import { availableBudgetsModule, linksModule, linkTypesModule, objectGroupsModule, preferencesModule, configurationModule, dataExportModule } from "./entities/advanced.js";
 import { startUpdateCheck, takeUpdateNotice } from "./update.js";
+import { registerPrompts } from "./prompts.js";
 
 /** Entity modules registered on startup.
  *
@@ -185,6 +186,7 @@ export function createServer(registry: Registry, config: Config): McpServer {
   startUpdateCheck();
 
   registerMetaTools(server, registry, config);
+  registerPrompts(server, registry);
 
   return server;
 }

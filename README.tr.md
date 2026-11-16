@@ -141,6 +141,18 @@ HTTP ve OAuth modu dahil tüm değişkenler: [docs/configuration.md](https://git
 
 Ayrım yalnızca ilan edilmiyor, uygulanıyor — `firefly_query` üzerinden çağrılan bir silme reddedilir, yalnızca `firefly:read` verilmiş bir bağlantı yazan iki aracı hiç görmez. Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer, çalıştırma araçlarının hepsi bir `fields` listesi alır — büyük bir işlem listesinde yaklaşık %90 küçülme. Tam referans: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
 
+## Hazır istemler (prompts)
+
+İstemcinin istem menüsünde üç hazır iş akışı çıkar. Yazan ikisi her değişikliği önce `dry_run` ile gösterir, filtreyle yazarken `max_matches` sınırı koyar ve siz onaylamadan hiçbir şeyi uygulamaz.
+
+| İstem | Ne yapar |
+| --- | --- |
+| `month_end_review` | Ayın özetini çıkarır, sonra kategorisiz harcamaları kategorilendirir. |
+| `categorise_uncategorised` | Ayın kategorisiz harcamalarına alıcı başına kategori önerir, önizletir, onayınızdan sonra uygular. |
+| `budget_summary` | Ayı bir önceki ayla karşılaştırır: gelir, gider, kategoriler, bütçeler. Yalnızca okur. |
+
+Hepsi isteğe bağlı bir `month` alır (`YYYY-MM`, verilmezse geçen ay). Ayrıntı: [docs/prompts.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/prompts.md).
+
 ## Güvenlik
 
 Bu sunucu verinizi üçüncü bir tarafa göndermez, ama bağladığınız yapay zekâ istemcisinin veya modelin eline geçen yanıtla ne yapacağını kontrol etmez. Tam tehdit modeli: [SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md). Güvenlik açığı bulduysanız lütfen oradan özel olarak bildirin.
@@ -153,6 +165,7 @@ Bu sunucu verinizi üçüncü bir tarafa göndermez, ama bağladığınız yapay
 | [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Tüm ortam değişkenleri, izin politikası, HTTP modu |
 | [Remote access with embedded OAuth](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) | Claude web, Claude mobil ve ChatGPT için deploy |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n ve uzak HTTP |
+| [Prompts](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/prompts.md) | Ay sonu gözden geçirme, kategorilendirme ve bütçe özeti akışları |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | 152 operasyonun tamamı, yanıt kırpma, Firefly'ın tuzakları |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, arama ve sekiz insight ucu |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Geliştirirken sunucuyu interaktif kurcalama |

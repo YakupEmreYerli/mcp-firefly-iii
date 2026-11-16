@@ -141,6 +141,18 @@ Every variable, including HTTP and OAuth mode: [docs/configuration.md](https://g
 
 The split is enforced, not just advertised — a delete reached through `firefly_query` is refused, and a connection granted only `firefly:read` never even sees the two writing tools. Responses are trimmed before they reach the model: empty and null attributes are always dropped, and every execution tool takes a `fields` list — roughly a 90% cut on a large transaction list. Full reference: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
 
+## Prompts
+
+Three ready-made workflows appear in your client's prompt menu. The two that write preview every change with `dry_run`, cap filter-driven writes with `max_matches`, and apply nothing until you confirm.
+
+| Prompt | What it does |
+| --- | --- |
+| `month_end_review` | Overview of a month, then categorise its uncategorised spending. |
+| `categorise_uncategorised` | Propose a category per payee for a month's uncategorised spending, preview, apply after you confirm. |
+| `budget_summary` | Compare a month with the one before: income, spending, categories, budgets. Read-only. |
+
+Each takes an optional `month` (`YYYY-MM`, default last month). Details: [docs/prompts.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/prompts.md).
+
 ## Security
 
 This server never sends your data to a third party, but it doesn't control what the AI client or model you connect it to does with a response once it has one. Full threat model: [SECURITY.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/SECURITY.md). Found a vulnerability? Report it privately there.
@@ -153,6 +165,7 @@ This server never sends your data to a third party, but it doesn't control what 
 | [Configuration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/configuration.md) | Every environment variable, the permission policy, HTTP mode |
 | [Remote access with embedded OAuth](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) | Deploying for Claude web, Claude mobile, and ChatGPT |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n and remote HTTP |
+| [Prompts](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/prompts.md) | The month-end review, categorisation and budget summary workflows |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | All 152 operations, response trimming, the Firefly quirks that bite |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, search, and the eight insight endpoints |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Poking at the server interactively while developing |

@@ -42,6 +42,7 @@ make docs-serve      # MkDocs, .venv-docs içinde
 src/
   index.ts, http.ts  stdio ve HTTP giriş noktaları
   server.ts          MCP sunucusu, meta-araçlar, varlık modülü kaydı
+  prompts.ts         MCP istemleri (prompts): hazır, dry_run önce iş akışları
   registry.ts        operasyon kaydı, doğrulama, erişim kapısı, katalog
   firefly.ts         HTTP istemcisi, Firefly hata çevirisi
   projection.ts      yanıt kırpma
