@@ -17,6 +17,7 @@
     "type": "git",
     "url": "https://github.com/YakupEmreYerli/mcp-firefly-iii.git"
   },
+  "icon": "icon.png",
   "license": "MIT",
   "keywords": ["firefly-iii", "personal-finance", "budget", "transactions"],
   "server": {

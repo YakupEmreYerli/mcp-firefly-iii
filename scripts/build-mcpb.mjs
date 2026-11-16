@@ -41,6 +41,7 @@ for (const file of ["package.json", "package-lock.json", "README.md", "LICENSE"]
   cpSync(join(root, file), join(stage, file));
 }
 cpSync(join(root, "dist"), join(stage, "dist"), { recursive: true });
+cpSync(join(root, "mcpb", "icon.png"), join(stage, "icon.png"));
 writeFileSync(join(stage, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
 // --ignore-scripts: nothing in the runtime tree needs an install script, and
