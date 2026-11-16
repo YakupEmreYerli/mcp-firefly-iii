@@ -201,6 +201,19 @@ describe("the discovery tools", () => {
   });
 });
 
+describe("meta-tool input schemas", () => {
+  it("still advertise additionalProperties: false", async () => {
+    // Zod 4 publishes a stripping object without it, where Zod 3 said false;
+    // a host that validates arguments against tools/list would see a looser
+    // contract after a dependency bump that changed nothing else.
+    const tools = await registeredTools();
+    expect(Object.keys(tools)).toHaveLength(5);
+    for (const [name, tool] of Object.entries(tools)) {
+      expect((tool.inputSchema as { additionalProperties?: unknown }).additionalProperties, name).toBe(false);
+    }
+  });
+});
+
 describe("entity hints", () => {
   /** Hints ride on firefly_query alone — repeating them on all three surfaces
    * was measured at 55% more catalogue text. A hint that lists what the entity

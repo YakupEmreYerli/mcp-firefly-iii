@@ -201,6 +201,44 @@ describe("getSchema", () => {
     };
     expect(Object.keys(schema.properties)).toEqual(["type"]);
   });
+
+  it("publishes an integer without Zod 4's safe-integer bounds", () => {
+    const registry = new Registry(makeConfig(), client);
+    registry.register({
+      entity: EntityType.Account,
+      hint: "test",
+      operations: {
+        list: defineOperation({
+          description: "Paged list.",
+          access: "read",
+          input: z.object({ limit: z.number().int().positive(), page: z.number().int() }).strict(),
+          handler: async () => null,
+        }),
+      },
+    });
+    const schema = registry.getSchema("account", "list") as { properties: Record<string, unknown> };
+    expect(schema.properties.limit).toEqual({ type: "integer", exclusiveMinimum: 0 });
+    expect(schema.properties.page).toEqual({ type: "integer" });
+  });
+});
+
+describe("a missing parameter", () => {
+  it('is reported as "Required", not as a type mismatch', async () => {
+    const registry = new Registry(makeConfig(), client);
+    registry.register({
+      entity: EntityType.Account,
+      hint: "test",
+      operations: {
+        get: defineOperation({
+          description: "One account.",
+          access: "read",
+          input: z.object({ id: z.string() }).strict(),
+          handler: async () => null,
+        }),
+      },
+    });
+    await expect(registry.execute("account", "get", {})).rejects.toThrow(/: id: Required\./);
+  });
 });
 
 describe("relative period shortcuts", () => {
