@@ -33,12 +33,13 @@ assistant looks at your own instance and answers.
 
 <video controls preload="metadata" style="width:100%;max-width:960px;border-radius:8px">
   <source src="assets/demo.mp4" type="video/mp4">
-  <a href="assets/demo.mp4">Download the demo (MP4, 38s)</a>
+  <a href="assets/demo.mp4">Download the demo (MP4, 40s)</a>
 </video>
 
-A 38-second run in Claude Desktop: ask a financial question, read the answer
-through MCP, preview a change with `dry_run`, approve it, and write it back to
-Firefly III. All financial data in the demo is fabricated.
+Month-end in Claude Code, in 40 seconds: it reads October, finds 35
+uncategorised payments, proposes a plan, dry-runs every write, writes only after
+you approve, and reads Firefly III back to confirm 0 are left. All financial data
+in the demo is fabricated.
 
 ## What it looks like
 

@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no `npx` and no config file to edit. `npm run mcpb` builds it locally.
   The README also gets *Add to Cursor* and *Install in VS Code* buttons;
   VS Code prompts for the URL and token, Cursor installs placeholders to
-  replace.
+  replace. The extension has its own icon.
 - Three MCP prompts in the client's prompt menu: `month_end_review` (an
   overview of the month, then categorise its uncategorised spending),
   `categorise_uncategorised`, and the read-only `budget_summary` (a month

@@ -18,9 +18,9 @@ Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/)
 
 ## Demo
 
-https://github.com/user-attachments/assets/4866f13e-ff09-43b0-b99c-2b4789a30224
+https://github.com/user-attachments/assets/d308b2b5-18ef-4275-a4ed-ccdb7f04386f
 
-38-second demo: ask a financial question, read the answer through MCP, preview a change with `dry_run`, approve it, and write it back to Firefly III. Recorded against a synthetic instance — all financial data shown is fabricated.
+40-second demo: month-end in Claude Code. It reads October, finds 35 uncategorised payments, proposes a plan, dry-runs every write, and only writes after you approve, then checks Firefly III again: 0 left. All financial data shown is fabricated.
 
 ## Features
 

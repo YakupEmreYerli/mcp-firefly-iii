@@ -18,9 +18,9 @@ Resmî [MCP Registry](https://registry.modelcontextprotocol.io/)'de `io.github.Y
 
 ## Demo
 
-https://github.com/user-attachments/assets/4866f13e-ff09-43b0-b99c-2b4789a30224
+https://github.com/user-attachments/assets/d308b2b5-18ef-4275-a4ed-ccdb7f04386f
 
-38 saniyelik demo: finansal bir soru sor, cevabı MCP üzerinden oku, değişikliği `dry_run` ile önizle, onayla ve Firefly III'e yaz. Sentetik bir örneğe karşı kaydedildi — görünen tüm finansal veriler uydurmadır.
+40 saniyelik demo: Claude Code'da ay sonu. Ekim'i okur, kategorisi olmayan 35 ödemeyi bulur, plan çıkarır, her yazmayı önce `dry_run` ile prova eder, ancak sen onaylayınca yazar ve Firefly III'e yeniden bakar: 0 kaldı. Görünen tüm finansal veriler uydurmadır.
 
 ## Özellikler
 
