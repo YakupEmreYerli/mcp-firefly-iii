@@ -6,7 +6,7 @@ import { SCOPES, grantedScopes, scopesWithin } from "../oauth.js";
 import { AuthState } from "./state.js";
 import { findClient, registerClient } from "./clients.js";
 import { AuthorizationCodes } from "./codes.js";
-import { issueAccessToken, issueRefreshToken, rotateRefreshToken } from "./tokens.js";
+import { RefreshRejected, issueAccessToken, issueRefreshToken, rotateRefreshToken } from "./tokens.js";
 import { loginPage } from "./pages.js";
 import { readBody } from "../body.js";
 
@@ -294,6 +294,7 @@ export class BuiltinAuth {
 
     if (grant === "refresh_token") {
       if (first(values.resource) !== this.config.resourceUrl) {
+        console.error(`oauth: refresh refused (resource_mismatch: got ${JSON.stringify(first(values.resource) ?? null)}, expected ${JSON.stringify(this.config.resourceUrl)})`);
         send(res, 400, { error: "invalid_grant" });
         return true;
       }
@@ -303,7 +304,13 @@ export class BuiltinAuth {
           token_type: "Bearer",
           expires_in: 3600,
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof RefreshRejected && error.reason === "reuse_detected") {
+          console.error(`oauth: SECURITY refresh token reuse for client ${JSON.stringify(clientId ?? null)} — a superseded token was presented; revoked ${error.revoked} token(s) of that login. Reconnect the client; if you did not cause this, rotate MCP_AUTH_PASSWORD and FIREFLY_API_TOKEN.`);
+        } else {
+          const reason = error instanceof RefreshRejected ? error.reason : (error instanceof Error ? error.message : String(error));
+          console.error(`oauth: refresh refused (${reason}) for client ${JSON.stringify(clientId ?? null)}`);
+        }
         send(res, 400, { error: "invalid_grant" });
       }
       return true;

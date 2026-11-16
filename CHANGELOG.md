@@ -5,6 +5,28 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- HTTP mode with the embedded OAuth login no longer loses the connection
+  when a refresh-token response does not reach the client (a proxy
+  timeout, a VPN blip, a restart mid-request) or two refreshes run at
+  once. A rotated refresh token now stays valid until one of its
+  successors is used, then for `MCP_REFRESH_REUSE_GRACE_SECONDS` more
+  (default 120). Before, the client was left with a dead token and the
+  connector had to be added again by hand, with nothing in the log.
+  Contributed by @DanClarke-io (#17).
+
+### Security
+
+- Refresh-token reuse detection. Presenting a superseded refresh token, or
+  a second successor of the same token, after the grace revokes every
+  refresh token of that login and logs an `oauth: SECURITY` line, so a
+  stolen token cannot keep a session the owner does not see. Every refused
+  refresh logs its reason (tokens are never logged), and one unused token
+  mints at most five successors. Contributed by @DanClarke-io (#17).
+
 ## [1.2.0] - 2026-11-16
 
 ### Added
