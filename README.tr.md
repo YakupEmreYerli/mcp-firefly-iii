@@ -48,6 +48,10 @@ https://github.com/user-attachments/assets/4866f13e-ff09-43b0-b99c-2b4789a30224
 
 ### 1. stdio (Claude Code, Claude Desktop, Cursor)
 
+[![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?logo=cursor&logoColor=white)](https://cursor.com/install-mcp?name=firefly&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkB5YWt1cGVtcmV5ZXJsaS9maXJlZmx5LW1jcCJdLCJlbnYiOnsiRklSRUZMWV9BUElfVVJMIjoieW91ci1maXJlZmx5LmV4YW1wbGUiLCJGSVJFRkxZX0FQSV9UT0tFTiI6InlvdXItdG9rZW4ifX0%3D) [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=firefly&inputs=%5B%7B%22type%22%3A%22promptString%22%2C%22id%22%3A%22firefly_api_url%22%2C%22description%22%3A%22Firefly%20III%20URL%3A%20a%20bare%20domain%2C%20or%20a%20full%20base%20URL%20including%20%2Fapi%2Fv1%22%7D%2C%7B%22type%22%3A%22promptString%22%2C%22id%22%3A%22firefly_api_token%22%2C%22description%22%3A%22Firefly%20III%20Personal%20Access%20Token%22%2C%22password%22%3Atrue%7D%5D&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40yakupemreyerli%2Ffirefly-mcp%22%5D%2C%22env%22%3A%7B%22FIREFLY_API_URL%22%3A%22%24%7Binput%3Afirefly_api_url%7D%22%2C%22FIREFLY_API_TOKEN%22%3A%22%24%7Binput%3Afirefly_api_token%7D%22%7D%7D)
+
+Tek tıkla: **Claude Desktop** — [son sürümden](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/latest) `firefly-mcp-<sürüm>.mcpb` dosyasını indirip açın; Claude Desktop Firefly III adresinizi ve token'ınızı sorar, token'ı sistem anahtar zincirinde saklar. **Cursor** — düğme sunucuyu `your-firefly.example` ve `your-token` yer tutucularıyla kurar; bunları Cursor'ın MCP ayarlarında kendi değerlerinizle değiştirin. **VS Code** — düğme, sunucu ilk açıldığında adresi ve token'ı sorar.
+
 Kurulumu ona bırakın — Firefly III adresinizi ve token'ınızı sorar, gerçekten çalışıp çalışmadıklarını sınar, sonra bulursa Claude Code ve Claude Desktop'ı yapılandırır: `npx -y @yakupemreyerli/firefly-mcp setup`. Başka bir istemci kullanıyorsanız yapıştırmanız için yapılandırmayı ekrana basar.
 
 Elle, Claude Code:

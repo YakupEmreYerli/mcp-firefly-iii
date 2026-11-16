@@ -30,3 +30,7 @@ docs/superpowers/
 
 # npm pack leaves one of these behind; it is a build artifact, not a source.
 *.tgz
+
+# Claude Desktop extension bundle and its staging directory (npm run mcpb).
+*.mcpb
+build/

@@ -11,3 +11,5 @@ test
 docs
 candidate.json
 graphify-out
+build
+*.mcpb

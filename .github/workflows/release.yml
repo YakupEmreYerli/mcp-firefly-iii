@@ -61,6 +61,32 @@ jobs:
             --notes-file release-notes.md \
             --verify-tag
 
+  # The Claude Desktop extension: one file a user double-clicks, with the
+  # server and its production dependencies inside, so it needs neither npx nor
+  # a hand-edited config. Built from the tagged commit and attached to the
+  # release the job above created; it does not wait for npm, since nothing in
+  # it is fetched from the registry at install time.
+  mcpb:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      # Refuses to build when mcpb/manifest.json names another version than
+      # package.json, so a bundle cannot announce the previous release.
+      - run: npm run mcpb
+      - name: Attach the bundle to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          gh release upload "$GITHUB_REF_NAME" "firefly-mcp-${version}.mcpb" --clobber
+
   publish:
     needs: release
     runs-on: ubuntu-latest

@@ -28,6 +28,10 @@ configuration change.
 
 ## Claude Desktop
 
+**One click:** download `firefly-mcp-<version>.mcpb` from the [latest release](https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/latest) and open it. Claude Desktop shows the extension, asks for your Firefly III URL and Personal Access Token, and stores the token as a sensitive setting. The bundle carries the server and its dependencies and runs on Claude Desktop's own Node, so `npx` is not needed. To build it yourself: `npm run mcpb`.
+
+**By hand**, edit the configuration file.
+
 **Where the configuration file lives:**
 
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`

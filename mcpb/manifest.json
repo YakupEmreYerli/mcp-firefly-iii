@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/dist/mcpb-manifest-v0.3.schema.json",
+  "manifest_version": "0.3",
+  "name": "firefly-mcp",
+  "display_name": "Firefly III",
+  "version": "1.1.3",
+  "description": "Read, categorise and manage your own Firefly III instance — 152 operations behind 5 scoped tools.",
+  "long_description": "Connects Claude to your self-hosted Firefly III with your own Personal Access Token. Reading, writing and deleting are three separate tools, every write can be previewed with dry_run, and filter-driven bulk writes require max_matches. There is no hosted backend: the server runs on your machine and talks only to your Firefly III instance (plus a once-a-day version check that carries no data).",
+  "author": {
+    "name": "Yakup Emre Yerli",
+    "url": "https://github.com/YakupEmreYerli"
+  },
+  "homepage": "https://github.com/YakupEmreYerli/mcp-firefly-iii",
+  "documentation": "https://yakupemreyerli.github.io/mcp-firefly-iii/",
+  "support": "https://github.com/YakupEmreYerli/mcp-firefly-iii/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YakupEmreYerli/mcp-firefly-iii.git"
+  },
+  "license": "MIT",
+  "keywords": ["firefly-iii", "personal-finance", "budget", "transactions"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "FIREFLY_API_URL": "${user_config.firefly_api_url}",
+        "FIREFLY_API_TOKEN": "${user_config.firefly_api_token}"
+      }
+    }
+  },
+  "user_config": {
+    "firefly_api_url": {
+      "type": "string",
+      "title": "Firefly III URL",
+      "description": "Your Firefly III address: a bare domain such as firefly.example.com, or a full base URL including /api/v1.",
+      "required": true
+    },
+    "firefly_api_token": {
+      "type": "string",
+      "title": "Personal Access Token",
+      "description": "Firefly III → Options → Profile → OAuth → Create New Personal Access Token.",
+      "required": true,
+      "sensitive": true
+    }
+  },
+  "tools": [
+    { "name": "firefly_query", "description": "Read from Firefly III. Never changes anything." },
+    { "name": "firefly_mutate", "description": "Create or change records. Does not delete anything." },
+    { "name": "firefly_destructive", "description": "Delete records, or rewrite one field across many records. Cannot be undone." },
+    { "name": "firefly_list_operations", "description": "List the available operations, optionally for one entity." },
+    { "name": "firefly_get_schema", "description": "Get the parameter schema of one operation." }
+  ],
+  "prompts_generated": true,
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=20.6" }
+  }
+}

@@ -114,8 +114,13 @@ npm version <patch|minor|major>
 git push --follow-tags
 ```
 
+`npm version` bumps only `package.json`; set the same version in `server.json`
+(both fields) and `mcpb/manifest.json` before tagging.
+
 Pushing the tag does the rest. A workflow builds the GitHub release from that
-version's `CHANGELOG.md` section, then publishes to npm with provenance.
+version's `CHANGELOG.md` section, attaches the Claude Desktop bundle
+(`firefly-mcp-<version>.mcpb`, built with `npm run mcpb`), then publishes to
+npm with provenance.
 
 Three things stop a bad release:
 

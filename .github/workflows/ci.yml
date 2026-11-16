@@ -75,6 +75,35 @@ jobs:
             exit 1
           fi
 
+  mcpb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run mcpb
+      # The bundle packs its own node_modules through .mcpbignore rules, which
+      # can drop a file a dependency needs at runtime. Unpack it and start the
+      # server from the unpacked copy, the way Claude Desktop would.
+      - name: Unpack the bundle and start the server from it
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          mkdir -p /tmp/bundle && cd /tmp/bundle
+          unzip -q "$GITHUB_WORKSPACE/firefly-mcp-${version}.mcpb"
+          export FIREFLY_API_URL=https://firefly.invalid/api/v1
+          export FIREFLY_API_TOKEN=not-a-real-token
+          export MCP_UPDATE_CHECK=false
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | node dist/index.js > /tmp/bundle-tools.json
+          grep -q firefly_query /tmp/bundle-tools.json || { echo "the bundled server did not serve firefly_query" >&2; exit 1; }
+
   docker:
     runs-on: ubuntu-latest
     steps:
