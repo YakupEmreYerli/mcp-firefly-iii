@@ -5,6 +5,34 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-16
+
+### Added
+
+- One-click install. Every release now carries a Claude Desktop extension,
+  `firefly-mcp-<version>.mcpb`: open it and Claude Desktop asks for the
+  Firefly III URL and token, keeping the token as a sensitive setting, with
+  no `npx` and no config file to edit. `npm run mcpb` builds it locally.
+  The README also gets *Add to Cursor* and *Install in VS Code* buttons;
+  VS Code prompts for the URL and token, Cursor installs placeholders to
+  replace.
+- Three MCP prompts in the client's prompt menu: `month_end_review` (an
+  overview of the month, then categorise its uncategorised spending),
+  `categorise_uncategorised`, and the read-only `budget_summary` (a month
+  against the one before). The writing two preview every change with
+  `dry_run`, cap filter-driven writes with `max_matches`, apply nothing
+  until the user confirms, and verify with a separate read. The server
+  computes the month's dates. A connection that cannot write is offered
+  `budget_summary` only. See [docs/prompts.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/prompts.md).
+
+### Changed
+
+- Zod 4 and MCP SDK 1.32.2, replacing Zod 3 and `zod-to-json-schema`. The
+  operation schemas the server publishes, and how parameters are
+  validated, are unchanged; validation messages other than "Required" now
+  use Zod 4's wording. Zod 4.6.6 and later also fix a memory exhaustion
+  advisory (GHSA-mrhx-c7xc-m3w5) that no Zod 3 release does.
+
 ## [1.1.3] - 2026-11-13
 
 ### Fixed
@@ -546,7 +574,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.2.0
 [1.1.3]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.1.3
 [1.1.2]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.1.2
 [1.0.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.0.0
