@@ -163,6 +163,16 @@ const OUTPUT_SCHEMA = z
   .passthrough()
   .describe("Whatever Firefly returned. A list arrives under `result`, since structuredContent must be an object.");
 
+/** A meta-tool's arguments: unknown keys are dropped, and the schema says so.
+ *
+ * Zod 4 publishes a stripping object without `additionalProperties`, where
+ * Zod 3 published `false`. The metadata keeps the advertised contract as it
+ * was, without turning a stray key from ignored into refused.
+ */
+function toolInput<S extends z.ZodRawShape>(shape: S) {
+  return z.object(shape).meta({ additionalProperties: false });
+}
+
 export function createServer(registry: Registry, config: Config): McpServer {
   // Read from package.json rather than written down here: a second copy is a
   // copy that goes stale, and this one did — the server introduced itself as
@@ -241,10 +251,10 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
       ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
       ...security,
       _meta: security,
-      inputSchema: {
+      inputSchema: toolInput({
         entity: z.string().describe("Entity type (account, transaction, budget, ...)"),
         operation: z.string().describe("Operation name (list, get, create, ...)"),
-        params: z.record(z.unknown()).optional().describe("Operation parameters"),
+        params: z.record(z.string(), z.unknown()).optional().describe("Operation parameters"),
         fields: z.array(z.string()).optional().describe("Attribute allow-list for the response"),
         ...(surface.access.includes("read")
           ? {}
@@ -257,7 +267,7 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
                     "plus warnings such as a possible duplicate transaction. Nothing is written.",
                 ),
             }),
-      } as never,
+      }),
     } as never;
     server.registerTool(
       surface.tool,
@@ -279,12 +289,12 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
       ...securityMetadata("firefly:read"),
       _meta: securityMetadata("firefly:read"),
       ...(config.structuredOutput ? { outputSchema: OUTPUT_SCHEMA } : {}),
-      inputSchema: {
+      inputSchema: toolInput({
         entity: z
           .nativeEnum(EntityType)
           .optional()
           .describe("Limit the catalogue to one entity. Omit it to list every operation."),
-      },
+      }),
     },
     // `entity` is already a validated EntityType and listOperations filters a
     // missing module rather than throwing, so there is nothing to catch here.
@@ -302,12 +312,12 @@ function registerMetaTools(server: McpServer, registry: Registry, config: Config
       // `entity` was a bare string while firefly_list_operations took the enum,
       // so the same argument was discoverable on one tool and a guess on the
       // other — and a guess costs a round-trip to find out it was wrong.
-      inputSchema: {
+      inputSchema: toolInput({
         entity: z.nativeEnum(EntityType).describe("Entity the operation belongs to."),
         operation: z
           .string()
           .describe('Operation name within that entity, as firefly_list_operations reports it, e.g. "list".'),
-      },
+      }),
     },
     ({ entity, operation }) => {
       const payload = ((): unknown => {

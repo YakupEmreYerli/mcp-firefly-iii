@@ -49,11 +49,10 @@
     "media": "npm run build && node scripts/build-media.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "jose": "^6.2.10",
     "undici": "^7.0.0",
-    "zod": "^3.23.0",
-    "zod-to-json-schema": "^3.23.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

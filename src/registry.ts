@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import type { Config } from "./config.js";
 import { duplicateWarnings, previewClient, type PlannedWrite } from "./preview.js";
 import type { FireflyClient } from "./firefly.js";
@@ -19,13 +18,11 @@ import { localToday, resolvePeriod, type Period } from "./period.js";
  *
  * `.strict()` is this layer's home for the Firefly quirk where a PUT carrying
  * an unknown wrapper key returns 200 and changes nothing. A plain
- * `z.object({...})` would strip the stray key and let the call through, and
- * `zodToJsonSchema` emits `additionalProperties: false` either way — so the
- * published schema cannot reveal the difference. Zod carries the
+ * `z.object({...})` would strip the stray key and let the call through. Zod carries the
  * unknown-key policy in the type, so the constraint makes a non-strict input
  * a compile error rather than a convention.
  */
-export type StrictInput = z.ZodObject<z.ZodRawShape, "strict">;
+export type StrictInput = z.ZodObject<z.ZodRawShape, z.core.$strict>;
 
 /** An operation with its parameter type erased.
  *
@@ -69,6 +66,31 @@ export function defineOperation<I extends StrictInput>(spec: {
     input: spec.input,
     handler: (params, client) => spec.handler(spec.input.parse(params), client),
   };
+}
+
+/** The JSON Schema a caller sees for an operation's parameters.
+ *
+ * Draft-07 and the input side of the schema: a field with a default is
+ * optional to the caller, which is what they need to know. Shared subschemas
+ * are inlined rather than referenced, because a model reads this text and a
+ * `$ref` is one more hop to follow.
+ */
+export function publishedSchema(input: StrictInput): Record<string, unknown> {
+  const { $schema, ...schema } = z.toJSONSchema(input, {
+    target: "draft-7",
+    io: "input",
+    reused: "inline",
+    cycles: "throw",
+    // Zod 4 writes the safe-integer range onto every `.int()`. It is noise to
+    // a model reading the schema, and Zod 3 never published it.
+    override: ({ jsonSchema }) => {
+      if (jsonSchema.maximum === Number.MAX_SAFE_INTEGER) delete jsonSchema.maximum;
+      if (jsonSchema.minimum === Number.MIN_SAFE_INTEGER) delete jsonSchema.minimum;
+    },
+  });
+  // `$schema` last, where it has always been: the schema text is part of what
+  // a caller reads in a validation error, and moving it is churn for nothing.
+  return { ...schema, $schema };
 }
 
 export interface EntityModule {
@@ -209,7 +231,7 @@ export class Registry {
 
   getSchema(entity: string, operation: string): unknown {
     const [, found] = this.lookup(entity, operation);
-    return zodToJsonSchema(found.input, { $refStrategy: "none" });
+    return publishedSchema(found.input);
   }
 
   async execute(
@@ -222,7 +244,12 @@ export class Registry {
   ): Promise<unknown> {
     const [, found] = this.lookup(entity, operation, allowed);
 
-    const parsed = found.input.safeParse(params ?? {});
+    // "Required" for a missing field, as Zod 3 said it. Zod 4's default ("Invalid
+    // input: expected string, received undefined") reads like a type mistake.
+    // Messages a schema sets itself still win over this one.
+    const parsed = found.input.safeParse(params ?? {}, {
+      error: (issue) => (issue.code === "invalid_type" && issue.input === undefined ? "Required" : undefined),
+    });
     if (!parsed.success) {
       // The schema travels with the refusal. Zod says "Required" for a missing
       // field and nothing about its shape, which costs the caller a second
@@ -234,7 +261,7 @@ export class Registry {
         .join("; ");
       throw new ValidationError(
         `Invalid parameters for ${entity}.${operation}: ${complaints}. ` +
-          `Expected schema: ${JSON.stringify(zodToJsonSchema(found.input, { $refStrategy: "none" }))}`,
+          `Expected schema: ${JSON.stringify(publishedSchema(found.input))}`,
       );
     }
 

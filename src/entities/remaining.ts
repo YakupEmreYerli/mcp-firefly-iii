@@ -8,9 +8,8 @@ import { FireflyApiError, ValidationError } from "../errors.js";
 const id = z.object({ id: entityId }).strict();
 const dates = { ...dateRange };
 // `start` and `end` are optional in the schema only because `period` may stand
-// in for them. `StrictInput` admits a plain strict object, so "one of these two
-// forms" cannot be expressed as a refinement without becoming a ZodEffects that
-// `getSchema` could not publish. `withPeriod` enforces it instead, and does so
+// in for them. "One of these two forms" as a refinement would be invisible in
+// the schema `getSchema` publishes, which cannot carry refinements. `withPeriod` enforces it instead, and does so
 // where the dates are used rather than in a list of operation names somewhere
 // else that a new operation could be forgotten from.
 const analysisInput = z

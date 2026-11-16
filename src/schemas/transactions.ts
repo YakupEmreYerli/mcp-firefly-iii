@@ -109,7 +109,7 @@ export const transactionSplitUpdate = z
  * At least one field must be present: an empty object would spend a GET and a
  * PUT per id to change nothing, and report it as a successful rewrite.
  */
-export const transactionBulkFields = z
+const transactionBulkFieldShape = z
   .object({
     type: splitType.optional().describe(
       "Converting a type (deposit → transfer) also needs the new source_id and destination_id",
@@ -131,10 +131,11 @@ export const transactionBulkFields = z
     notes: splitCommon.notes,
     reconciled: splitCommon.reconciled,
   })
-  .strict()
-  .refine((fields) => Object.keys(fields).length > 0, {
-    message: "Give at least one field to change; an empty set would rewrite nothing.",
-  });
+  .strict();
+
+export const transactionBulkFields = transactionBulkFieldShape.refine((fields) => Object.keys(fields).length > 0, {
+  message: "Give at least one field to change; an empty set would rewrite nothing.",
+});
 
 /** The fields a filter-driven write may set.
  *
@@ -146,7 +147,7 @@ export const transactionBulkFields = z
  * followed when the caller never names the rows. Use `bulk_tag`, which merges,
  * or `bulk_update`, where each row carries its own list.
  */
-export const transactionBulkSetFields = transactionBulkFields.innerType()
+export const transactionBulkSetFields = transactionBulkFieldShape
   .omit({ tags: true })
   .strict()
   .refine((fields) => Object.keys(fields).length > 0, {
