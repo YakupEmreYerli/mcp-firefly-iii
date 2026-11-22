@@ -958,7 +958,7 @@
       "entity": "transaction_link",
       "operation": "update",
       "access": "write",
-      "fingerprint": "889aa5c19145ed74"
+      "fingerprint": "cd86bd8694277116"
     },
     {
       "name": "transaction.bulk_categorize",

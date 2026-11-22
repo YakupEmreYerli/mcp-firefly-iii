@@ -33,10 +33,15 @@ describe("advanced financial API surfaces", () => {
     expect(calls).toEqual(["GET /available-budgets", "GET /transaction-links", "GET /link-types", "GET /object-groups", "GET /preferences", "GET /configuration"]);
   });
 
-  it("changes a link's type by name without restating both ends", async () => {
+  // Live on Firefly 6.7.9: an update carrying link_type_name stores
+  // link_type_id 0 and leaves the link unusable (every later update is a 500),
+  // and one without both ends fails a unique constraint and the link vanishes.
+  it("refuses link updates that corrupt the link", async () => {
     const { registry, calls } = setup();
-    await registry.execute("transaction_link", "update", { id: "5", transaction_link_update: { link_type_name: "Refund" } });
-    expect(calls).toContain("PUT /transaction-links/5");
+    await expect(registry.execute("transaction_link", "update", { id: "5", transaction_link_update: { link_type_name: "Refund", inward_id: "1", outward_id: "2" } })).rejects.toThrow("Unrecognized key");
+    await expect(registry.execute("transaction_link", "update", { id: "5", transaction_link_update: { link_type_id: "3" } })).rejects.toThrow();
+    await registry.execute("transaction_link", "update", { id: "5", transaction_link_update: { link_type_id: "3", inward_id: "1", outward_id: "2" } });
+    expect(calls).toEqual(["PUT /transaction-links/5"]);
   });
 
   it("uses text responses for exports", async () => {

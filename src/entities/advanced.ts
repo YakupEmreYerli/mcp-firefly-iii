@@ -13,7 +13,11 @@ export const availableBudgetsModule: EntityModule = { entity: EntityType.Availab
 
 const linkTypeData = z.object({ name: z.string().min(1), inward: z.string().min(1), outward: z.string().min(1) }).strict();
 const linkData = z.object({ link_type_id: entityId.optional(), link_type_name: z.string().min(1).optional(), inward_id: entityId, outward_id: entityId, notes: z.string().optional() }).strict();
-const linkUpdate = z.object({ link_type_id: entityId.optional(), link_type_name: z.string().min(1).optional(), inward_id: entityId.optional(), outward_id: entityId.optional(), notes: z.string().optional() }).strict();
+// Firefly 6.7.9 reads link_type_name on update but stores link_type_id 0 with
+// it, leaving the link broken; without both ends the update fails a unique
+// constraint and the link is lost. Both verified live, so the identity is
+// required and the type goes by id.
+const linkUpdate = z.object({ link_type_id: entityId, inward_id: entityId, outward_id: entityId, notes: z.string().optional() }).strict();
 
 export const linksModule: EntityModule = {
   entity: EntityType.TransactionLink, hint: "relationships between transaction journals and their link types", operations: {
