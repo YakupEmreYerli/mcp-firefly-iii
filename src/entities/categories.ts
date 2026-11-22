@@ -3,7 +3,7 @@ import { defineOperation, type EntityModule, type Operation } from "../registry.
 import { dateRange, entityId, pagination } from "../schemas/common.js";
 import { EntityType } from "../types.js";
 
-const categoryData = z.object({ name: z.string().min(1), notes: z.string().optional() }).strict();
+const categoryData = z.object({ name: z.string().min(1), notes: z.string().optional(), color: z.string().regex(/^[0-9a-fA-F]{6}$/, "six hex digits, no #").optional() }).strict();
 const listInput = z.object({ ...pagination }).strict();
 export const categoryOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which categories exist?", access: "read", input: listInput, handler: (query, client) => client.get("/categories", query) }),
