@@ -59,9 +59,31 @@ const splitCommon = {
   reconciled: z.boolean().optional(),
 };
 
-/** One split of a new transaction. */
+/** Metadata Firefly reads on a split, create and update alike.
+ *
+ * Added after a field-by-field diff against Firefly 6.7.9's request classes
+ * (`npm run audit:api`): bank references, receipt links and the extra dates
+ * Firefly's own form offers. Left out on purpose: SEPA and bunq import fields,
+ * location, split order, and the recurrence link — import plumbing an
+ * assistant has no reason to set.
+ */
+const splitMeta = {
+  currency_id: entityId.optional(),
+  foreign_currency_id: entityId.optional(),
+  internal_reference: z.string().optional(),
+  external_id: z.string().optional(),
+  external_url: z.string().optional(),
+  interest_date: isoDate.optional(),
+  book_date: isoDate.optional(),
+  process_date: isoDate.optional(),
+  due_date: isoDate.optional(),
+  payment_date: isoDate.optional(),
+  invoice_date: isoDate.optional(),
+};
+
+/** One split of a new transaction. Only creation links a piggy bank: Firefly's update request does not read one. */
 export const transactionSplitStore = z
-  .object({ type: splitType, ...splitCommon })
+  .object({ type: splitType, ...splitCommon, ...splitMeta, piggy_bank_id: entityId.optional(), piggy_bank_name: z.string().optional() })
   .strict();
 
 /** One split of an updated transaction.
@@ -96,6 +118,7 @@ export const transactionSplitUpdate = z
     tags: splitCommon.tags,
     notes: splitCommon.notes,
     reconciled: splitCommon.reconciled,
+    ...splitMeta,
   })
   .strict();
 

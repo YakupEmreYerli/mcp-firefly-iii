@@ -1007,7 +1007,7 @@
       "entity": "transaction",
       "operation": "create",
       "access": "write",
-      "fingerprint": "576aa8d6a2820cac"
+      "fingerprint": "42f61f36d4fc4c61"
     },
     {
       "name": "transaction.delete",
@@ -1063,7 +1063,7 @@
       "entity": "transaction",
       "operation": "update",
       "access": "write",
-      "fingerprint": "24936508c53ac84e"
+      "fingerprint": "3e30ed6cde8f329f"
     }
   ],
   "envVars": [

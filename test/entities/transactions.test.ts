@@ -689,3 +689,36 @@ describe("bulk_delete", () => {
     expect(result.results[1]!.reason).toContain("404");
   });
 });
+
+// Firefly 6.7.9 reads these on a split; the strict schema rejected them, so a
+// transaction could not carry its bank reference, its receipt link, or the
+// extra dates Firefly's own form offers.
+describe("split metadata", () => {
+  const meta = {
+    currency_id: "1", foreign_currency_id: "2",
+    internal_reference: "INV-1", external_id: "bank-123", external_url: "https://example.com/receipt/1",
+    interest_date: "2026-11-02", book_date: "2026-11-03", process_date: "2026-11-04",
+    due_date: "2026-11-05", payment_date: "2026-11-06", invoice_date: "2026-11-07",
+  };
+
+  it("passes metadata and a piggy bank through on create", async () => {
+    const { client, calls } = spyClient();
+    const split = { type: "transfer", date: "2026-11-01", amount: "10", description: "Save", piggy_bank_id: "3", piggy_bank_name: "Trip", ...meta };
+    await makeRegistry(client).execute("transaction", "create", { transactions: [split] });
+    expect(calls.post![0]!.body).toMatchObject({ transactions: [split] });
+  });
+
+  it("passes metadata through on update", async () => {
+    const { client, calls } = spyClient();
+    const split = { transaction_journal_id: "9", ...meta };
+    await makeRegistry(client).execute("transaction", "update", { id: "7", transactions: [split] });
+    expect(calls.put![0]!.body).toEqual({ transactions: [split] });
+  });
+
+  // Firefly's update request does not read a piggy bank; accepting it would
+  // return 200 and link nothing.
+  it("rejects a piggy bank on update", async () => {
+    const { client } = spyClient();
+    await expect(makeRegistry(client).execute("transaction", "update", { id: "7", transactions: [{ transaction_journal_id: "9", piggy_bank_id: "3" }] })).rejects.toThrow("Unrecognized key");
+  });
+});
