@@ -37,3 +37,13 @@ describe("collectWriteOperations", () => {
     expect(find("bill.delete")).toMatchObject({ method: "DELETE", path: "/bills/{id}" });
   });
 });
+
+describe("collectWriteOperations sample inputs", () => {
+  // A pattern without a matching sample made the operation fail validation,
+  // and it was reported under "check by hand" with an unreadable reason.
+  it("builds a valid sample for a hex color pattern", () => {
+    const op = find("category.create")!;
+    expect(op.error).toBeUndefined();
+    expect(op.bodyKeys).toContain("color");
+  });
+});

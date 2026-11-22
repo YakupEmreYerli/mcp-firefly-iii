@@ -27,11 +27,11 @@ const accountFields = {
   longitude: z.number().optional(), zoom_level: z.number().int().optional(),
 };
 const accountStore = z.object({ ...accountFields, type: z.string().min(1) }).strict();
-// Firefly reads the liability amount and start date only when updating.
-const accountUpdate = z.object({
-  ...accountFields, type: z.string().min(1).optional(),
-  liability_amount: z.string().optional(), liability_start_date: isoDate.optional(),
-}).strict();
+// Firefly 6.7.9's update request also reads `type`, `liability_amount` and
+// `liability_start_date`, but the controller overwrites `type` and no service
+// stores the other two. They stay out: accepting them would be a 200 that
+// changes nothing.
+const accountUpdate = z.object(accountFields).strict();
 
 export const accountOperations: Record<string, Operation> = {
   list: defineOperation({

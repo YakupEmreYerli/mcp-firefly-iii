@@ -27,7 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - categories: `color`
   - rules: `order`, and `prohibited` on triggers (Firefly's "not", e.g.
     description does *not* contain)
-  - accounts, on update: `type`, `liability_amount`, `liability_start_date`
   - transaction splits: `currency_id`, `foreign_currency_id`,
     `internal_reference`, `external_id`, `external_url`, `interest_date`,
     `book_date`, `process_date`, `due_date`, `payment_date`, `invoice_date`;

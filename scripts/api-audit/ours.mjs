@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 
-const SAMPLE_STRINGS = ["1", "2026-01-01", "2026-01-01T00:00:00+00:00", "abc"];
+const SAMPLE_STRINGS = ["1", "2026-01-01", "2026-01-01T00:00:00+00:00", "abc", "aabbcc"];
 
 function sampleString(schema) {
   if (schema.pattern) {
@@ -86,7 +86,8 @@ export async function collectWriteOperations(modules) {
       try {
         await spec.handler(sample(schema), client);
       } catch (caught) {
-        error = caught instanceof Error ? caught.message.split("\n")[0] : String(caught);
+        // A Zod error's message is multi-line JSON; keep it on one line.
+        error = (caught instanceof Error ? caught.message : String(caught)).replace(/\s+/g, " ").slice(0, 200);
       }
       const write = writes[0];
       if (!write) {

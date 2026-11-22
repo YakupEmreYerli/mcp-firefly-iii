@@ -14,6 +14,7 @@ import { createClient } from "../dist/firefly.js";
 import { Registry } from "../dist/registry.js";
 import { ENTITY_MODULES } from "../dist/server.js";
 import { assertDisposableInstance } from "./api-audit/guard.mjs";
+import { compareStored } from "./api-audit/compare.mjs";
 
 const config = loadConfig();
 assertDisposableInstance(config.apiUrl, process.env);
@@ -26,33 +27,23 @@ const run = (entity, operation, params) => registry.execute(entity, operation, p
 const idOf = (payload) => payload?.data?.id ?? payload?.id;
 const attributesAt = async (path) => (await client.get(path)).data.attributes;
 
-/** Compare what we sent with what Firefly stored. Fields Firefly does not echo are skipped. */
+// Fields the current step sent but could not read back.
+let unverified = [];
+
+/** Compare what we sent with what Firefly stored; fields Firefly does not echo are collected as unverified. */
 function mismatches(sent, stored, prefix = "") {
-  const out = [];
-  for (const [key, value] of Object.entries(sent)) {
-    if (!(key in stored)) continue;
-    const got = stored[key];
-    if (Array.isArray(value) && Array.isArray(got)) {
-      value.forEach((item, i) => {
-        if (item && typeof item === "object" && got[i] && typeof got[i] === "object") out.push(...mismatches(item, got[i], `${prefix}${key}[${i}].`));
-      });
-      continue;
-    }
-    if (value && typeof value === "object") continue;
-    const same =
-      String(got) === String(value) ||
-      (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) && String(got).startsWith(value.slice(0, 10))) ||
-      (!Number.isNaN(Number(value)) && value !== "" && Number(got) === Number(value)) ||
-      (typeof value === "string" && typeof got === "string" && got.toLowerCase() === value.toLowerCase());
-    if (!same) out.push(`${prefix}${key}: sent ${JSON.stringify(value)}, stored ${JSON.stringify(got)}`);
-  }
-  return out;
+  const result = compareStored(sent, stored, prefix);
+  unverified.push(...result.unverified);
+  return result.mismatches;
 }
 
 async function step(name, fn) {
+  unverified = [];
   try {
     const problems = (await fn()) ?? [];
-    results.push({ name, status: problems.length ? "mismatch" : "ok", detail: problems.join("; ") });
+    const status = problems.length ? "mismatch" : unverified.length ? "partial" : "ok";
+    const detail = [...problems, ...(unverified.length ? [`not echoed, unverified: ${unverified.join(", ")}`] : [])].join("; ");
+    results.push({ name, status, detail });
   } catch (error) {
     results.push({ name, status: "error", detail: (error instanceof Error ? error.message : String(error)).split("\n")[0].slice(0, 220) });
   }
@@ -121,7 +112,7 @@ await lifecycle({
 await lifecycle({
   entity: "account", path: "/accounts", wrapper: "account_update",
   create: { name: "Smoke loan", type: "liability", liability_type: "loan", liability_direction: "credit", interest: "3", interest_period: "monthly", currency_code: "EUR", notes: "smoke" },
-  update: { name: "Smoke loan", liability_amount: "1000", liability_start_date: "2026-01-15" },
+  update: { name: "Smoke loan", interest: "4", notes: "smoke updated" },
   // Firefly stores the type as "liabilities"; the request word is "liability".
   unchecked: ["type"],
 });
@@ -213,6 +204,7 @@ await step("recurring_transaction lifecycle", async () => {
 
 const width = Math.max(...results.map((r) => r.name.length));
 for (const r of results) console.log(`${r.status.padEnd(8)} ${r.name.padEnd(width)}  ${r.detail}`);
-const bad = results.filter((r) => r.status !== "ok").length;
-console.log(`\n${results.length - bad}/${results.length} ok`);
+// "partial" steps pass but name the fields Firefly did not echo; check those by hand.
+const bad = results.filter((r) => r.status === "mismatch" || r.status === "error").length;
+console.log(`\n${results.length - bad}/${results.length} passed (${results.filter((r) => r.status === "partial").length} partial)`);
 process.exitCode = bad ? 1 : 0;

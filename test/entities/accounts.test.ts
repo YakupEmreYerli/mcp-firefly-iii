@@ -94,17 +94,17 @@ describe("accounts", () => {
     expect(body).toEqual({ name: "Cash" });
   });
 
-  // Firefly 6.7.9 reads these on update only; a liability's amount and start
-  // date could not be set through the server before.
-  it("passes a liability's amount, start date and type through on update", async () => {
-    let body: unknown;
+  // Firefly 6.7.9's update request reads these, but the controller overwrites
+  // `type` and no service stores the liability amount or start date: a 200
+  // that changes nothing.
+  it("rejects account update fields Firefly never stores", async () => {
     const client: FireflyClient = {
       get: async () => ({}), getText: async () => "", post: async () => ({}), del: async () => null, postBinary: async () => null,
-      put: async (_path, value) => { body = value; return {}; },
+      put: async () => ({}),
     };
-    const update = { name: "Car loan", type: "liability", liability_amount: "1000", liability_start_date: "2026-01-15" };
-    await registry(client).execute("account", "update", { id: "4", account_update: update });
-    expect(body).toEqual(update);
+    for (const field of [{ type: "liability" }, { liability_amount: "1000" }, { liability_start_date: "2026-01-15" }]) {
+      await expect(registry(client).execute("account", "update", { id: "4", account_update: { name: "Car loan", ...field } })).rejects.toThrow("Unrecognized key");
+    }
   });
 
   it("accepts Firefly's required asset account role", async () => {
