@@ -29,4 +29,6 @@ USER node
 EXPOSE 3000
 
 # Fails fast if MCP_HTTP_TOKEN is missing rather than listening unauthenticated.
-CMD ["node", "dist/http.js"]
+# No arguments runs the HTTP server; `setup` and `doctor` run the remote
+# setup and its checks (src/container.ts).
+ENTRYPOINT ["node", "dist/container.js"]

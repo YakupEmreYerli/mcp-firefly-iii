@@ -281,7 +281,8 @@ export function createHttpServer(config: Config): Server {
   }
 }
 
-async function main(): Promise<void> {
+/** Start the HTTP server; the image's entry point calls this too. */
+export async function startHttpServer(): Promise<void> {
   const config = loadConfig();
   const server = createHttpServer(config);
   await new Promise<void>((resolve) => {
@@ -310,7 +311,7 @@ function isEntryPoint(): boolean {
 }
 
 if (isEntryPoint()) {
-  main().catch((error: unknown) => {
+  startHttpServer().catch((error: unknown) => {
     console.error(diagnostic(error));
     process.exit(1);
   });
