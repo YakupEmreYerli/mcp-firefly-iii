@@ -342,7 +342,7 @@
       "entity": "category",
       "operation": "create",
       "access": "write",
-      "fingerprint": "e6e8e2b868e370e8"
+      "fingerprint": "ca8904f5bdc665b7"
     },
     {
       "name": "category.delete",
@@ -384,7 +384,7 @@
       "entity": "category",
       "operation": "update",
       "access": "write",
-      "fingerprint": "1d349d576c947cf3"
+      "fingerprint": "6089b45502eb910a"
     },
     {
       "name": "configuration.get",

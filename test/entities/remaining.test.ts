@@ -188,8 +188,9 @@ describe("entity parity surface", () => {
     const { registry, calls } = setup();
     await registry.execute("category", "create", { name: "Food", color: "ff8800" });
     await registry.execute("category", "update", { id: "5", category_update: { name: "Food", color: "0088FF" } });
-    expect(calls[0]!.body).toEqual({ name: "Food", color: "ff8800" });
-    expect(calls[1]!.body).toEqual({ name: "Food", color: "0088FF" });
+    const writes = calls.filter((call) => call.method !== "GET");
+    expect(writes[0]!.body).toEqual({ name: "Food", color: "ff8800" });
+    expect(writes[1]!.body).toEqual({ name: "Food", color: "0088FF" });
     await expect(registry.execute("category", "create", { name: "Food", color: "#ff8800" })).rejects.toThrow();
   });
 
