@@ -123,6 +123,26 @@ describe("entity parity surface", () => {
     expect(calls[1]!.body).toMatchObject(extra);
   });
 
+  it("passes a piggy bank's object group through", async () => {
+    const { registry, calls } = setup();
+    const piggy = { name: "Trip", target_amount: "500", start_date: "2026-11-01", accounts: [{ account_id: "3", current_amount: "50" }] };
+    await registry.execute("piggy_bank", "create", { ...piggy, object_group_id: "2", object_group_title: "Goals" });
+    await registry.execute("piggy_bank", "update", { id: "4", piggy_bank_update: { object_group_title: "Goals" } });
+    expect(calls[0]!.body).toMatchObject({ object_group_id: "2", object_group_title: "Goals" });
+    expect(calls[1]!.body).toEqual({ object_group_title: "Goals" });
+  });
+
+  // Firefly 6.7.9 reads neither: the starting amount goes in
+  // accounts[].current_amount, and a piggy bank has no active flag. Accepting
+  // them returned 200 and stored nothing.
+  it("rejects piggy bank fields Firefly silently drops", async () => {
+    const { registry } = setup();
+    const piggy = { name: "Trip", target_amount: "500", start_date: "2026-11-01", accounts: [{ account_id: "3" }] };
+    await expect(registry.execute("piggy_bank", "create", { ...piggy, amount: "50" })).rejects.toThrow("Unrecognized key");
+    await expect(registry.execute("piggy_bank", "create", { ...piggy, active: true })).rejects.toThrow("Unrecognized key");
+    await expect(registry.execute("piggy_bank", "update", { id: "4", piggy_bank_update: { active: false } })).rejects.toThrow("Unrecognized key");
+  });
+
   it("uses query-only POSTs for rule triggers", async () => {
     const { registry, calls } = setup();
     await registry.execute("rule", "trigger", { id: "8", start: "2026-08-01", end: "2026-08-02" });

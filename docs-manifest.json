@@ -622,7 +622,7 @@
       "entity": "piggy_bank",
       "operation": "create",
       "access": "write",
-      "fingerprint": "689d985ef03a50f7"
+      "fingerprint": "0b5739a580d03fee"
     },
     {
       "name": "piggy_bank.delete",
@@ -664,7 +664,7 @@
       "entity": "piggy_bank",
       "operation": "update",
       "access": "write",
-      "fingerprint": "3f1e3c42111b5357"
+      "fingerprint": "1f2d4fc89592e4b1"
     },
     {
       "name": "preference.get",
