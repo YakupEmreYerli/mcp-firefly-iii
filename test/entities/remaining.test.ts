@@ -177,6 +177,17 @@ describe("entity parity surface", () => {
     await expect(registry.execute("category", "create", { name: "Food", color: "#ff8800" })).rejects.toThrow();
   });
 
+  // A prohibited trigger is Firefly's "NOT": "description does not contain".
+  // Without the key there was no way to write one, or to keep one on update.
+  it("passes a rule's order and prohibited triggers through", async () => {
+    const { registry, calls } = setup();
+    const triggers = [{ type: "description_contains", value: "refund", prohibited: true }];
+    await registry.execute("rule", "create", { title: "Food", rule_group_id: "1", trigger: "store-journal", triggers, actions: [{ type: "set_category", value: "Food", active: true }], order: 2 });
+    await registry.execute("rule", "update", { id: "8", rule_update: { triggers, order: 3 } });
+    expect(calls[0]!.body).toMatchObject({ order: 2, triggers });
+    expect(calls[1]!.body).toEqual({ triggers, order: 3 });
+  });
+
   it("uses query-only POSTs for rule triggers", async () => {
     const { registry, calls } = setup();
     await registry.execute("rule", "trigger", { id: "8", start: "2026-08-01", end: "2026-08-02" });
