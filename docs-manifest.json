@@ -195,7 +195,7 @@
       "entity": "bill",
       "operation": "create",
       "access": "write",
-      "fingerprint": "4192bc0118b3fdff"
+      "fingerprint": "d9fc33f4d2ff28fe"
     },
     {
       "name": "bill.delete",
@@ -244,7 +244,7 @@
       "entity": "bill",
       "operation": "update",
       "access": "write",
-      "fingerprint": "6b3f5aa35fd5ad18"
+      "fingerprint": "ccc8f72907824535"
     },
     {
       "name": "budget.create",

@@ -112,6 +112,17 @@ describe("entity parity surface", () => {
     ]);
   });
 
+  // Firefly 6.7.9's bill request reads these; the strict schema rejected them,
+  // so a bill could not be given an end date or put in a group.
+  it("passes a bill's end, extension, order and group through", async () => {
+    const { registry, calls } = setup();
+    const extra = { end_date: "2027-12-31", extension_date: "2027-06-30", order: 2, object_group_id: "4", object_group_title: "Home" };
+    await registry.execute("bill", "create", { name: "Rent", amount_min: "1", amount_max: "1", date: "2026-12-01", repeat_freq: "monthly", ...extra });
+    await registry.execute("bill", "update", { id: "3", bill_update: { name: "Rent", ...extra } });
+    expect(calls[0]!.body).toMatchObject(extra);
+    expect(calls[1]!.body).toMatchObject(extra);
+  });
+
   it("uses query-only POSTs for rule triggers", async () => {
     const { registry, calls } = setup();
     await registry.execute("rule", "trigger", { id: "8", start: "2026-08-01", end: "2026-08-02" });
