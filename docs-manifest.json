@@ -55,7 +55,7 @@
       "entity": "account",
       "operation": "update",
       "access": "write",
-      "fingerprint": "10a04d43214d84cb"
+      "fingerprint": "351862e6914d8ef2"
     },
     {
       "name": "analysis.compare_periods",

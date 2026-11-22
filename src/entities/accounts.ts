@@ -27,7 +27,11 @@ const accountFields = {
   longitude: z.number().optional(), zoom_level: z.number().int().optional(),
 };
 const accountStore = z.object({ ...accountFields, type: z.string().min(1) }).strict();
-const accountUpdate = z.object(accountFields).strict();
+// Firefly reads the liability amount and start date only when updating.
+const accountUpdate = z.object({
+  ...accountFields, type: z.string().min(1).optional(),
+  liability_amount: z.string().optional(), liability_start_date: isoDate.optional(),
+}).strict();
 
 export const accountOperations: Record<string, Operation> = {
   list: defineOperation({
