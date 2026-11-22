@@ -95,6 +95,11 @@ jobs:
           v="${{ steps.ver.outputs.version }}"
           image="ghcr.io/yakupemreyerli/mcp-firefly-iii"
           tags=( -t "${image}:${v}" )
+          # Docker convention, and what the setup and docs pin: the version
+          # without the git tag's leading v (v1.3.0 is also published as 1.3.0).
+          if [ "${v#v}" != "$v" ]; then
+            tags+=( -t "${image}:${v#v}" )
+          fi
           if [ "$v" != "latest" ]; then
             tags+=( -t "${image}:latest" )
           fi
