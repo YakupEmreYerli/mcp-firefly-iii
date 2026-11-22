@@ -115,6 +115,10 @@ describe("runRemoteSetup", () => {
     try {
       expect(await runRemoteSetup(io, dir, "1.3.0")).toBe(1);
       expect(io.out).toContain('--user "$(id -u):$(id -g)"');
+      // SELinux hosts (Fedora, RHEL) refuse a bind mount without a label;
+      // found running the image on one.
+      expect(io.out).toContain('-v "$PWD":/work:z');
+      expect(io.out).toMatch(/SELinux/);
       expect(existsSync(join(dir, "firefly-mcp.env"))).toBe(false);
     } finally {
       chmodSync(dir, 0o700);

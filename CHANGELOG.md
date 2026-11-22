@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - A guided remote setup. Run
-  `docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup`
+  `docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup`
   from the folder that holds Firefly III's compose file: it asks for a token,
   the server's public address and where your HTTPS proxy runs, then writes
   `compose.firefly-mcp.yml` and `firefly-mcp.env` beside your compose file

@@ -85,10 +85,10 @@ Bu istemcilerin hiçbiri sabit token tutamaz, hiçbiri yerel bir süreç de baş
 **Firefly III'ün yanına kurun.** Firefly III Docker Compose ile çalışıyorsa her şeyi kurulum sihirbazı yazar. Firefly III'ün compose dosyasının bulunduğu klasörde çalıştırın; Docker dışında bir şey gerekmez:
 
 ```bash
-docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
 ```
 
-Sihirbaz bir Firefly III token'ı, sunucunun kendine ait bir adresini (örneğin `mcp.example.com`; Firefly III kendi adresinde kalır) ve HTTPS ters vekilinizin nerede çalıştığını sorar. Sonra kendi compose dosyanıza dokunmadan yanına `compose.firefly-mcp.yml` ve `firefly-mcp.env` (izin 600) dosyalarını yazar, giriş parolasını üretir ve vekilinize eklenecek satırları basar: Caddy, Traefik, Nginx Proxy Manager ya da Cloudflare Tunnel. Sunucuyu başlatıp kontrol edin:
+(`:z`, Fedora gibi SELinux kullanan sunucularda container'ın klasöre yazabilmesi içindir; diğer sistemlerde Docker bunu yok sayar.) Sihirbaz bir Firefly III token'ı, sunucunun kendine ait bir adresini (örneğin `mcp.example.com`; Firefly III kendi adresinde kalır) ve HTTPS ters vekilinizin nerede çalıştığını sorar. Sonra kendi compose dosyanıza dokunmadan yanına `compose.firefly-mcp.yml` ve `firefly-mcp.env` (izin 600) dosyalarını yazar, giriş parolasını üretir ve vekilinize eklenecek satırları basar: Caddy, Traefik, Nginx Proxy Manager ya da Cloudflare Tunnel. Sunucuyu başlatıp kontrol edin:
 
 ```bash
 docker compose -f docker-compose.yml -f compose.firefly-mcp.yml up -d

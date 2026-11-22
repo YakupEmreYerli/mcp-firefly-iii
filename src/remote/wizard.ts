@@ -74,7 +74,8 @@ export async function runRemoteSetup(io: WizardIO, dir: string, version: string)
 
   if (!writable(dir)) {
     io.print(`Cannot write to ${dir}. Run the setup as your own user from Firefly III's folder:`);
-    io.print('  docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:' + version + " setup");
+    io.print('  docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:' + version + " setup");
+    io.print("The :z lets the container write the folder on SELinux hosts (Fedora, RHEL); elsewhere Docker ignores it.");
     return 1;
   }
 

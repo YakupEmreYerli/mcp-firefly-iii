@@ -11,7 +11,7 @@ If Firefly III runs with Docker Compose, let the setup write the files. From
 the folder that holds Firefly III's compose file:
 
 ```bash
-docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
 ```
 
 It writes `compose.firefly-mcp.yml` and `firefly-mcp.env` beside your compose

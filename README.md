@@ -85,10 +85,10 @@ None of these clients can hold a static token, and none of them can spawn a loca
 **Set it up next to Firefly III.** If Firefly III runs with Docker Compose, the setup writes everything. Run it from the folder that holds Firefly III's compose file — only Docker is needed:
 
 ```bash
-docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
 ```
 
-It asks for a Firefly III token, an address of the server's own (for example `mcp.example.com`; Firefly III keeps its address), and where your HTTPS reverse proxy runs. It then writes `compose.firefly-mcp.yml` and `firefly-mcp.env` (mode 600) beside your compose file without touching yours, generates the sign-in password, and prints the lines to add to your proxy — Caddy, Traefik, Nginx Proxy Manager or Cloudflare Tunnel. Start the server and check it:
+(`:z` lets the container write the folder on SELinux hosts such as Fedora; elsewhere Docker ignores it.) It asks for a Firefly III token, an address of the server's own (for example `mcp.example.com`; Firefly III keeps its address), and where your HTTPS reverse proxy runs. It then writes `compose.firefly-mcp.yml` and `firefly-mcp.env` (mode 600) beside your compose file without touching yours, generates the sign-in password, and prints the lines to add to your proxy — Caddy, Traefik, Nginx Proxy Manager or Cloudflare Tunnel. Start the server and check it:
 
 ```bash
 docker compose -f docker-compose.yml -f compose.firefly-mcp.yml up -d
