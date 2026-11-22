@@ -28,6 +28,9 @@ function checkAuth(env: NodeJS.ProcessEnv): CheckResult {
     }
     return { name: "auth", status: "pass", detail: "Password sign-in (OAuth) is on, for Claude and ChatGPT." };
   }
+  if ((env.MCP_AUTHORIZATION_SERVERS ?? "").trim() !== "") {
+    return { name: "auth", status: "pass", detail: `Sign-in through an external authorization server (${env.MCP_AUTHORIZATION_SERVERS?.trim()}).` };
+  }
   if ((env.MCP_HTTP_TOKEN ?? "") !== "") {
     return { name: "auth", status: "pass", detail: "Static bearer token. Claude web, Claude mobile and ChatGPT need password sign-in (MCP_AUTH_PASSWORD) instead." };
   }
@@ -112,13 +115,16 @@ async function checkReachable(publicUrl: string, deps: DoctorDeps): Promise<Chec
 export async function runDoctor(deps: DoctorDeps): Promise<CheckResult[]> {
   const { env } = deps;
   const results: CheckResult[] = [checkAuth(env)];
-  const oauth = (env.MCP_AUTH_PASSWORD ?? "").trim() !== "";
+  const builtin = (env.MCP_AUTH_PASSWORD ?? "").trim() !== "";
+  const external = (env.MCP_AUTHORIZATION_SERVERS ?? "").trim() !== "";
   let publicUrl: string | undefined;
-  if (oauth) {
+  if (builtin || external) {
     const address = checkPublicAddress(env);
     publicUrl = address.url;
     const { url: _url, ...shown } = address;
-    results.push(shown, checkStateDir(env, deps));
+    results.push(shown);
+    // Only the built-in sign-in keeps state on disk.
+    if (builtin) results.push(checkStateDir(env, deps));
   }
   results.push(await checkFirefly(env, deps));
   if (publicUrl) results.push(await checkReachable(publicUrl, deps));

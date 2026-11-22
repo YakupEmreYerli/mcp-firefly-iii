@@ -126,7 +126,12 @@ export async function runRemoteSetup(io: WizardIO, dir: string, version: string)
   let proxy: ProxyChoice;
   if (where === 0) {
     const suggestion = externalNetworks[0] ?? "proxy";
-    proxy = { kind: "docker", network: await askWithDefault(io, "Docker network your proxy is on", suggestion) };
+    const network = await askWithDefault(io, "Docker network your proxy is on", suggestion);
+    // A network the user's own compose declares (not as external), or Firefly's
+    // default one, belongs to the project; anything else lives outside it.
+    const projectNetwork = network === fireflyNetwork || network === "default"
+      || (services?.networks.some((n) => n.key === network && !n.external) ?? false);
+    proxy = { kind: "docker", network, external: !projectNetwork };
   } else {
     proxy = { kind: where === 1 ? "host" : "tunnel", port: await askPort(io) };
   }

@@ -43,6 +43,17 @@ describe("runDoctor", () => {
     expect(exitCodeFor(results)).toBe(1);
   });
 
+  // The server also runs with an external OAuth issuer and neither of the
+  // other two settings; the resource address matters most there.
+  it("accepts an external authorization server and still checks the public address", async () => {
+    const { MCP_AUTH_PASSWORD, ...rest } = good;
+    const env = { ...rest, MCP_AUTHORIZATION_SERVERS: "https://auth.example.com" };
+    const results = await runDoctor(deps({ env }));
+    expect(byName(results, "auth").status).toBe("pass");
+    expect(byName(results, "reachable from outside").status).toBe("pass");
+    expect(results.find((r) => r.name === "sign-in storage")).toBeUndefined();
+  });
+
   it("fails a password shorter than the server accepts", async () => {
     expect(byName(await runDoctor(deps({ env: { ...good, MCP_AUTH_PASSWORD: "short" } })), "auth").status).toBe("fail");
   });

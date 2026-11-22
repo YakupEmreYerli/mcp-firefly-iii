@@ -4,7 +4,10 @@ import { stringify } from "yaml";
 /** Where the reverse proxy that serves HTTPS runs. A proxy container reaches
  * the server over a shared Docker network; anything outside Docker (a host
  * package, a tunnel daemon) reaches a port published on loopback. */
-export type ProxyChoice = { kind: "docker"; network: string } | { kind: "host"; port: number } | { kind: "tunnel"; port: number };
+export type ProxyChoice =
+  | { kind: "docker"; network: string; external: boolean }
+  | { kind: "host"; port: number }
+  | { kind: "tunnel"; port: number };
 
 export type RemoteAnswers = {
   fireflyService: string;
@@ -54,7 +57,12 @@ function upstream(a: RemoteAnswers): string {
 
 /** A compose file to pass with -f next to the user's own; it never edits theirs. */
 export function composeOverride(a: RemoteAnswers): string {
-  const networks = a.proxy.kind === "docker" ? [a.fireflyNetwork, a.proxy.network] : [a.fireflyNetwork];
+  // A proxy on a network of the user's own project (Firefly's, or another
+  // one they declared) is joined as is; only a network from outside the
+  // project is declared external. Declaring the project's own network
+  // external, or listing it twice, breaks `up` for Firefly too.
+  const networks = [...new Set(a.proxy.kind === "docker" ? [a.fireflyNetwork, a.proxy.network] : [a.fireflyNetwork])];
+  const externalProxy = a.proxy.kind === "docker" && a.proxy.external && a.proxy.network !== a.fireflyNetwork;
   const service: Record<string, unknown> = {
     image: `ghcr.io/yakupemreyerli/mcp-firefly-iii:${a.version}`,
     restart: "unless-stopped",
@@ -70,7 +78,7 @@ export function composeOverride(a: RemoteAnswers): string {
   };
   if (a.proxy.kind !== "docker") service.ports = [`127.0.0.1:${a.proxy.port}:3000`];
   const doc: Record<string, unknown> = { services: { [SERVICE]: service }, volumes: { [VOLUME]: {} } };
-  if (a.proxy.kind === "docker") doc.networks = { [a.proxy.network]: { external: true } };
+  if (externalProxy && a.proxy.kind === "docker") doc.networks = { [a.proxy.network]: { external: true } };
   return `# Written by firefly-mcp setup --remote. Start with:\n#   docker compose -f <your compose file> -f ${OVERRIDE_FILE} up -d\n${stringify(doc)}`;
 }
 
@@ -102,6 +110,9 @@ export function proxySnippet(kind: ProxyKind, a: RemoteAnswers): string {
             "  - traefik.http.routers.firefly-mcp.entrypoints=websecure",
             "  - traefik.http.routers.firefly-mcp.tls.certresolver=letsencrypt",
             "  - traefik.http.services.firefly-mcp.loadbalancer.server.port=3000",
+            // The service sits on two networks; without this Traefik may pick
+            // the address it cannot reach.
+            `  - traefik.docker.network=${a.proxy.network}`,
           ].join("\n")
         : `# Traefik outside Docker: add a router for Host(\`${host}\`) to a service at http://${target}.`;
     case "npm":

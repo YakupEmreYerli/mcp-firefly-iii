@@ -30,8 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The Docker image's entry point runs the HTTP server with no arguments, as
-  before, and `setup` or `doctor` when given one.
+- The Docker image now has an entry point. With no arguments it runs the
+  HTTP server, as before; `setup` and `doctor` run the remote setup and its
+  checks; any other command (`node dist/http.js`, a compose `command:`, `sh`)
+  still runs as given.
 - The docs pin the image to the release (`:1.3.0`) instead of `:latest`.
 
 ### Fixed

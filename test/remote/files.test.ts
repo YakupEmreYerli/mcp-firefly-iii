@@ -8,7 +8,7 @@ const base: RemoteAnswers = {
   apiToken: "token-value-123",
   resourceUrl: "https://mcp.example.com",
   password: "generated-password-0123456789abcdef",
-  proxy: { kind: "docker", network: "proxy" },
+  proxy: { kind: "docker", network: "proxy", external: true },
   version: "1.3.0",
 };
 const onHost: RemoteAnswers = { ...base, proxy: { kind: "host", port: 3000 } };
@@ -44,6 +44,22 @@ describe("composeOverride", () => {
     const text = composeOverride(base);
     expect(text).not.toContain(base.apiToken);
     expect(text).not.toContain(base.password);
+  });
+});
+
+describe("composeOverride with a proxy on Firefly's own network", () => {
+  // Declaring the project's own network external, or listing it twice, makes
+  // `docker compose up` fail for Firefly too.
+  it("joins it once and declares nothing external", () => {
+    const doc = parse(composeOverride({ ...base, proxy: { kind: "docker", network: "firefly_iii", external: false } })) as Doc;
+    expect(doc.services["firefly-mcp"]!.networks).toEqual(["firefly_iii"]);
+    expect(doc.networks).toBeUndefined();
+  });
+
+  it("does not declare another project network external", () => {
+    const doc = parse(composeOverride({ ...base, proxy: { kind: "docker", network: "frontend", external: false } })) as Doc;
+    expect(doc.services["firefly-mcp"]!.networks).toEqual(["firefly_iii", "frontend"]);
+    expect(doc.networks).toBeUndefined();
   });
 });
 
@@ -83,6 +99,11 @@ describe("proxySnippet", () => {
   it("points a Docker proxy at the service and a host proxy at loopback", () => {
     expect(proxySnippet("caddy", base)).toContain("reverse_proxy firefly-mcp:3000");
     expect(proxySnippet("caddy", onHost)).toContain("reverse_proxy 127.0.0.1:3000");
+  });
+
+  // On two networks Traefik may route to the address it cannot reach.
+  it("tells Traefik which network to use", () => {
+    expect(proxySnippet("traefik", base)).toContain("traefik.docker.network=proxy");
   });
 
   it("names the public host in every snippet", () => {

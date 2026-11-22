@@ -84,6 +84,14 @@ describe("runRemoteSetup", () => {
     expect(readFileSync(join(dir, "compose.firefly-mcp.yml"), "utf8")).toContain("http://two:8080");
   });
 
+  it("treats a proxy on Firefly's own network as internal", async () => {
+    const dir = dirWith(officialCompose);
+    const io = scripted(["firefly-token", "mcp.example.com", "1", "firefly_iii", "1"]);
+    expect(await runRemoteSetup(io, dir, "1.3.0")).toBe(0);
+    const override = readFileSync(join(dir, "compose.firefly-mcp.yml"), "utf8");
+    expect(override).not.toContain("external");
+  });
+
   it("publishes on loopback when the proxy runs on the host", async () => {
     const dir = dirWith(officialCompose);
     const io = scripted(["firefly-token", "mcp.example.com", "2", "3100", "1"]);

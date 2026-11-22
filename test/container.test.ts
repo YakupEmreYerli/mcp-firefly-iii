@@ -16,8 +16,11 @@ describe("containerCommand", () => {
     expect(containerCommand(["doctor"])).toBe("doctor");
   });
 
-  it("refuses anything else instead of starting a server", () => {
-    expect(containerCommand(["serve"])).toEqual({ unknown: "serve" });
-    expect(containerCommand(["doctor", "x"])).toEqual({ unknown: "doctor x" });
+  // Before the entry point existed, `docker run IMAGE node dist/http.js` and
+  // compose `command:` overrides ran as given; they must keep working.
+  it("runs any other command as given, as the image did before", () => {
+    expect(containerCommand(["node", "dist/http.js"])).toEqual({ exec: ["node", "dist/http.js"] });
+    expect(containerCommand(["sh"])).toEqual({ exec: ["sh"] });
+    expect(containerCommand(["doctor", "x"])).toEqual({ exec: ["doctor", "x"] });
   });
 });
