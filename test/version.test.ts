@@ -30,4 +30,10 @@ describe("fireflyVersion", () => {
     expect(await fireflyVersion(clientAnswering(async () => { throw new Error("down"); }))).toBeUndefined();
     expect(await fireflyVersion(clientAnswering(async () => ({ data: {} })))).toBeUndefined();
   });
+
+  // A development build reports a branch name; treating it as 0.0.0 would
+  // refuse features it has.
+  it("treats a version that is not numeric as unknown", async () => {
+    expect(await fireflyVersion(clientAnswering(async () => ({ data: { version: "develop/2026-11-20" } })))).toBeUndefined();
+  });
 });

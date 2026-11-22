@@ -24,7 +24,7 @@ export function fireflyVersion(client: FireflyClient): Promise<string | undefine
     pending = client.get("/about").then(
       (payload) => {
         const data = (payload as { data?: { version?: unknown } } | undefined)?.data;
-        return typeof data?.version === "string" ? data.version : undefined;
+        return typeof data?.version === "string" && /^v?\d+\.\d+/.test(data.version) ? data.version : undefined;
       },
       () => undefined,
     );
