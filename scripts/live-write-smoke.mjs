@@ -96,7 +96,7 @@ await lifecycle({
 
 await lifecycle({
   entity: "piggy_bank", path: "/piggy-banks", wrapper: "piggy_bank_update",
-  create: { name: "Smoke piggy", target_amount: "500", start_date: "2026-11-01", accounts: [{ account_id: "3", current_amount: "50" }], object_group_title: "Smoke goals", notes: "smoke" },
+  create: { name: "Smoke piggy", target_amount: "500", start_date: "2026-11-01", accounts: [{ account_id: "3", current_amount: "50" }], transaction_currency_code: "EUR", object_group_title: "Smoke goals", notes: "smoke" },
   update: { name: "Smoke piggy renamed", target_amount: "600" },
 });
 
@@ -109,7 +109,7 @@ await lifecycle({
 await lifecycle({
   entity: "budget", path: "/budgets", wrapper: "budget_update",
   create: { name: "Smoke budget", auto_budget_type: "reset", auto_budget_amount: "100", auto_budget_period: "monthly", auto_budget_currency_code: "EUR" },
-  update: { name: "Smoke budget", auto_budget_amount: "150", order: 2 },
+  update: { name: "Smoke budget", auto_budget_type: "reset", auto_budget_amount: "150", auto_budget_period: "monthly" },
 });
 
 await lifecycle({
@@ -153,25 +153,38 @@ await step("rule lifecycle", async () => {
 
 // Transactions, a link between two of them, then cleanup.
 await step("transaction lifecycle", async () => {
+  let stage = "create";
+  try {
   const split = { type: "withdrawal", date: "2026-11-10", amount: "12.50", description: "Smoke coffee", source_id: "1", destination_name: "Smoke Cafe", internal_reference: "SMOKE-1", external_url: "https://example.com/r/1", book_date: "2026-11-11" };
   const created = await run("transaction", "create", { transactions: [split] });
   const id = idOf(created);
   const stored = (await client.get(`/transactions/${id}`)).data.attributes.transactions[0];
   const problems = mismatches(split, stored, "split.");
+  stage = "update";
   await run("transaction", "update", { id, transactions: [{ transaction_journal_id: stored.transaction_journal_id, description: "Smoke coffee 2", due_date: "2026-11-20" }] });
   const after = (await client.get(`/transactions/${id}`)).data.attributes.transactions[0];
   problems.push(...mismatches({ description: "Smoke coffee 2", due_date: "2026-11-20" }, after, "split."));
 
+  stage = "link";
   const otherId = idOf(await run("transaction", "create", { transactions: [{ ...split, description: "Smoke refund", internal_reference: "SMOKE-2" }] }));
   const other = (await client.get(`/transactions/${otherId}`)).data.attributes.transactions[0];
   const linkId = idOf(await run("transaction_link", "create", { link_type_name: "Related", inward_id: stored.transaction_journal_id, outward_id: other.transaction_journal_id, notes: "smoke" }));
-  await run("transaction_link", "update", { id: linkId, transaction_link_update: { link_type_name: "Refund" } });
-  const link = await attributesAt(`/transaction-links/${linkId}`);
+  // Update by id with both ends: link_type_name corrupts the link on 6.7.9.
   const refund = (await client.get("/link-types")).data.find((t) => t.attributes.name === "Refund");
-  if (String(link.link_type_id) !== String(refund?.id)) problems.push(`link_type_name: sent "Refund", stored link_type_id ${link.link_type_id}`);
+  await run("transaction_link", "update", { id: linkId, transaction_link_update: { link_type_id: refund.id, inward_id: stored.transaction_journal_id, outward_id: other.transaction_journal_id, notes: "changed" } });
+  problems.push(...mismatches({ link_type_id: refund.id, notes: "changed" }, await attributesAt(`/transaction-links/${linkId}`), "link."));
+  await run("transaction_link", "delete", { id: linkId });
+  stage = "bulk_update";
+  await run("transaction", "bulk_update", { updates: [{ transaction_id: String(id), fields: { description: "Smoke coffee bulk", notes: "bulk" } }] });
+  const bulk = (await client.get(`/transactions/${id}`)).data.attributes.transactions[0];
+  problems.push(...mismatches({ description: "Smoke coffee bulk", notes: "bulk" }, bulk, "bulk."));
+  stage = "cleanup";
   await run("transaction", "delete", { id });
   await run("transaction", "delete", { id: otherId });
   return problems;
+  } catch (error) {
+    throw new Error(`at ${stage}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 });
 
 await step("exchange_rate lifecycle", async () => {
@@ -190,7 +203,9 @@ await step("recurring_transaction lifecycle", async () => {
     repetitions: [{ type: "monthly", moment: "1" }],
     transactions: [{ description: "Smoke rent", amount: "900", source_id: "1", destination_id: "7" }],
   }));
-  await run("recurring_transaction", "update", { id, recurrence_update: { title: "Smoke rent 2" } });
+  // The update replaces the transactions, so they are sent back as stored.
+  const current = (await attributesAt(`/recurrences/${id}`)).transactions.map((t) => ({ description: t.description, amount: t.amount, source_id: String(t.source_id), destination_id: String(t.destination_id) }));
+  await run("recurring_transaction", "update", { id, recurrence_update: { title: "Smoke rent 2", transactions: current } });
   const problems = mismatches({ title: "Smoke rent 2" }, await attributesAt(`/recurrences/${id}`));
   await run("recurring_transaction", "delete", { id });
   return problems;

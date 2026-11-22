@@ -88,6 +88,29 @@ cevap** üretmeleri — yazılı olmalarının sebebi bu.
   karşılaştırma yapan her kod bunu bilmelidir.
 - **Insight giderleri negatiftir**; gelir ve transferler pozitif.
 
+### Firefly III 6.7.9 alan denetimi (2026-11-22)
+
+`npm run audit:api` her yazma operasyonunun gönderdiği alanları Firefly'ın kendi
+istek sınıflarının okuduğu alanlarla karşılaştırır; `npm run smoke:write` yazmaları
+atılabilir bir yerel örnekte bağımsız okumayla doğrular. Bu turda bulunanlar:
+
+- **Okunan alan kaydedilen alan değildir.** Bütçe güncellemesi `order`'ı okur ama
+  depo katmanı hiç yazmaz; 200 döner, sıra değişmez. Şemadan çıkarıldı.
+- **Otomatik bütçe yalnız `auto_budget_type` ile birlikte değişir.** Tek başına
+  `auto_budget_amount` ya da `auto_budget_period` 200 döner ve eskisi kalır; şema
+  türü bu durumda zorunlu tutar.
+- **`transaction_link` güncellemesinde `link_type_name` bağlantıyı bozar.** Firefly
+  `link_type_id` 0 yazar, sonraki her güncelleme 500 verir. İki uç olmadan yapılan
+  güncelleme benzersizlik kısıtına takılır ve bağlantı kaybolur. Güncelleme tam kimlik
+  ve tür kimliğiyle yapılır.
+- **Sessizce düşürülen alanlar:** kumbarada `amount` (başlangıç tutarı
+  `accounts[].current_amount`'tadır) ve `active`; döviz kuru güncellemesinde `from` ve
+  `to`; tekrarlayan işlem güncellemesinde `type`. Hepsi şemadan çıkarıldı.
+- **Kumbara oluşturmak 6.7'de para birimi ister** (`transaction_currency_code` ya da
+  `_id`); eksikse 422.
+- Kural trigger'ındaki `prohibited` Firefly'ın "DEĞİL"idir; trigger listesi baştan
+  yazıldığı için güncellemede geri gönderilmezse kaybolur.
+
 ## Kayıt içeriği güvenilmezdir
 
 İşlem açıklaması, notlar, etiketler ve karşı taraf hesap adları parayı hareket ettiren
