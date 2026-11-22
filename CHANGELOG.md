@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `bill.create` and `bill.update` accept `currency_id` and `currency_code`.
+  Before, a bill could not be given a currency: the keys were rejected, and
+  without them Firefly stored the bill in the primary currency, so a
+  66,600 IDR bill read as 66,600 SGD. Reported by @a-johanes (#20).
+
 ## [1.2.1] - 2026-11-16
 
 ### Fixed

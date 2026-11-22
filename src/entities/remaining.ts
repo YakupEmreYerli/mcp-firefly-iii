@@ -56,7 +56,7 @@ export const budgetOperations: Record<string, Operation> = {
 };
 export const budgetsModule: EntityModule = { entity: EntityType.Budget, hint: "budgets, limits, and budget transactions", operations: budgetOperations };
 
-const billData = z.object({ name: z.string().min(1), amount_min: z.string().min(1), amount_max: z.string().min(1), date: z.string().min(1), repeat_freq: z.enum(["weekly", "monthly", "quarterly", "half-year", "yearly"]), skip: z.number().int().optional(), active: z.boolean().optional(), notes: z.string().optional() }).strict();
+const billData = z.object({ name: z.string().min(1), amount_min: z.string().min(1), amount_max: z.string().min(1), date: z.string().min(1), repeat_freq: z.enum(["weekly", "monthly", "quarterly", "half-year", "yearly"]), currency_id: entityId.optional(), currency_code: z.string().min(3).optional(), skip: z.number().int().optional(), active: z.boolean().optional(), notes: z.string().optional() }).strict();
 const billUpdate = billData.partial().extend({ name: z.string().min(1) }).strict();
 export const billOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which bills are due in this period?", access: "read", input: z.object({ ...pagination, ...dates }).strict(), handler: (q, c) => c.get("/bills", q) }),

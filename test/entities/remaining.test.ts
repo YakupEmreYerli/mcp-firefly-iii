@@ -99,6 +99,19 @@ describe("entity parity surface", () => {
     ]);
   });
 
+  // Without these keys a foreign-currency bill silently lands in the primary
+  // currency, and its amount is then read in the wrong unit (#20).
+  it("passes a bill's currency through on create and update", async () => {
+    const { registry, calls } = setup();
+    const bill = { name: "Rent", amount_min: "66600", amount_max: "66600", date: "2026-12-19", repeat_freq: "monthly" };
+    await registry.execute("bill", "create", { ...bill, currency_code: "IDR" });
+    await registry.execute("bill", "update", { id: "3", bill_update: { name: "Rent", currency_id: "7" } });
+    expect(calls.map(({ path, body }) => ({ path, body }))).toEqual([
+      { path: "/bills", body: { ...bill, currency_code: "IDR" } },
+      { path: "/bills/3", body: { name: "Rent", currency_id: "7" } },
+    ]);
+  });
+
   it("uses query-only POSTs for rule triggers", async () => {
     const { registry, calls } = setup();
     await registry.execute("rule", "trigger", { id: "8", start: "2026-08-01", end: "2026-08-02" });
