@@ -47,7 +47,8 @@
     "docs:check": "npm run build && node scripts/docs/cli.mjs check",
     "docs:update": "npm run build && node scripts/docs/cli.mjs update",
     "media": "npm run build && node scripts/build-media.mjs",
-    "mcpb": "npm run build && node scripts/build-mcpb.mjs"
+    "mcpb": "npm run build && node scripts/build-mcpb.mjs",
+    "audit:api": "npm run build && node scripts/api-audit/cli.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

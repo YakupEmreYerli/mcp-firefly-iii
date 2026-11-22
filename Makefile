@@ -1,5 +1,5 @@
 # Makefile for firefly-mcp project
-.PHONY: help test run check smoke inspector media docs-serve docs-build docs-deploy clean
+.PHONY: help test run check smoke api-audit inspector media docs-serve docs-build docs-deploy clean
 
 # Default target
 help:
@@ -8,6 +8,7 @@ help:
 	@echo "  run              - Run the MCP server with .env"
 	@echo "  check            - Verify the live Firefly III connection"
 	@echo "  smoke            - Maintainer: walk every read operation against live Firefly III"
+	@echo "  api-audit        - Maintainer: diff write fields against Firefly III's request classes"
 	@echo "  inspector        - Open MCP Inspector against this server"
 	@echo "  media            - Regenerate the social preview and share card"
 	@echo "  docs-serve       - Serve documentation locally"
@@ -33,6 +34,11 @@ check:
 # Read-only, and not part of the published package.
 smoke:
 	npm run smoke:live
+
+# Maintainer only: diffs the fields each write operation sends against the
+# fields Firefly III's own request classes read. Fetches from GitHub.
+api-audit:
+	npm run audit:api
 
 # Interactive tool explorer in the browser
 inspector:

@@ -89,6 +89,44 @@ describe("extractRequestFields", () => {
     ]);
   });
 
+  it("finds fields read through a class's own helper", () => {
+    // Rule/TriggerRequest reads start and end through a private getDate().
+    const php = `public function getTriggerParameters(): array
+    {
+        return ['start' => $this->getDate('start'), 'end' => $this->getDate('end')];
+    }`;
+    expect(extractRequestFields(php).read).toEqual(["start", "end"]);
+  });
+
+  it("follows field-name lists into helpers that take the loop item as a parameter", () => {
+    // Shape of Transaction/UpdateRequest: field names live in a property, a
+    // helper indexes the split with each, and the loop that feeds the helper
+    // comes later in the file.
+    const php = `public function getAll(): array
+    {
+        $this->stringFields = ['description', 'source_name'];
+        return ['transactions' => $this->getTransactionData()];
+    }
+    private function getStringData(array $current, array $transaction): array
+    {
+        foreach ($this->stringFields as $fieldName) {
+            if (array_key_exists($fieldName, $transaction)) {
+                $current[$fieldName] = $this->clearString((string) $transaction[$fieldName]);
+            }
+        }
+        return $current;
+    }
+    private function getTransactionData(): array
+    {
+        $transactions = $this->get('transactions');
+        foreach ($transactions as $transaction) {
+            $current = $this->getStringData([], $transaction);
+        }
+        return [];
+    }`;
+    expect(extractRequestFields(php).read).toEqual(expect.arrayContaining(["transactions.*.description", "transactions.*.source_name"]));
+  });
+
   it("keeps nested validation keys as written", () => {
     const php = `public function rules(): array
     {
