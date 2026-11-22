@@ -95,7 +95,11 @@ istek sınıflarının okuduğu alanlarla karşılaştırır; `npm run smoke:wri
 atılabilir bir yerel örnekte bağımsız okumayla doğrular. Bu turda bulunanlar:
 
 - **Okunan alan kaydedilen alan değildir.** Bütçe güncellemesi `order`'ı okur ama
-  depo katmanı hiç yazmaz; 200 döner, sıra değişmez. Şemadan çıkarıldı.
+  depo katmanı hiç yazmaz; 200 döner, sıra değişmez. Şemadan çıkarıldı. Hesap
+  güncellemesinde de aynısı: `type`'ı controller ezer, `liability_amount` ve
+  `liability_start_date`'i hiçbir servis yazmaz; yanıt da bunları göstermediği için
+  canlı tur ilk seferde "geçti" saymıştı. Tur artık geri okunamayan alanları
+  "partial" diye adıyla listeler.
 - **Otomatik bütçe yalnız `auto_budget_type` ile birlikte değişir.** Tek başına
   `auto_budget_amount` ya da `auto_budget_period` 200 döner ve eskisi kalır; şema
   türü bu durumda zorunlu tutar.
