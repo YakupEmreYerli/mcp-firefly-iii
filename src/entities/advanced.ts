@@ -13,7 +13,7 @@ export const availableBudgetsModule: EntityModule = { entity: EntityType.Availab
 
 const linkTypeData = z.object({ name: z.string().min(1), inward: z.string().min(1), outward: z.string().min(1) }).strict();
 const linkData = z.object({ link_type_id: entityId.optional(), link_type_name: z.string().min(1).optional(), inward_id: entityId, outward_id: entityId, notes: z.string().optional() }).strict();
-const linkUpdate = z.object({ link_type_id: entityId, inward_id: entityId, outward_id: entityId, notes: z.string().optional() }).strict();
+const linkUpdate = z.object({ link_type_id: entityId.optional(), link_type_name: z.string().min(1).optional(), inward_id: entityId.optional(), outward_id: entityId.optional(), notes: z.string().optional() }).strict();
 
 export const linksModule: EntityModule = {
   entity: EntityType.TransactionLink, hint: "relationships between transaction journals and their link types", operations: {

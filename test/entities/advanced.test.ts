@@ -33,6 +33,12 @@ describe("advanced financial API surfaces", () => {
     expect(calls).toEqual(["GET /available-budgets", "GET /transaction-links", "GET /link-types", "GET /object-groups", "GET /preferences", "GET /configuration"]);
   });
 
+  it("changes a link's type by name without restating both ends", async () => {
+    const { registry, calls } = setup();
+    await registry.execute("transaction_link", "update", { id: "5", transaction_link_update: { link_type_name: "Refund" } });
+    expect(calls).toContain("PUT /transaction-links/5");
+  });
+
   it("uses text responses for exports", async () => {
     const { registry, calls } = setup();
     await registry.execute("data_export", "accounts", {});

@@ -524,7 +524,7 @@
       "entity": "exchange_rate",
       "operation": "update",
       "access": "write",
-      "fingerprint": "1266bd9b49ffcf5b"
+      "fingerprint": "ab9cd7b14574c84f"
     },
     {
       "name": "insight.expense_budget",
@@ -713,7 +713,7 @@
       "entity": "recurring_transaction",
       "operation": "update",
       "access": "write",
-      "fingerprint": "dd85de68b3c51051"
+      "fingerprint": "acc4f3ece0f3ef4e"
     },
     {
       "name": "resolve.account",
@@ -958,7 +958,7 @@
       "entity": "transaction_link",
       "operation": "update",
       "access": "write",
-      "fingerprint": "cd86bd8694277116"
+      "fingerprint": "889aa5c19145ed74"
     },
     {
       "name": "transaction.bulk_categorize",
