@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-22
+
 ### Fixed
 
 - `bill.create` and `bill.update` accept `currency_id` and `currency_code`.
@@ -631,7 +633,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.3.0
 [1.2.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.2.1
 [1.2.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.2.0
 [1.1.3]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.1.3
