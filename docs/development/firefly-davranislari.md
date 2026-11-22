@@ -106,7 +106,10 @@ atılabilir bir yerel örnekte bağımsız okumayla doğrular. Bu turda bulunanl
 - **`transaction_link` güncellemesinde `link_type_name` bağlantıyı bozar.** Firefly
   `link_type_id` 0 yazar, sonraki her güncelleme 500 verir. İki uç olmadan yapılan
   güncelleme benzersizlik kısıtına takılır ve bağlantı kaybolur. Güncelleme tam kimlik
-  ve tür kimliğiyle yapılır.
+  ve tür kimliğiyle yapılır. Kök neden `UpdateRequest::getAll()`'ın gönderilmeyen sayıları
+  0 yapması; develop'ta ayrıca her bağlantı güncellemesi 500 veriyor. Bildirildi ve
+  düzeltildi: firefly-iii #13273, PR #13274. Düzeltme bir sürüme girince şema
+  gevşetilebilir (sürüm korumasıyla, kategori rengi gibi).
 - **Sessizce düşürülen alanlar:** kumbarada `amount` (başlangıç tutarı
   `accounts[].current_amount`'tadır) ve `active`; döviz kuru güncellemesinde `from` ve
   `to`; tekrarlayan işlem güncellemesinde `type`. Hepsi şemadan çıkarıldı.
