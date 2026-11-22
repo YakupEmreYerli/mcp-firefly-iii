@@ -125,3 +125,22 @@ describe("runRemoteSetup", () => {
     }
   });
 });
+
+describe("lineQueue", () => {
+  // readline drops a line that arrives while no question is pending, so
+  // answers piped in at once (or pasted ahead) were lost after the first.
+  it("hands out lines that arrived before they were asked for, in order", async () => {
+    const { PassThrough } = await import("node:stream");
+    const { createInterface } = await import("node:readline");
+    const { lineQueue } = await import("../../src/remote/wizard.js");
+    const input = new PassThrough();
+    const rl = createInterface({ input });
+    const queue = lineQueue(rl);
+    input.end("first\nsecond\nthird\n");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(await queue.next()).toBe("first");
+    expect(await queue.next()).toBe("second");
+    expect(await queue.next()).toBe("third");
+    await expect(queue.next()).rejects.toThrow();
+  });
+});

@@ -6,8 +6,9 @@ import {
   type ProxyChoice, type ProxyKind, type RemoteAnswers,
 } from "./files.js";
 
-import { createInterface } from "node:readline/promises";
-import { MutableOutput, ask, askSecret } from "../setup.js";
+import { createInterface, type Interface } from "node:readline";
+import { SetupAborted } from "../errors.js";
+import { MutableOutput } from "../setup.js";
 
 /** What the wizard needs from a terminal; tests script it. */
 export type WizardIO = {
@@ -153,13 +154,50 @@ export async function runRemoteSetup(io: WizardIO, dir: string, version: string)
   return 0;
 }
 
+/** Lines from a readline interface, in order, whether or not a question was
+ * waiting when they arrived. readline drops a line that comes in while no
+ * question is pending, which lost every answer after the first when they were
+ * piped in or pasted ahead. Rejects with SetupAborted once input ends. */
+export function lineQueue(rl: Pick<Interface, "on">): { next(): Promise<string> } {
+  const lines: string[] = [];
+  const waiting: Array<{ resolve(line: string): void; reject(error: Error): void }> = [];
+  let closed = false;
+  rl.on("line", (line: string) => {
+    const reader = waiting.shift();
+    if (reader) reader.resolve(line);
+    else lines.push(line);
+  });
+  rl.on("close", () => {
+    closed = true;
+    for (const reader of waiting.splice(0)) reader.reject(new SetupAborted());
+  });
+  return {
+    next() {
+      const line = lines.shift();
+      if (line !== undefined) return Promise.resolve(line);
+      if (closed) return Promise.reject(new SetupAborted());
+      return new Promise((resolve, reject) => waiting.push({ resolve, reject }));
+    },
+  };
+}
+
 /** The real terminal, with the token typed blind. Close it when done. */
 export function terminalIO(): WizardIO & { close(): void } {
   const output = new MutableOutput();
-  const rl = createInterface({ input: process.stdin, output, terminal: true });
+  const rl = createInterface({ input: process.stdin, output, terminal: process.stdin.isTTY === true });
+  const queue = lineQueue(rl);
   return {
-    ask: (q) => ask(rl, q),
-    askSecret: (q) => askSecret(rl, output, q),
+    ask: async (q) => { process.stdout.write(q); return queue.next(); },
+    askSecret: async (q) => {
+      process.stdout.write(q);
+      output.muted = true;
+      try {
+        return await queue.next();
+      } finally {
+        output.muted = false;
+        process.stdout.write("\n");
+      }
+    },
     print: (text) => process.stdout.write(`${text}\n`),
     close: () => rl.close(),
   };
