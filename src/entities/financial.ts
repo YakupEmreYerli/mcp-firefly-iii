@@ -46,7 +46,7 @@ export const exchangeRateOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which exchange rates are configured?", access: "read", input: z.object({ ...pagination }).strict(), handler: (q, c) => c.get("/exchange-rates", q) }),
   get: defineOperation({ description: "What is this exchange rate?", access: "read", input: id, handler: ({ id }, c) => c.get(`/exchange-rates/${id}`) }),
   create: defineOperation({ description: "Create an exchange rate.", access: "write", input: exchangeRateData, handler: (b, c) => c.post("/exchange-rates", b) }),
-  update: defineOperation({ description: "Change an exchange rate.", access: "write", input: z.object({ id: entityId, exchange_rate_update: exchangeRateData.partial() }).strict(), handler: ({ id, exchange_rate_update }, c) => c.put(`/exchange-rates/${id}`, exchange_rate_update) }),
+  update: defineOperation({ description: "Change an exchange rate.", access: "write", input: z.object({ id: entityId, exchange_rate_update: exchangeRateData.pick({ date: true, rate: true }).partial() }).strict(), handler: ({ id, exchange_rate_update }, c) => c.put(`/exchange-rates/${id}`, exchange_rate_update) }),
   delete: defineOperation({ description: "Delete an exchange rate.", access: "destructive", input: id, handler: async ({ id }, c) => { await c.del(`/exchange-rates/${id}`); return { deleted: true, id }; } }),
 };
 export const exchangeRatesModule: EntityModule = { entity: EntityType.ExchangeRate, hint: "currency conversion rates", operations: exchangeRateOperations };
@@ -66,7 +66,7 @@ export const recurringOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which recurring transactions exist?", access: "read", input: z.object({ ...pagination }).strict(), handler: (q, c) => c.get("/recurrences", q) }),
   get: defineOperation({ description: "What are the details of this recurring transaction?", access: "read", input: id, handler: ({ id }, c) => c.get(`/recurrences/${id}`) }),
   create: defineOperation({ description: "Create a recurring transaction.", access: "write", input: recurrenceData, handler: (b, c) => c.post("/recurrences", b) }),
-  update: defineOperation({ description: "Change a recurring transaction.", access: "write", input: z.object({ id: entityId, recurrence_update: recurrenceData.partial().extend({ transactions: recurrenceData.shape.transactions }) }).strict(), handler: ({ id, recurrence_update }, c) => c.put(`/recurrences/${id}`, recurrence_update) }),
+  update: defineOperation({ description: "Change a recurring transaction.", access: "write", input: z.object({ id: entityId, recurrence_update: recurrenceData.omit({ type: true }).partial().extend({ transactions: recurrenceData.shape.transactions }) }).strict(), handler: ({ id, recurrence_update }, c) => c.put(`/recurrences/${id}`, recurrence_update) }),
   delete: defineOperation({ description: "Delete a recurring transaction.", access: "destructive", input: id, handler: async ({ id }, c) => { await c.del(`/recurrences/${id}`); return { deleted: true, id }; } }),
 };
 export const recurringModule: EntityModule = { entity: EntityType.RecurringTransaction, hint: "scheduled recurring financial transactions", operations: recurringOperations };

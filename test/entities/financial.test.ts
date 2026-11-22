@@ -27,6 +27,17 @@ describe("financial API extensions", () => {
     expect(names).toEqual(expect.arrayContaining(["currency", "exchange_rate", "attachment", "recurring_transaction", "autocomplete"]));
   });
 
+  // Firefly 6.7.9 updates only an exchange rate's date and rate, and a
+  // recurrence's type is fixed once created. Accepting these returned 200 and
+  // changed nothing.
+  it("rejects update fields Firefly silently drops", async () => {
+    const { registry } = makeRegistry();
+    await expect(registry.execute("exchange_rate", "update", { id: "1", exchange_rate_update: { rate: "1.1", from: "USD" } })).rejects.toThrow("Unrecognized key");
+    await expect(registry.execute("exchange_rate", "update", { id: "1", exchange_rate_update: { to: "EUR" } })).rejects.toThrow("Unrecognized key");
+    await expect(registry.execute("recurring_transaction", "update", { id: "1", recurrence_update: { type: "deposit" } })).rejects.toThrow("Unrecognized key");
+    await expect(registry.execute("exchange_rate", "update", { id: "1", exchange_rate_update: { rate: "1.1", date: "2026-11-01" } })).resolves.toBeDefined();
+  });
+
   it("maps currency and exchange-rate operations to Firefly endpoints", async () => {
     const { registry, calls } = makeRegistry();
     await registry.execute("currency", "list", {});
