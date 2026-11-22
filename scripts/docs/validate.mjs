@@ -211,6 +211,30 @@ export function checkDemoVideo(model, video = "docs/assets/demo.mp4") {
   return problems;
 }
 
+/** Every published image reference in the docs names the current version.
+ *
+ * Setup commands are copied, not read: a stale tag installs the previous
+ * release, and `:latest` drifts under anyone who pinned their compose file to
+ * what the docs said.
+ */
+export function imageTagProblems(entries, version) {
+  const problems = [];
+  for (const { file, text } of entries) {
+    for (const match of text.matchAll(/mcp-firefly-iii:([\w.-]+)/g)) {
+      if (match[1] !== version) problems.push(`${file}: image tag :${match[1]} — use :${version}, the package version`);
+    }
+  }
+  return problems;
+}
+
+export function checkImageTags(model) {
+  const version = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8")).version;
+  const entries = model.docFiles
+    .filter((file) => !file.startsWith("docs/plans/"))
+    .map((file) => ({ file, text: fs.readFileSync(path.resolve(file), "utf8") }));
+  return imageTagProblems(entries, version);
+}
+
 export function runAll(model) {
   return [
     ...checkConfigCoverage(model),
@@ -219,5 +243,6 @@ export function runAll(model) {
     ...checkSharedParameterCoverage(model),
     ...checkGeneratedMedia(model),
     ...checkDemoVideo(model),
+    ...checkImageTags(model),
   ];
 }

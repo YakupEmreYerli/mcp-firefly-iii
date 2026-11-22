@@ -82,6 +82,35 @@ For n8n, automation, or any caller that can't drive a browser-based OAuth flow. 
 
 None of these clients can hold a static token, and none of them can spawn a local process — they connect to a public HTTPS URL and expect OAuth. With `MCP_AUTH_PASSWORD` set, this server *is* the OAuth 2.1 authorization server: it handles client registration, PKCE and token exchange itself, so there is no Keycloak, no Google sign-in, and no token to copy anywhere.
 
+**Set it up next to Firefly III.** If Firefly III runs with Docker Compose, the setup writes everything. Run it from the folder that holds Firefly III's compose file — only Docker is needed:
+
+```bash
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+```
+
+It asks for a Firefly III token, an address of the server's own (for example `mcp.example.com`; Firefly III keeps its address), and where your HTTPS reverse proxy runs. It then writes `compose.firefly-mcp.yml` and `firefly-mcp.env` (mode 600) beside your compose file without touching yours, generates the sign-in password, and prints the lines to add to your proxy — Caddy, Traefik, Nginx Proxy Manager or Cloudflare Tunnel. Start the server and check it:
+
+```bash
+docker compose -f docker-compose.yml -f compose.firefly-mcp.yml up -d
+docker compose -f docker-compose.yml -f compose.firefly-mcp.yml run --rm firefly-mcp doctor
+```
+
+`doctor` checks the sign-in mode, the public address, that sign-ins survive a restart, that the server reaches Firefly III with your token, and that the public address answers as this server. Every line should say `PASS`. A `WARN` on "reachable from outside" from inside a home network usually means the address does not loop back there; open `https://mcp.example.com/health` on your phone, off Wi-Fi, to confirm.
+
+**Connect a client.**
+
+**Claude (web, Desktop, iOS/Android).** **Settings → Connectors → Add custom connector**, URL `https://mcp.example.com/mcp`. Leave the authentication choices as detected — Claude probes the server and picks the flow it supports. The connector then works on every Claude surface you're signed into, phone included.
+
+**ChatGPT.** In the custom connector / MCP screen, enter the same `https://mcp.example.com/mcp` and choose **OAuth** as the authentication method.
+
+**Then enter the password.** A Firefly login screen opens in the browser; type the sign-in password (`MCP_AUTH_PASSWORD`; the setup prints it). That one screen is the whole decision — the connection is granted all three scopes (`firefly:read`, `firefly:write`, `firefly:destructive`), whatever the client itself asked for. There is no second consent screen: whoever holds the password could have ticked every box on it. To hand out a connection that genuinely cannot write, give the server a read-only Firefly Personal Access Token instead.
+
+Full TLS recipes and troubleshooting: [docs/oauth.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md).
+
+#### Manual setup
+
+Without Compose, or to wire it yourself:
+
 **Step 1 — give the server a public HTTPS address.** Cloudflare Tunnel is the easiest route for a home server (no port forwarding, no certificate); Caddy or Traefik work on a VPS. `compose.example.yml` ships `cloudflare` and `caddy` profiles for exactly this. Say the result is `https://mcp.example.com`.
 
 **Step 2 — configure `.env`:**
@@ -101,15 +130,7 @@ docker compose -f compose.example.yml up -d
 curl https://mcp.example.com/health     # {"ok":true,"auth":"oauth-builtin"}
 ```
 
-If `auth` says `bearer` instead, the password never reached the process and the client will report that the server doesn't support OAuth.
-
-**Step 4a — Claude (web, Desktop, iOS/Android).** **Settings → Connectors → Add custom connector**, URL `https://mcp.example.com/mcp`. Leave the authentication choices as detected — Claude probes the server and picks the flow it supports. The connector then works on every Claude surface you're signed into, phone included.
-
-**Step 4b — ChatGPT.** In the custom connector / MCP screen, enter the same `https://mcp.example.com/mcp` and choose **OAuth** as the authentication method.
-
-**Step 5 — enter the password.** A Firefly login screen opens in the browser; type `MCP_AUTH_PASSWORD`. That one screen is the whole decision — the connection is granted all three scopes (`firefly:read`, `firefly:write`, `firefly:destructive`), whatever the client itself asked for. There is no second consent screen: whoever holds the password could have ticked every box on it. To hand out a connection that genuinely cannot write, give the server a read-only Firefly Personal Access Token instead.
-
-Full TLS recipes and troubleshooting: [docs/oauth.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md).
+If `auth` says `bearer` instead, the password never reached the process and the client will report that the server doesn't support OAuth. `docker compose -f compose.example.yml run --rm firefly-mcp doctor` names this and the other usual mistakes. Then connect a client as above.
 
 ### 4. Docker
 
@@ -120,7 +141,7 @@ cp .env.example .env    # fill in the values for the mode you need
 docker compose -f compose.example.yml up -d
 ```
 
-Swap `build: .` in `compose.example.yml` for `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:latest` to use the prebuilt image — pin a version tag, not `:latest`, for anything you depend on. Single container without Compose: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:latest`. It refuses to start without one of the two auth modes above, and `/mcp` needs TLS in front — `compose.example.yml` has optional `cloudflare` and `caddy` profiles for that. `/health` is open, for container probes.
+Swap `build: .` in `compose.example.yml` for `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0` to use the prebuilt image — the tag pins the version; change it to upgrade. Single container without Compose: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0`. It refuses to start without one of the two auth modes above, and `/mcp` needs TLS in front — `compose.example.yml` has optional `cloudflare` and `caddy` profiles for that. `/health` is open, for container probes.
 
 ## Configuration
 

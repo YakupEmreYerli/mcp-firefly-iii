@@ -115,7 +115,9 @@ git push --follow-tags
 ```
 
 `npm version` bumps only `package.json`; set the same version in `server.json`
-(both fields) and `mcpb/manifest.json` before tagging.
+(both fields) and `mcpb/manifest.json` before tagging, and in every
+`ghcr.io/yakupemreyerli/mcp-firefly-iii:<version>` the docs show —
+`npm run docs:check` fails while one still names the old version.
 
 Pushing the tag does the rest. A workflow builds the GitHub release from that
 version's `CHANGELOG.md` section, attaches the Claude Desktop bundle

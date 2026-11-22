@@ -259,3 +259,20 @@ describe("checkDemoVideo", () => {
     expect(checkDemoVideo({ demo: undefined })).toHaveLength(1);
   });
 });
+
+describe("imageTagProblems", () => {
+  // The setup and docs tell people to run the image by version; a stale tag
+  // in a copy-paste command installs the previous release.
+  it("flags an image tag that is not the package version, and :latest", async () => {
+    const { imageTagProblems } = await import("../../scripts/docs/validate.mjs");
+    const problems = imageTagProblems([
+      { file: "README.md", text: "docker run ghcr.io/yakupemreyerli/mcp-firefly-iii:1.2.1 setup" },
+      { file: "docs/oauth.md", text: "image: ghcr.io/yakupemreyerli/mcp-firefly-iii:latest" },
+      { file: "docs/quickstart.md", text: "ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0" },
+    ], "1.3.0");
+    expect(problems).toHaveLength(2);
+    expect(problems[0]).toContain("README.md");
+    expect(problems[0]).toContain("1.2.1");
+    expect(problems[1]).toContain("latest");
+  });
+});

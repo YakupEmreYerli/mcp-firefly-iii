@@ -82,6 +82,35 @@ n8n, otomasyon ya da tarayıcı üzerinden OAuth akışı yürütemeyen her ça�
 
 Bu istemcilerin hiçbiri sabit token tutamaz, hiçbiri yerel bir süreç de başlatamaz — herkese açık bir HTTPS adresine bağlanır ve OAuth beklerler. `MCP_AUTH_PASSWORD` ayarlıyken bu sunucu OAuth 2.1 authorization server'ın *kendisidir*: istemci kaydını, PKCE'yi ve token değişimini kendi yürütür, yani ne Keycloak gerekir, ne Google ile giriş, ne de bir yere kopyalanacak bir token.
 
+**Firefly III'ün yanına kurun.** Firefly III Docker Compose ile çalışıyorsa her şeyi kurulum sihirbazı yazar. Firefly III'ün compose dosyasının bulunduğu klasörde çalıştırın; Docker dışında bir şey gerekmez:
+
+```bash
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+```
+
+Sihirbaz bir Firefly III token'ı, sunucunun kendine ait bir adresini (örneğin `mcp.example.com`; Firefly III kendi adresinde kalır) ve HTTPS ters vekilinizin nerede çalıştığını sorar. Sonra kendi compose dosyanıza dokunmadan yanına `compose.firefly-mcp.yml` ve `firefly-mcp.env` (izin 600) dosyalarını yazar, giriş parolasını üretir ve vekilinize eklenecek satırları basar: Caddy, Traefik, Nginx Proxy Manager ya da Cloudflare Tunnel. Sunucuyu başlatıp kontrol edin:
+
+```bash
+docker compose -f docker-compose.yml -f compose.firefly-mcp.yml up -d
+docker compose -f docker-compose.yml -f compose.firefly-mcp.yml run --rm firefly-mcp doctor
+```
+
+`doctor` giriş modunu, herkese açık adresi, girişlerin yeniden başlatmada korunup korunmadığını, sunucunun token'ınızla Firefly III'e ulaşıp ulaşmadığını ve adresin gerçekten bu sunucuya çıkıp çıkmadığını kontrol eder. Her satır `PASS` olmalı. Ev ağının içinden "reachable from outside" satırında `WARN` görürseniz genelde adres ağın içinden kendine dönmüyordur; doğrulamak için telefonda, Wi-Fi kapalıyken `https://mcp.example.com/health` adresini açın.
+
+**İstemciyi bağlayın.**
+
+**Claude (web, Desktop, iOS/Android).** **Settings → Connectors → Add custom connector**, URL `https://mcp.example.com/mcp`. Kimlik doğrulama seçeneklerini tespit edildiği gibi bırakın — Claude sunucuyu yoklayıp desteklediği akışı kendisi seçer. Connector sonrasında giriş yaptığınız her Claude yüzeyinde çalışır, telefon dahil.
+
+**ChatGPT.** Özel connector / MCP ekranında aynı `https://mcp.example.com/mcp` adresini girin ve kimlik doğrulama yöntemi olarak **OAuth**'u seçin.
+
+**Sonra parolayı girin.** Tarayıcıda bir Firefly giriş ekranı açılır; giriş parolasını yazın (`MCP_AUTH_PASSWORD`; kurulum sihirbazı ekrana basar). Karar tümüyle o tek ekrandır — bağlantıya, istemcinin ne istediğine bakılmaksızın üç yetki kapsamının (`firefly:read`, `firefly:write`, `firefly:destructive`) tamamı verilir. İkinci bir onay ekranı yoktur: parolayı elinde tutan kişi zaten o ekrandaki her kutuyu işaretleyebilirdi. Gerçekten yazamayan bir bağlantı vermek istiyorsanız, sunucuya salt-okunur bir Firefly Personal Access Token verin.
+
+Tüm TLS tarifleri ve sorun giderme: [docs/oauth.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) (İngilizce).
+
+#### Elle kurulum
+
+Compose kullanmıyorsanız ya da kendiniz bağlamak istiyorsanız:
+
 **Adım 1 — sunucuya herkese açık bir HTTPS adresi verin.** Ev sunucusu için en kolay yol Cloudflare Tunnel (port yönlendirme yok, sertifika yok); VPS'te Caddy ya da Traefik iş görür. `compose.example.yml` tam bunun için `cloudflare` ve `caddy` profilleriyle gelir. Sonucun `https://mcp.example.com` olduğunu varsayalım.
 
 **Adım 2 — `.env`'i yapılandırın:**
@@ -101,15 +130,7 @@ docker compose -f compose.example.yml up -d
 curl https://mcp.example.com/health     # {"ok":true,"auth":"oauth-builtin"}
 ```
 
-`auth` bunun yerine `bearer` diyorsa parola sürece hiç ulaşmamış demektir ve istemci sunucunun OAuth desteklemediğini bildirir.
-
-**Adım 4a — Claude (web, Desktop, iOS/Android).** **Settings → Connectors → Add custom connector**, URL `https://mcp.example.com/mcp`. Kimlik doğrulama seçeneklerini tespit edildiği gibi bırakın — Claude sunucuyu yoklayıp desteklediği akışı kendisi seçer. Connector sonrasında giriş yaptığınız her Claude yüzeyinde çalışır, telefon dahil.
-
-**Adım 4b — ChatGPT.** Özel connector / MCP ekranında aynı `https://mcp.example.com/mcp` adresini girin ve kimlik doğrulama yöntemi olarak **OAuth**'u seçin.
-
-**Adım 5 — parolayı girin.** Tarayıcıda bir Firefly giriş ekranı açılır; `MCP_AUTH_PASSWORD` değerini yazın. Karar tümüyle o tek ekrandır — bağlantıya, istemcinin ne istediğine bakılmaksızın üç yetki kapsamının (`firefly:read`, `firefly:write`, `firefly:destructive`) tamamı verilir. İkinci bir onay ekranı yoktur: parolayı elinde tutan kişi zaten o ekrandaki her kutuyu işaretleyebilirdi. Gerçekten yazamayan bir bağlantı vermek istiyorsanız, sunucuya salt-okunur bir Firefly Personal Access Token verin.
-
-Tüm TLS tarifleri ve sorun giderme: [docs/oauth.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) (İngilizce).
+`auth` bunun yerine `bearer` diyorsa parola sürece hiç ulaşmamış demektir ve istemci sunucunun OAuth desteklemediğini bildirir. `docker compose -f compose.example.yml run --rm firefly-mcp doctor` bunu ve diğer sık hataları adıyla söyler. Ardından istemciyi yukarıdaki gibi bağlayın.
 
 ### 4. Docker
 
@@ -120,7 +141,7 @@ cp .env.example .env    # ihtiyacınız olan moda göre değerleri doldurun
 docker compose -f compose.example.yml up -d
 ```
 
-Hazır imajı kullanmak için `compose.example.yml` içindeki `build: .` yerine `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:latest` yazın — bağımlı olduğunuz bir yerde `:latest` değil, bir sürüm etiketi sabitleyin. Compose olmadan tek container: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:latest`. Yukarıdaki iki kimlik doğrulama modundan biri olmadan başlamaz, ve `/mcp`'nin önünde TLS gerekir — `compose.example.yml` bunun için isteğe bağlı `cloudflare` ve `caddy` profilleri taşır. `/health` açıktır, container probe'ları içindir.
+Hazır imajı kullanmak için `compose.example.yml` içindeki `build: .` yerine `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0` yazın; etiket sürümü sabitler, güncellemek için etiketi değiştirin. Compose olmadan tek container: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0`. Yukarıdaki iki kimlik doğrulama modundan biri olmadan başlamaz, ve `/mcp`'nin önünde TLS gerekir — `compose.example.yml` bunun için isteğe bağlı `cloudflare` ve `caddy` profilleri taşır. `/health` açıktır, container probe'ları içindir.
 
 ## Yapılandırma
 

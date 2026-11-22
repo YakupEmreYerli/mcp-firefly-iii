@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.0] - 2026-11-22
 
+### Added
+
+- A guided remote setup. Run
+  `docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup`
+  from the folder that holds Firefly III's compose file: it asks for a token,
+  the server's public address and where your HTTPS proxy runs, then writes
+  `compose.firefly-mcp.yml` and `firefly-mcp.env` beside your compose file
+  without editing it, generates the sign-in password, and prints the lines
+  for Caddy, Traefik, Nginx Proxy Manager or Cloudflare Tunnel. Also available
+  as `firefly-mcp setup --remote`.
+- `firefly-mcp doctor` (or `docker compose ... run --rm firefly-mcp doctor`)
+  checks a remote setup and names what is wrong: no sign-in mode, a bad
+  `MCP_RESOURCE_URL`, sign-ins that a restart would lose, a token Firefly III
+  rejects, a public address that answers as another server. From inside a
+  home network an unreachable public address is a warning, with a check to
+  run from a phone.
+- Category `color` is refused on Firefly III older than 6.7.8, which drops
+  it silently; the message names the instance's version.
+
+### Changed
+
+- The Docker image's entry point runs the HTTP server with no arguments, as
+  before, and `setup` or `doctor` when given one.
+- The docs pin the image to the release (`:1.3.0`) instead of `:latest`.
+
 ### Fixed
 
 - `bill.create` and `bill.update` accept `currency_id` and `currency_code`.

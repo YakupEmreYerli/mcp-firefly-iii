@@ -163,6 +163,11 @@ make inspector
 
 ## Troubleshooting
 
+Running the server remotely (Claude web, mobile, ChatGPT)? Start with
+`docker compose -f docker-compose.yml -f compose.firefly-mcp.yml run --rm firefly-mcp doctor`:
+it checks the whole remote setup and says what to fix. See
+[Remote access](oauth.md#guided-setup).
+
 ### ❌ "Connection failed"
 
 Test the token and URL directly:

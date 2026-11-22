@@ -5,6 +5,30 @@ authorization server, so no separate Keycloak or Authentik install is needed. It
 provides dynamic client registration, PKCE S256, a password screen, access
 tokens and rotating refresh tokens.
 
+## Guided setup
+
+If Firefly III runs with Docker Compose, let the setup write the files. From
+the folder that holds Firefly III's compose file:
+
+```bash
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+```
+
+It writes `compose.firefly-mcp.yml` and `firefly-mcp.env` beside your compose
+file (never editing it), generates the password, and prints the lines for your
+proxy. Then start the server and run the checks:
+
+```bash
+docker compose -f docker-compose.yml -f compose.firefly-mcp.yml up -d
+docker compose -f docker-compose.yml -f compose.firefly-mcp.yml run --rm firefly-mcp doctor
+```
+
+`doctor` is also the first thing to run when a client reports "invalid token"
+or cannot sign in: it names a wrong `MCP_RESOURCE_URL`, a state directory that
+is not on a volume, a password that never reached the process, a token Firefly
+III rejects, and a public address that answers as some other server. The rest of
+this page is the manual route.
+
 ## Common setup
 
 Set these in `.env`:
