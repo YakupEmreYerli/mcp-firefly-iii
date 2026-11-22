@@ -13,6 +13,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Before, a bill could not be given a currency: the keys were rejected, and
   without them Firefly stored the bill in the primary currency, so a
   66,600 IDR bill read as 66,600 SGD. Reported by @a-johanes (#20).
+- Every write operation was diffed field by field against the request
+  classes of Firefly III 6.7.9, and the writes were replayed against a live
+  instance. Fields Firefly reads but the server rejected are now accepted:
+  - bills: `end_date`, `extension_date`, `order`, `object_group_id`,
+    `object_group_title`
+  - piggy banks: `object_group_id`, `object_group_title`
+  - budgets: `auto_budget_type`, `auto_budget_amount`, `auto_budget_period`,
+    `auto_budget_currency_id`, `auto_budget_currency_code`; budget limits:
+    `currency_id`, `notes`
+  - categories: `color`
+  - rules: `order`, and `prohibited` on triggers (Firefly's "not", e.g.
+    description does *not* contain)
+  - accounts, on update: `type`, `liability_amount`, `liability_start_date`
+  - transaction splits: `currency_id`, `foreign_currency_id`,
+    `internal_reference`, `external_id`, `external_url`, `interest_date`,
+    `book_date`, `process_date`, `due_date`, `payment_date`, `invoice_date`;
+    on create also `piggy_bank_id` and `piggy_bank_name`
+- Fields Firefly accepts with a 200 and then drops are now rejected, so a
+  change can no longer look applied when it was not: piggy bank `amount`
+  (the starting amount goes in `accounts[].current_amount`) and `active`,
+  exchange-rate `from` and `to` on update, recurring-transaction `type` on
+  update, and `budget_id` in a budget limit's body (the budget is the one in
+  the path).
+- A budget's auto-budget fields are refused unless `auto_budget_type` comes
+  with them. Firefly changes the auto-budget only when the type is in the
+  same request; an amount alone answered 200 and kept the old one.
 
 ## [1.2.1] - 2026-11-16
 
