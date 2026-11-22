@@ -251,14 +251,14 @@
       "entity": "budget",
       "operation": "create",
       "access": "write",
-      "fingerprint": "18eddb134bbf799c"
+      "fingerprint": "61c286bf5d7227d4"
     },
     {
       "name": "budget.create_limit",
       "entity": "budget",
       "operation": "create_limit",
       "access": "write",
-      "fingerprint": "f135ecb30c74cc56"
+      "fingerprint": "36fd8dfe0c8158af"
     },
     {
       "name": "budget.delete",
@@ -328,21 +328,21 @@
       "entity": "budget",
       "operation": "update",
       "access": "write",
-      "fingerprint": "bbb7f775890c2011"
+      "fingerprint": "f3b29efe7e7bb3a6"
     },
     {
       "name": "budget.update_limit",
       "entity": "budget",
       "operation": "update_limit",
       "access": "write",
-      "fingerprint": "e8dd5e91712b480c"
+      "fingerprint": "951b915956f4cc2f"
     },
     {
       "name": "category.create",
       "entity": "category",
       "operation": "create",
       "access": "write",
-      "fingerprint": "6df7c52eff038b01"
+      "fingerprint": "e6e8e2b868e370e8"
     },
     {
       "name": "category.delete",
@@ -384,7 +384,7 @@
       "entity": "category",
       "operation": "update",
       "access": "write",
-      "fingerprint": "8ed87ceb08658031"
+      "fingerprint": "1d349d576c947cf3"
     },
     {
       "name": "configuration.get",

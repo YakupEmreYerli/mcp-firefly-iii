@@ -37,13 +37,21 @@ function withPeriod<T extends { start?: string; end?: string }>(query: T): T & {
 }
 const deleteResult = async (path: string, record: { id: string }, client: { del: (path: string) => Promise<unknown> }) => { await client.del(path); return { deleted: true, id: record.id }; };
 
-const budgetData = z.object({ name: z.string().min(1), active: z.boolean().optional(), notes: z.string().optional() }).strict();
-const limitData = z.object({ amount: z.string().min(1), start: isoDate, end: isoDate, currency_code: z.string().optional(), budget_id: entityId.optional() }).strict();
+const budgetData = z.object({
+  name: z.string().min(1), active: z.boolean().optional(), notes: z.string().optional(),
+  auto_budget_type: z.enum(["reset", "rollover", "adjusted", "none"]).optional().describe("Refill the budget every period: reset sets it to the amount, rollover adds the amount to what is left, none switches it off"),
+  auto_budget_amount: z.string().optional(), auto_budget_period: z.enum(["daily", "weekly", "monthly", "quarterly", "half_year", "yearly"]).optional(),
+  auto_budget_currency_id: entityId.optional(), auto_budget_currency_code: z.string().min(3).optional(),
+}).strict();
+// Firefly reads `order` only when updating a budget.
+const budgetUpdate = budgetData.extend({ order: z.number().int().optional() }).strict();
+// The limit's budget is the one in the path; Firefly ignores a budget_id in the body.
+const limitData = z.object({ amount: z.string().min(1), start: isoDate, end: isoDate, currency_id: entityId.optional(), currency_code: z.string().optional(), notes: z.string().optional() }).strict();
 export const budgetOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which budgets exist for this period?", access: "read", input: z.object({ ...pagination, ...dates }).strict(), handler: (q, c) => c.get("/budgets", q) }),
   get: defineOperation({ description: "What are the details of this budget?", access: "read", input: z.object({ id: entityId, ...dates }).strict(), handler: ({ id, ...q }, c) => c.get(`/budgets/${id}`, q) }),
   create: defineOperation({ description: "Create a new budget.", access: "write", input: budgetData, handler: (b, c) => c.post("/budgets", b) }),
-  update: defineOperation({ description: "Change an existing budget.", access: "write", input: z.object({ id: entityId, budget_update: budgetData }).strict(), handler: ({ id, budget_update }, c) => c.put(`/budgets/${id}`, budget_update) }),
+  update: defineOperation({ description: "Change an existing budget.", access: "write", input: z.object({ id: entityId, budget_update: budgetUpdate }).strict(), handler: ({ id, budget_update }, c) => c.put(`/budgets/${id}`, budget_update) }),
   delete: defineOperation({ description: "Delete a budget.", access: "destructive", input: id, handler: ({ id }, c) => deleteResult(`/budgets/${id}`, { id }, c) }),
   list_limits: defineOperation({ description: "Which limits belong to this budget?", access: "read", input: z.object({ id: entityId, ...dates }).strict(), handler: ({ id, ...q }, c) => c.get(`/budgets/${id}/limits`, q) }),
   get_limit: defineOperation({ description: "What are the details of this budget limit?", access: "read", input: z.object({ budget_id: entityId, limit_id: entityId }).strict(), handler: ({ budget_id, limit_id }, c) => c.get(`/budgets/${budget_id}/limits/${limit_id}`) }),

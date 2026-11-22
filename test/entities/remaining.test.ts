@@ -143,6 +143,40 @@ describe("entity parity surface", () => {
     await expect(registry.execute("piggy_bank", "update", { id: "4", piggy_bank_update: { active: false } })).rejects.toThrow("Unrecognized key");
   });
 
+  it("passes a budget's auto-budget settings through, and order on update", async () => {
+    const { registry, calls } = setup();
+    const auto = { auto_budget_type: "reset", auto_budget_amount: "100", auto_budget_period: "monthly", auto_budget_currency_code: "EUR", auto_budget_currency_id: "1" };
+    await registry.execute("budget", "create", { name: "Food", ...auto });
+    await registry.execute("budget", "update", { id: "2", budget_update: { name: "Food", ...auto, order: 3 } });
+    expect(calls[0]!.body).toEqual({ name: "Food", ...auto });
+    expect(calls[1]!.body).toEqual({ name: "Food", ...auto, order: 3 });
+  });
+
+  it("rejects an auto-budget period Firefly does not know", async () => {
+    const { registry } = setup();
+    await expect(registry.execute("budget", "create", { name: "Food", auto_budget_type: "reset", auto_budget_amount: "1", auto_budget_period: "half-year" })).rejects.toThrow();
+  });
+
+  // The limit's budget comes from the path; Firefly ignored a budget_id in the body.
+  it("sends a budget limit's notes and currency id, and keeps budget_id out of the body", async () => {
+    const { registry, calls } = setup();
+    const limit = { amount: "10", start: "2026-08-01", end: "2026-08-31", currency_id: "1", notes: "groceries" };
+    await registry.execute("budget", "create_limit", { budget_id: "1", budget_limit_store: limit });
+    await registry.execute("budget", "update_limit", { budget_id: "1", limit_id: "2", budget_limit: limit });
+    expect(calls[0]!.body).toEqual(limit);
+    expect(calls[1]!.body).toEqual(limit);
+    await expect(registry.execute("budget", "create_limit", { budget_id: "1", budget_limit_store: { ...limit, budget_id: "1" } })).rejects.toThrow("Unrecognized key");
+  });
+
+  it("passes a category's color through", async () => {
+    const { registry, calls } = setup();
+    await registry.execute("category", "create", { name: "Food", color: "ff8800" });
+    await registry.execute("category", "update", { id: "5", category_update: { name: "Food", color: "0088FF" } });
+    expect(calls[0]!.body).toEqual({ name: "Food", color: "ff8800" });
+    expect(calls[1]!.body).toEqual({ name: "Food", color: "0088FF" });
+    await expect(registry.execute("category", "create", { name: "Food", color: "#ff8800" })).rejects.toThrow();
+  });
+
   it("uses query-only POSTs for rule triggers", async () => {
     const { registry, calls } = setup();
     await registry.execute("rule", "trigger", { id: "8", start: "2026-08-01", end: "2026-08-02" });
