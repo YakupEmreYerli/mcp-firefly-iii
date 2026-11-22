@@ -171,6 +171,25 @@ describe("request body", () => {
     expect(payload.error).toMatch(/too large/i);
   });
 
+  // The client may still be uploading when the refusal goes out. Kept alive,
+  // that connection held the server open (and failed CI on a slow runner when
+  // the test's server.close() waited on it).
+  it("closes the connection after refusing a body that is too large", async () => {
+    const base = await start();
+    const { request } = await import("node:http");
+    const url = new URL(`${base}/mcp`);
+    const header = await new Promise<string | undefined>((resolve, reject) => {
+      const req = request({ host: url.hostname, port: url.port, path: "/mcp", method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN}`, Accept: "application/json, text/event-stream" } }, (res) => {
+        res.resume();
+        resolve(res.headers.connection);
+      });
+      req.on("error", () => resolve("closed"));
+      req.end(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { pad: "x".repeat(1_100_000) } }));
+      setTimeout(() => reject(new Error("no response")), 5000).unref();
+    });
+    expect(header).toBe("close");
+  });
+
   it("answers malformed JSON with an error rather than crashing the process", async () => {
     const base = await start();
     const response = await fetch(`${base}/mcp`, {

@@ -35,8 +35,8 @@ function writeJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(encoded);
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
-  const body = await readBody(req);
+async function readJson(req: IncomingMessage, res: ServerResponse): Promise<unknown> {
+  const body = await readBody(req, res);
   return body === "" ? undefined : (JSON.parse(body) as unknown);
 }
 
@@ -227,7 +227,7 @@ export function createHttpServer(config: Config): Server {
     let body: unknown;
     if (req.method === "POST") {
       try {
-        body = await readJson(req);
+        body = await readJson(req, res);
       } catch (error) {
         writeJson(res, 400, { error: error instanceof Error ? error.message : String(error) });
         return;

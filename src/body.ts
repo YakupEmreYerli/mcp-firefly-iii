@@ -1,4 +1,4 @@
-import type { IncomingMessage } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
 /** Bodies above this are refused unread. An MCP request is kilobytes; anything
  * larger is a mistake or an attempt to exhaust memory.
@@ -14,13 +14,18 @@ export const MAX_BODY_BYTES = 1_048_576;
  * Rejects rather than truncating: a half-read body parses into something the
  * caller did not send, which is worse than a refusal.
  */
-export async function readBody(req: IncomingMessage): Promise<string> {
+export async function readBody(req: IncomingMessage, res: ServerResponse): Promise<string> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     const buffer = Buffer.from(chunk);
     size += buffer.length;
-    if (size > MAX_BODY_BYTES) throw new Error("Request body is too large.");
+    if (size > MAX_BODY_BYTES) {
+      // The client may still be uploading; close the connection after the
+      // refusal instead of keeping it alive to drain the rest.
+      if (!res.headersSent) res.setHeader("Connection", "close");
+      throw new Error("Request body is too large.");
+    }
     chunks.push(buffer);
   }
   return Buffer.concat(chunks).toString("utf8");

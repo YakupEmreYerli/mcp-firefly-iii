@@ -191,7 +191,7 @@ export class BuiltinAuth {
     }
     if (path === "/oauth/register" && req.method === "POST") {
       try {
-        const input = JSON.parse(await readBody(req)) as Parameters<typeof registerClient>[1];
+        const input = JSON.parse(await readBody(req, res)) as Parameters<typeof registerClient>[1];
         send(res, 201, registerClient(this.state, input));
       } catch (error) {
         send(res, 400, {
@@ -253,7 +253,7 @@ export class BuiltinAuth {
       return true;
     }
 
-    const values = formBody(await readBody(req));
+    const values = formBody(await readBody(req, res));
     const claims = await this.consumeForm(first(values.form_token) ?? "");
     if (!claims || claims.ip !== ip) {
       this.responseError(res, redirectUri, state, "invalid_request", "The authorization form expired.");
@@ -287,7 +287,7 @@ export class BuiltinAuth {
   }
 
   private async token(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-    const values = formBody(await readBody(req));
+    const values = formBody(await readBody(req, res));
     const grant = first(values.grant_type);
     const clientId = first(values.client_id);
     const base = issuer(this.config);
