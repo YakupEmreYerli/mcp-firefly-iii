@@ -251,7 +251,7 @@
       "entity": "budget",
       "operation": "create",
       "access": "write",
-      "fingerprint": "61c286bf5d7227d4"
+      "fingerprint": "73712d07ab35a645"
     },
     {
       "name": "budget.create_limit",
@@ -328,7 +328,7 @@
       "entity": "budget",
       "operation": "update",
       "access": "write",
-      "fingerprint": "f3b29efe7e7bb3a6"
+      "fingerprint": "f0aad8096c0c8d0d"
     },
     {
       "name": "budget.update_limit",
@@ -622,7 +622,7 @@
       "entity": "piggy_bank",
       "operation": "create",
       "access": "write",
-      "fingerprint": "0b5739a580d03fee"
+      "fingerprint": "8dc89844b56347ce"
     },
     {
       "name": "piggy_bank.delete",

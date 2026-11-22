@@ -39,19 +39,22 @@ const deleteResult = async (path: string, record: { id: string }, client: { del:
 
 const budgetData = z.object({
   name: z.string().min(1), active: z.boolean().optional(), notes: z.string().optional(),
-  auto_budget_type: z.enum(["reset", "rollover", "adjusted", "none"]).optional().describe("Refill the budget every period: reset sets it to the amount, rollover adds the amount to what is left, none switches it off"),
+  auto_budget_type: z.enum(["reset", "rollover", "adjusted", "none"]).optional().describe("Refill the budget every period: reset sets it to the amount, rollover adds the amount to what is left, none switches it off. Required whenever another auto_budget_* field is sent"),
   auto_budget_amount: z.string().optional(), auto_budget_period: z.enum(["daily", "weekly", "monthly", "quarterly", "half_year", "yearly"]).optional(),
   auto_budget_currency_id: entityId.optional(), auto_budget_currency_code: z.string().min(3).optional(),
-}).strict();
-// Firefly reads `order` only when updating a budget.
-const budgetUpdate = budgetData.extend({ order: z.number().int().optional() }).strict();
+}).strict().refine(
+  // Firefly touches the auto-budget only when auto_budget_type is in the same
+  // request: an amount or period alone returns 200 and changes nothing.
+  (b) => b.auto_budget_type !== undefined || [b.auto_budget_amount, b.auto_budget_period, b.auto_budget_currency_id, b.auto_budget_currency_code].every((v) => v === undefined),
+  { message: "Send auto_budget_type with any other auto_budget_* field; without it Firefly keeps the old auto-budget and still answers 200." },
+);
 // The limit's budget is the one in the path; Firefly ignores a budget_id in the body.
 const limitData = z.object({ amount: z.string().min(1), start: isoDate, end: isoDate, currency_id: entityId.optional(), currency_code: z.string().optional(), notes: z.string().optional() }).strict();
 export const budgetOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which budgets exist for this period?", access: "read", input: z.object({ ...pagination, ...dates }).strict(), handler: (q, c) => c.get("/budgets", q) }),
   get: defineOperation({ description: "What are the details of this budget?", access: "read", input: z.object({ id: entityId, ...dates }).strict(), handler: ({ id, ...q }, c) => c.get(`/budgets/${id}`, q) }),
   create: defineOperation({ description: "Create a new budget.", access: "write", input: budgetData, handler: (b, c) => c.post("/budgets", b) }),
-  update: defineOperation({ description: "Change an existing budget.", access: "write", input: z.object({ id: entityId, budget_update: budgetUpdate }).strict(), handler: ({ id, budget_update }, c) => c.put(`/budgets/${id}`, budget_update) }),
+  update: defineOperation({ description: "Change an existing budget.", access: "write", input: z.object({ id: entityId, budget_update: budgetData }).strict(), handler: ({ id, budget_update }, c) => c.put(`/budgets/${id}`, budget_update) }),
   delete: defineOperation({ description: "Delete a budget.", access: "destructive", input: id, handler: ({ id }, c) => deleteResult(`/budgets/${id}`, { id }, c) }),
   list_limits: defineOperation({ description: "Which limits belong to this budget?", access: "read", input: z.object({ id: entityId, ...dates }).strict(), handler: ({ id, ...q }, c) => c.get(`/budgets/${id}/limits`, q) }),
   get_limit: defineOperation({ description: "What are the details of this budget limit?", access: "read", input: z.object({ budget_id: entityId, limit_id: entityId }).strict(), handler: ({ budget_id, limit_id }, c) => c.get(`/budgets/${budget_id}/limits/${limit_id}`) }),
@@ -78,7 +81,7 @@ export const billOperations: Record<string, Operation> = {
 };
 export const billsModule: EntityModule = { entity: EntityType.Bill, hint: "recurring bills and their transactions", operations: billOperations };
 
-const piggyData = z.object({ name: z.string().min(1), target_amount: z.string().min(1), start_date: isoDate, target_date: isoDate.optional(), transaction_currency_code: z.string().optional(), transaction_currency_id: entityId.optional(), order: z.number().int().optional(), object_group_id: entityId.optional(), object_group_title: z.string().optional(), notes: z.string().optional(), accounts: z.array(z.object({ account_id: entityId, current_amount: z.string().optional() }).strict()).min(1) }).strict();
+const piggyData = z.object({ name: z.string().min(1), target_amount: z.string().min(1), start_date: isoDate, target_date: isoDate.optional(), transaction_currency_code: z.string().optional().describe("Firefly 6.7 requires this or transaction_currency_id"), transaction_currency_id: entityId.optional().describe("Firefly 6.7 requires this or transaction_currency_code"), order: z.number().int().optional(), object_group_id: entityId.optional(), object_group_title: z.string().optional(), notes: z.string().optional(), accounts: z.array(z.object({ account_id: entityId, current_amount: z.string().optional() }).strict()).min(1) }).strict();
 const piggyUpdate = z.object({ name: z.string().optional(), target_amount: z.string().optional(), start_date: isoDate.optional(), target_date: isoDate.optional(), transaction_currency_code: z.string().optional(), transaction_currency_id: entityId.optional(), order: z.number().int().optional(), object_group_id: entityId.optional(), object_group_title: z.string().optional(), notes: z.string().optional(), accounts: z.array(z.object({ account_id: entityId, current_amount: z.string().optional() }).strict()).optional().describe("Sent as a complete list: Firefly REPLACES the whole set rather than merging into it, so any value already there and not repeated here is removed. To add one, read the current values first and send them all back.") }).strict();
 export const piggyBankOperations: Record<string, Operation> = {
   list: defineOperation({ description: "Which piggy banks exist?", access: "read", input: z.object({ ...pagination }).strict(), handler: (q, c) => c.get("/piggy-banks", q) }),

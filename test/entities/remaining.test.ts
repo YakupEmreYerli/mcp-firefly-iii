@@ -143,13 +143,29 @@ describe("entity parity surface", () => {
     await expect(registry.execute("piggy_bank", "update", { id: "4", piggy_bank_update: { active: false } })).rejects.toThrow("Unrecognized key");
   });
 
-  it("passes a budget's auto-budget settings through, and order on update", async () => {
+  it("passes a budget's auto-budget settings through", async () => {
     const { registry, calls } = setup();
     const auto = { auto_budget_type: "reset", auto_budget_amount: "100", auto_budget_period: "monthly", auto_budget_currency_code: "EUR", auto_budget_currency_id: "1" };
     await registry.execute("budget", "create", { name: "Food", ...auto });
-    await registry.execute("budget", "update", { id: "2", budget_update: { name: "Food", ...auto, order: 3 } });
+    await registry.execute("budget", "update", { id: "2", budget_update: { name: "Food", ...auto } });
     expect(calls[0]!.body).toEqual({ name: "Food", ...auto });
-    expect(calls[1]!.body).toEqual({ name: "Food", ...auto, order: 3 });
+    expect(calls[1]!.body).toEqual({ name: "Food", ...auto });
+  });
+
+  // Firefly 6.7.9 touches the auto-budget only when auto_budget_type is in the
+  // same request (BudgetRepository::update): an amount alone returns 200 and
+  // keeps the old one. Live-verified on the demo instance.
+  it("refuses auto-budget changes without auto_budget_type", async () => {
+    const { registry, calls } = setup();
+    await expect(registry.execute("budget", "update", { id: "2", budget_update: { name: "Food", auto_budget_amount: "150" } })).rejects.toThrow("auto_budget_type");
+    await expect(registry.execute("budget", "create", { name: "Food", auto_budget_period: "monthly" })).rejects.toThrow("auto_budget_type");
+    expect(calls).toEqual([]);
+  });
+
+  // The update request reads `order` but the repository never stores it.
+  it("rejects a budget order Firefly never stores", async () => {
+    const { registry } = setup();
+    await expect(registry.execute("budget", "update", { id: "2", budget_update: { name: "Food", order: 3 } })).rejects.toThrow("Unrecognized key");
   });
 
   it("rejects an auto-budget period Firefly does not know", async () => {
