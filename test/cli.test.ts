@@ -7,6 +7,12 @@ describe("parseArgs", () => {
     expect(parseArgs([])).toEqual({ kind: "serve" });
   });
 
+  it("runs the remote setup and the doctor", () => {
+    expect(parseArgs(["setup", "--remote"])).toEqual({ kind: "setup", remote: true });
+    expect(parseArgs(["doctor"])).toEqual({ kind: "doctor" });
+    expect(parseArgs(["doctor", "now"])).toMatchObject({ kind: "help", toStderr: true });
+  });
+
   it("runs setup", () => {
     expect(parseArgs(["setup"])).toEqual({ kind: "setup" });
   });

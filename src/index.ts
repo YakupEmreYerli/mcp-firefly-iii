@@ -5,6 +5,8 @@ import { createClient } from "./firefly.js";
 import { Registry } from "./registry.js";
 import { ENTITY_MODULES, createServer } from "./server.js";
 import { runSetup } from "./setup.js";
+import { runRemoteSetup, terminalIO } from "./remote/wizard.js";
+import { exitCodeFor, formatResults, runDoctor, systemDeps } from "./doctor.js";
 import { diagnostic, packageVersion, parseArgs, usage } from "./cli.js";
 import { cancelUpdateCheck } from "./update.js";
 
@@ -28,8 +30,21 @@ async function main(): Promise<number> {
       await serve();
       return 0;
     case "setup":
+      if (command.remote) {
+        const io = terminalIO();
+        try {
+          return await runRemoteSetup(io, process.cwd(), packageVersion());
+        } finally {
+          io.close();
+        }
+      }
       await runSetup();
       return 0;
+    case "doctor": {
+      const results = await runDoctor(systemDeps(process.env));
+      console.log(formatResults(results));
+      return exitCodeFor(results);
+    }
     case "version":
       console.log(packageVersion());
       return 0;

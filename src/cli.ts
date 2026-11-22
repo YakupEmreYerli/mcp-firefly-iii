@@ -12,7 +12,8 @@ import { fileURLToPath } from "node:url";
 
 export type Command =
   | { kind: "serve" }
-  | { kind: "setup" }
+  | { kind: "setup"; remote?: true }
+  | { kind: "doctor" }
   | { kind: "help"; toStderr: boolean; unknown?: string }
   | { kind: "version" };
 
@@ -20,11 +21,14 @@ export function parseArgs(argv: readonly string[]): Command {
   if (argv.length === 0) return { kind: "serve" };
 
   const [first, ...rest] = argv;
+  if (first === "setup" && rest.length === 1 && rest[0] === "--remote") return { kind: "setup", remote: true };
   if (rest.length > 0) return { kind: "help", toStderr: true, unknown: argv.join(" ") };
 
   switch (first) {
     case "setup":
       return { kind: "setup" };
+    case "doctor":
+      return { kind: "doctor" };
     case "--help":
     case "-h":
     case "help":
@@ -60,6 +64,9 @@ export function usage(): string {
     "                             MCP client starts it; you rarely run it yourself.",
     "  firefly-mcp setup          Configure it interactively: address, token, and",
     "                             the client to write the configuration into.",
+    "  firefly-mcp setup --remote Set it up next to Firefly III in Docker, for",
+    "                             Claude web/mobile and ChatGPT.",
+    "  firefly-mcp doctor         Check a remote setup and say what is wrong.",
     "  firefly-mcp --version      Print the version.",
     "  firefly-mcp --help         Print this.",
     "",

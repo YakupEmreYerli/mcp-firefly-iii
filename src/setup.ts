@@ -170,7 +170,7 @@ function versionOf(payload: unknown): string {
  * `rl.question` never settles once stdin closes, so it is raced against the
  * interface closing.
  */
-function ask(rl: Interface, question: string): Promise<string> {
+export function ask(rl: Interface, question: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     let settled = false;
 
@@ -217,7 +217,7 @@ function ask(rl: Interface, question: string): Promise<string> {
  * encoding by hand, and it breaks the moment anything sits between the
  * terminal and this process.
  */
-class MutableOutput extends Writable {
+export class MutableOutput extends Writable {
   muted = false;
 
   override _write(
@@ -231,7 +231,7 @@ class MutableOutput extends Writable {
 }
 
 /** Ask for a value without echoing it. The token is a password. */
-async function askSecret(rl: Interface, output: MutableOutput, question: string): Promise<string> {
+export async function askSecret(rl: Interface, output: MutableOutput, question: string): Promise<string> {
   // The prompt goes out before the mute; only the typing is hidden.
   process.stdout.write(question);
   output.muted = true;
