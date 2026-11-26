@@ -1,8 +1,8 @@
-# Firefly III MCP Sunucusu
+# Firefly III MCP Sunucusu ve CLI
 
 [![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest) [![Glama](https://glama.ai/mcp/servers/YakupEmreYerli/mcp-firefly-iii/badges/score.svg)](https://glama.ai/mcp/servers/@YakupEmreYerli/mcp-firefly-iii)
 
-Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ asistanının erişmesini sağlayan bir Model Context Protocol sunucusu — 152 operasyon, 5 yetkilendirilmiş araç arkasında; okuma, yazma ve silme hepsini birden yapabilen tek bir araçta değil, ayrı ayrı yetkilendirilen üç ayrı yüzeyde.
+Kendi [Firefly III](https://www.firefly-iii.org/) örneğinize bir yapay zekâ asistanının erişmesini sağlayan bir MCP sunucusu ve komut satırı aracı — 152 operasyon, 5 yetkilendirilmiş MCP aracı ya da `firefly-cli` komutları olarak; okuma, yazma ve silme hepsini birden yapabilen tek bir araçta değil, ayrı ayrı yetkilendirilen üç ayrı yüzeyde.
 
 > English: [README.md](README.md)
 
@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/d308b2b5-18ef-4275-a4ed-ccdb7f04386f
 ## Özellikler
 
 - **152 değil, 5 meta-tool.** `firefly_query`, `firefly_mutate`, `firefly_destructive`, keşif için de `firefly_list_operations` ve `firefly_get_schema` — tipli bir registry her Firefly ucunu bunların üzerine eşler, modelin araç listesini şişirmek yerine.
+- **Aynı paketten bir CLI.** `firefly-cli` aynı operasyonları terminalden çalıştırır; komut çalıştırabilen ajanlar ve betikler için: bağlamda araç kataloğu yerine kısa metin çıktısı, ve her yazma `--confirm` eklenene kadar yalnızca önizlenir.
 - **Her yazmada `dry_run`**; gönderilecek isteği — çözülmüş kayıt id'leriyle birlikte — hiç göndermeden döndürür.
 - **Toplu yazmalar körlemesine çalışamaz.** Filtreyle çalışan güncellemeler `max_matches` ister ve eksik kalan bir taramayı ilk yazımdan önce reddeder; çok parçalı işlem gruplarını, tutarlarını katlama riskine girmektense tamamen reddeder.
 - **Okuma/yazma/silme ayrı ayrı yetkilendirilir ve uygulanır**, yalnızca ilan edilmez — stdio'da Firefly token'ı, HTTP'de OAuth kapsamı ya da sabit token belirler.
@@ -37,10 +38,26 @@ https://github.com/user-attachments/assets/d308b2b5-18ef-4275-a4ed-ccdb7f04386f
 - Çalışan bir Firefly III örneği ve bir Personal Access Token (Firefly III → **Options → Profile → OAuth → Create New Personal Access Token**)
 - Docker kullanmıyorsanız Node.js 20.6+
 
+## Komut satırı
+
+Aynı paket `firefly-cli` komutunu da kurar: beş araç terminal komutu olarak, MCP bağlantısı tutmak yerine komut çalıştırmayı tercih eden ajanlar ve betikler için. Aynı `FIREFLY_API_URL` ve `FIREFLY_API_TOKEN` değişkenlerini okur; aynı doğrulamadan, önizlemeden ve erişim ayrımından geçer.
+
+```bash
+npm install -g @yakupemreyerli/firefly-mcp
+firefly-cli ops                                    # bütün operasyonlar, çalıştıran komuta göre
+firefly-cli schema transaction create              # parametreleri (* = zorunlu)
+firefly-cli query transaction list period=this_month limit=20
+firefly-cli mutate bill create name=Rent amount_min=900 amount_max=900 date=2026-12-01 repeat_freq=monthly
+firefly-cli destructive transaction delete id=42   # önizleme; silmek için --confirm --destructive
+```
+
+Çıktı kısa metindir, kayıt başına bir satır; `--json` araçların döndürdüğü ham sonucu basar. Yazma işlemi `--confirm` ile tekrarlanana kadar yalnızca önizlenir; silme ya da toplu yeniden yazma ayrıca `--destructive` ister. Tam referans: [docs/cli.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md).
+
 ## Kullanım
 
 | Yöntem | Taşıma | En uygun olduğu yer |
 | --- | --- | --- |
+| [`firefly-cli`](#komut-satırı) | terminal | Komut çalıştırabilen ajanlar (Claude Code, Codex), betikler — tutulacak MCP bağlantısı yok |
 | [`npx` — stdio](#1-stdio-claude-code-claude-desktop-cursor) | stdio | Claude Code, Claude Desktop, Cursor — en basit kurulum |
 | [Sabit token](#2-uzak-http-sabit-token-ile) | HTTP | n8n, otomasyon, tarayıcısız çağıranlar |
 | [OAuth](#3-uzak-http-oauth-ile-claude-web-claude-mobil-chatgpt) | HTTP + OAuth | Claude web, Claude mobil, ChatGPT — sabit token tutamazlar |
@@ -85,7 +102,7 @@ Bu istemcilerin hiçbiri sabit token tutamaz, hiçbiri yerel bir süreç de baş
 **Firefly III'ün yanına kurun.** Firefly III Docker Compose ile çalışıyorsa her şeyi kurulum sihirbazı yazar. Firefly III'ün compose dosyasının bulunduğu klasörde çalıştırın; Docker dışında bir şey gerekmez:
 
 ```bash
-docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.4.0 setup
 ```
 
 (`:z`, Fedora gibi SELinux kullanan sunucularda container'ın klasöre yazabilmesi içindir; diğer sistemlerde Docker bunu yok sayar.) Sihirbaz bir Firefly III token'ı, sunucunun kendine ait bir adresini (örneğin `mcp.example.com`; Firefly III kendi adresinde kalır) ve HTTPS ters vekilinizin nerede çalıştığını sorar. Sonra kendi compose dosyanıza dokunmadan yanına `compose.firefly-mcp.yml` ve `firefly-mcp.env` (izin 600) dosyalarını yazar, giriş parolasını üretir ve vekilinize eklenecek satırları basar: Caddy, Traefik, Nginx Proxy Manager ya da Cloudflare Tunnel. Sunucuyu başlatıp kontrol edin:
@@ -141,7 +158,7 @@ cp .env.example .env    # ihtiyacınız olan moda göre değerleri doldurun
 docker compose -f compose.example.yml up -d
 ```
 
-Hazır imajı kullanmak için `compose.example.yml` içindeki `build: .` yerine `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0` yazın; etiket sürümü sabitler, güncellemek için etiketi değiştirin. Compose olmadan tek container: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0`. Yukarıdaki iki kimlik doğrulama modundan biri olmadan başlamaz, ve `/mcp`'nin önünde TLS gerekir — `compose.example.yml` bunun için isteğe bağlı `cloudflare` ve `caddy` profilleri taşır. `/health` açıktır, container probe'ları içindir.
+Hazır imajı kullanmak için `compose.example.yml` içindeki `build: .` yerine `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:1.4.0` yazın; etiket sürümü sabitler, güncellemek için etiketi değiştirin. Compose olmadan tek container: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:1.4.0`. Yukarıdaki iki kimlik doğrulama modundan biri olmadan başlamaz, ve `/mcp`'nin önünde TLS gerekir — `compose.example.yml` bunun için isteğe bağlı `cloudflare` ve `caddy` profilleri taşır. `/health` açıktır, container probe'ları içindir.
 
 ## Yapılandırma
 
@@ -165,21 +182,6 @@ HTTP ve OAuth modu dahil tüm değişkenler: [docs/configuration.md](https://git
 | `firefly_get_schema` | Bu operasyon hangi parametreleri alıyor? | salt-okunur |
 
 Ayrım yalnızca ilan edilmiyor, uygulanıyor — `firefly_query` üzerinden çağrılan bir silme reddedilir, yalnızca `firefly:read` verilmiş bir bağlantı yazan iki aracı hiç görmez. Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer, çalıştırma araçlarının hepsi bir `fields` listesi alır — büyük bir işlem listesinde yaklaşık %90 küçülme. Tam referans: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
-
-## Komut satırı
-
-Aynı paket `firefly-cli` komutunu da kurar: beş araç terminal komutu olarak, MCP bağlantısı tutmak yerine komut çalıştırmayı tercih eden ajanlar ve betikler için. Aynı `FIREFLY_API_URL` ve `FIREFLY_API_TOKEN` değişkenlerini okur; aynı doğrulamadan, önizlemeden ve erişim ayrımından geçer.
-
-```bash
-npm install -g @yakupemreyerli/firefly-mcp
-firefly-cli ops                                    # bütün operasyonlar, çalıştıran komuta göre
-firefly-cli schema transaction create              # parametreleri (* = zorunlu)
-firefly-cli query transaction list period=this_month limit=20
-firefly-cli mutate bill create name=Rent amount_min=900 amount_max=900 date=2026-12-01 repeat_freq=monthly
-firefly-cli destructive transaction delete id=42   # önizleme; silmek için --confirm --destructive
-```
-
-Çıktı kısa metindir, kayıt başına bir satır; `--json` araçların döndürdüğü ham sonucu basar. Yazma işlemi `--confirm` ile tekrarlanana kadar yalnızca önizlenir; silme ya da toplu yeniden yazma ayrıca `--destructive` ister. Tam referans: [docs/cli.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md).
 
 ## Hazır istemler (prompts)
 

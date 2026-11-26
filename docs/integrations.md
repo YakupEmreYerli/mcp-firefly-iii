@@ -207,7 +207,7 @@ docker run -d \
   -e MCP_HTTP_HOST=0.0.0.0 \
   -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
   -p 3000:3000 \
-  ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0
+  ghcr.io/yakupemreyerli/mcp-firefly-iii:1.4.0
 ```
 
 Or from a checkout, building it yourself:

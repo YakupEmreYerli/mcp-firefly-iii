@@ -93,6 +93,12 @@ describe("checkLinks", () => {
     expect(checkLinks({ docFiles: [file, target] } as never)).toEqual([]);
   });
 
+  it("keeps non-ASCII letters in a heading slug, as GitHub does", () => {
+    const target = writeDoc(tempDocPath("target.md"), "## Komut satırı\n");
+    const file = writeDoc(tempDocPath("a.md"), `See [it](./${path.basename(target)}#komut-satırı).\n`);
+    expect(checkLinks({ docFiles: [file, target] } as never)).toEqual([]);
+  });
+
   it("ignores absolute URLs and mailto links", () => {
     const file = writeDoc(tempDocPath("a.md"), "[ext](https://example.com/nope) and [mail](mailto:a@b.com)\n");
     expect(checkLinks({ docFiles: [file] } as never)).toEqual([]);

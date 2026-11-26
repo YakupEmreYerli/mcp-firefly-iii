@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-27
+
 ### Added
 
 - `firefly-cli`, a second command in the same package: the five tools as
@@ -14,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   short text output and `--json` for the raw result. Writes only preview until
   repeated with `--confirm`; deletes and bulk rewrites also need
   `--destructive`. The MCP server is unchanged.
+
+### Fixed
+
+- The HTTP server closes the connection after refusing an oversized request
+  body, instead of leaving it open until the client gives up.
 
 ## [1.3.0] - 2026-11-22
 
@@ -667,7 +674,8 @@ First release.
 - A remote HTTP mode (`firefly-mcp-http`) speaking streamable HTTP behind a
   required bearer token, with a `Dockerfile` and Compose example.
 
-[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/YakupEmreYerli/mcp-firefly-iii/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.4.0
 [1.3.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.3.0
 [1.2.1]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.2.1
 [1.2.0]: https://github.com/YakupEmreYerli/mcp-firefly-iii/releases/tag/v1.2.0

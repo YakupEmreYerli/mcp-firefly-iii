@@ -1,8 +1,8 @@
-# Firefly III MCP Server
+# Firefly III MCP Server and CLI
 
 [![npm version](https://img.shields.io/npm/v/%40yakupemreyerli%2Ffirefly-mcp)](https://www.npmjs.com/package/@yakupemreyerli/firefly-mcp) [![CI](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml/badge.svg)](https://github.com/YakupEmreYerli/mcp-firefly-iii/actions/workflows/ci.yml) [![license](https://img.shields.io/npm/l/%40yakupemreyerli%2Ffirefly-mcp)](LICENSE) [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-brightgreen)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.YakupEmreYerli%2Fmcp-firefly-iii/versions/latest) [![Glama](https://glama.ai/mcp/servers/YakupEmreYerli/mcp-firefly-iii/badges/score.svg)](https://glama.ai/mcp/servers/@YakupEmreYerli/mcp-firefly-iii)
 
-A Model Context Protocol server that gives an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/) instance — 152 operations behind 5 scoped tools, with reading, writing and deleting kept as three separate, explicitly-authorized surfaces instead of one tool that can do all three.
+An MCP server and a command-line tool that give an AI assistant access to your own [Firefly III](https://www.firefly-iii.org/) instance — 152 operations, as 5 scoped MCP tools or as `firefly-cli` commands, with reading, writing and deleting kept as three separate, explicitly-authorized surfaces instead of one tool that can do all three.
 
 > Türkçe: [README.tr.md](README.tr.md)
 
@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/d308b2b5-18ef-4275-a4ed-ccdb7f04386f
 ## Features
 
 - **5 meta-tools, not 152.** `firefly_query`, `firefly_mutate`, `firefly_destructive`, plus `firefly_list_operations` and `firefly_get_schema` for discovery — a typed registry maps every Firefly endpoint onto these instead of flooding the model's tool list.
+- **A CLI from the same package.** `firefly-cli` runs the same operations from a terminal, for agents with a shell and for scripts: short text output instead of a tool catalogue in the context, and every write previews until you add `--confirm`.
 - **`dry_run` on every write**, returning the exact request — resolved record IDs included — without sending it.
 - **Bulk writes can't run blind.** Filter-driven updates require `max_matches` and refuse an incomplete scan before the first write; multi-split transaction groups are rejected outright rather than risk folding their amounts together.
 - **Read/write/destructive are separately scoped and enforced**, not just annotated — over stdio by the Firefly token, over HTTP by OAuth scope or a static token.
@@ -37,10 +38,26 @@ https://github.com/user-attachments/assets/d308b2b5-18ef-4275-a4ed-ccdb7f04386f
 - A running Firefly III instance and a Personal Access Token (Firefly III → **Options → Profile → OAuth → Create New Personal Access Token**)
 - Node.js 20.6+, unless you're using Docker
 
+## Command line
+
+The same package ships `firefly-cli`: the five tools as terminal commands, for agents and scripts that would rather run a command than hold an MCP connection. It reads the same `FIREFLY_API_URL` and `FIREFLY_API_TOKEN`, and goes through the same validation, previews and access split.
+
+```bash
+npm install -g @yakupemreyerli/firefly-mcp
+firefly-cli ops                                    # every operation, by the command that runs it
+firefly-cli schema transaction create              # its parameters (* = required)
+firefly-cli query transaction list period=this_month limit=20
+firefly-cli mutate bill create name=Rent amount_min=900 amount_max=900 date=2026-12-01 repeat_freq=monthly
+firefly-cli destructive transaction delete id=42   # preview; add --confirm --destructive to delete
+```
+
+Output is short text, one line per record; `--json` prints the raw result the tools return. A write only previews until it is repeated with `--confirm`, and a delete or bulk rewrite needs `--destructive` too. Full reference: [docs/cli.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md).
+
 ## Usage
 
 | Method | Transport | Best for |
 | --- | --- | --- |
+| [`firefly-cli`](#command-line) | terminal | Agents that can run commands (Claude Code, Codex), scripts — no MCP connection to hold |
 | [`npx` — stdio](#1-stdio-claude-code-claude-desktop-cursor) | stdio | Claude Code, Claude Desktop, Cursor — simplest setup |
 | [Static token](#2-remote-http-with-a-static-token) | HTTP | n8n, automation, headless callers |
 | [OAuth](#3-remote-http-with-oauth-claude-web-claude-mobile-chatgpt) | HTTP + OAuth | Claude web, Claude mobile, ChatGPT — can't hold a static token |
@@ -85,7 +102,7 @@ None of these clients can hold a static token, and none of them can spawn a loca
 **Set it up next to Firefly III.** If Firefly III runs with Docker Compose, the setup writes everything. Run it from the folder that holds Firefly III's compose file — only Docker is needed:
 
 ```bash
-docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0 setup
+docker run --rm -it --user "$(id -u):$(id -g)" -v "$PWD":/work:z ghcr.io/yakupemreyerli/mcp-firefly-iii:1.4.0 setup
 ```
 
 (`:z` lets the container write the folder on SELinux hosts such as Fedora; elsewhere Docker ignores it.) It asks for a Firefly III token, an address of the server's own (for example `mcp.example.com`; Firefly III keeps its address), and where your HTTPS reverse proxy runs. It then writes `compose.firefly-mcp.yml` and `firefly-mcp.env` (mode 600) beside your compose file without touching yours, generates the sign-in password, and prints the lines to add to your proxy — Caddy, Traefik, Nginx Proxy Manager or Cloudflare Tunnel. Start the server and check it:
@@ -141,7 +158,7 @@ cp .env.example .env    # fill in the values for the mode you need
 docker compose -f compose.example.yml up -d
 ```
 
-Swap `build: .` in `compose.example.yml` for `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0` to use the prebuilt image — the tag pins the version; change it to upgrade. Single container without Compose: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:1.3.0`. It refuses to start without one of the two auth modes above, and `/mcp` needs TLS in front — `compose.example.yml` has optional `cloudflare` and `caddy` profiles for that. `/health` is open, for container probes.
+Swap `build: .` in `compose.example.yml` for `image: ghcr.io/yakupemreyerli/mcp-firefly-iii:1.4.0` to use the prebuilt image — the tag pins the version; change it to upgrade. Single container without Compose: `docker run -d --env-file .env -p 3000:3000 ghcr.io/yakupemreyerli/mcp-firefly-iii:1.4.0`. It refuses to start without one of the two auth modes above, and `/mcp` needs TLS in front — `compose.example.yml` has optional `cloudflare` and `caddy` profiles for that. `/health` is open, for container probes.
 
 ## Configuration
 
@@ -165,21 +182,6 @@ Every variable, including HTTP and OAuth mode: [docs/configuration.md](https://g
 | `firefly_get_schema` | What parameters does this operation take? | read-only |
 
 The split is enforced, not just advertised — a delete reached through `firefly_query` is refused, and a connection granted only `firefly:read` never even sees the two writing tools. Responses are trimmed before they reach the model: empty and null attributes are always dropped, and every execution tool takes a `fields` list — roughly a 90% cut on a large transaction list. Full reference: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
-
-## Command line
-
-The same package ships `firefly-cli`: the five tools as terminal commands, for agents and scripts that would rather run a command than hold an MCP connection. It reads the same `FIREFLY_API_URL` and `FIREFLY_API_TOKEN`, and goes through the same validation, previews and access split.
-
-```bash
-npm install -g @yakupemreyerli/firefly-mcp
-firefly-cli ops                                    # every operation, by the command that runs it
-firefly-cli schema transaction create              # its parameters (* = required)
-firefly-cli query transaction list period=this_month limit=20
-firefly-cli mutate bill create name=Rent amount_min=900 amount_max=900 date=2026-12-01 repeat_freq=monthly
-firefly-cli destructive transaction delete id=42   # preview; add --confirm --destructive to delete
-```
-
-Output is short text, one line per record; `--json` prints the raw result the tools return. A write only previews until it is repeated with `--confirm`, and a delete or bulk rewrite needs `--destructive` too. Full reference: [docs/cli.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md).
 
 ## Prompts
 

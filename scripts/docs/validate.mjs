@@ -18,13 +18,14 @@ const HEADING_PATTERN = /^#{1,6}\s+(.+)$/gmu;
 const OPERATION_REF_PATTERN = /`([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)`/gu;
 
 function slugify(heading) {
-  // GitHub/mkdocs slug rules: lowercase, strip anything that is not a word
-  // character/space/hyphen, spaces become hyphens. Good enough for this
-  // repo's headings, which are plain ASCII prose with the odd backtick.
+  // GitHub slug rules: lowercase, strip anything that is not a letter, digit,
+  // underscore, space or hyphen, spaces become hyphens. Letters include
+  // non-ASCII ones, as on GitHub: README.tr.md's "Komut satırı" is
+  // #komut-satırı there, not #komut-satr.
   return heading
     .toLowerCase()
     .replace(/`/g, "")
-    .replace(/[^\w\s-]/g, "")
+    .replace(/[^\p{L}\p{N}_\s-]/gu, "")
     .trim()
     .replace(/\s+/g, "-");
 }
