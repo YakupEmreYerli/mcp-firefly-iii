@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `firefly-cli`, a second command in the same package: the five tools as
+  terminal commands (`ops`, `schema`, `query`, `mutate`, `destructive`) with
+  short text output and `--json` for the raw result. Writes only preview until
+  repeated with `--confirm`; deletes and bulk rewrites also need
+  `--destructive`. The MCP server is unchanged.
+
 ## [1.3.0] - 2026-11-22
 
 ### Added

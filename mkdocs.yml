@@ -73,6 +73,7 @@ nav:
     - Configuration: configuration.md
   - MCP Integration: integrations.md
   - Prompts: prompts.md
+  - Command line: cli.md
   - OAuth Deployment: oauth.md
   - Reference:
     - Operations: api/operations.md

@@ -26,7 +26,8 @@
   },
   "bin": {
     "firefly-mcp": "dist/index.js",
-    "firefly-mcp-http": "dist/http.js"
+    "firefly-mcp-http": "dist/http.js",
+    "firefly-cli": "dist/firefly-cli.js"
   },
   "files": [
     "dist",

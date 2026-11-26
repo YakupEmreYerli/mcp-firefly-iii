@@ -166,6 +166,21 @@ HTTP ve OAuth modu dahil tüm değişkenler: [docs/configuration.md](https://git
 
 Ayrım yalnızca ilan edilmiyor, uygulanıyor — `firefly_query` üzerinden çağrılan bir silme reddedilir, yalnızca `firefly:read` verilmiş bir bağlantı yazan iki aracı hiç görmez. Yanıtlar modele ulaşmadan kırpılır: boş ve null alanlar her zaman düşer, çalıştırma araçlarının hepsi bir `fields` listesi alır — büyük bir işlem listesinde yaklaşık %90 küçülme. Tam referans: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
 
+## Komut satırı
+
+Aynı paket `firefly-cli` komutunu da kurar: beş araç terminal komutu olarak, MCP bağlantısı tutmak yerine komut çalıştırmayı tercih eden ajanlar ve betikler için. Aynı `FIREFLY_API_URL` ve `FIREFLY_API_TOKEN` değişkenlerini okur; aynı doğrulamadan, önizlemeden ve erişim ayrımından geçer.
+
+```bash
+npm install -g @yakupemreyerli/firefly-mcp
+firefly-cli ops                                    # bütün operasyonlar, çalıştıran komuta göre
+firefly-cli schema transaction create              # parametreleri (* = zorunlu)
+firefly-cli query transaction list period=this_month limit=20
+firefly-cli mutate bill create name=Rent amount_min=900 amount_max=900 date=2026-12-01 repeat_freq=monthly
+firefly-cli destructive transaction delete id=42   # önizleme; silmek için --confirm --destructive
+```
+
+Çıktı kısa metindir, kayıt başına bir satır; `--json` araçların döndürdüğü ham sonucu basar. Yazma işlemi `--confirm` ile tekrarlanana kadar yalnızca önizlenir; silme ya da toplu yeniden yazma ayrıca `--destructive` ister. Tam referans: [docs/cli.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md).
+
 ## Hazır istemler (prompts)
 
 İstemcinin istem menüsünde üç hazır iş akışı çıkar. Yazan ikisi her değişikliği önce `dry_run` ile gösterir, filtreyle yazarken `max_matches` sınırı koyar ve siz onaylamadan hiçbir şeyi uygulamaz.
@@ -191,6 +206,7 @@ Bu sunucu verinizi üçüncü bir tarafa göndermez, ama bağladığınız yapay
 | [Remote access with embedded OAuth](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) | Claude web, Claude mobil ve ChatGPT için deploy |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n ve uzak HTTP |
 | [Prompts](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/prompts.md) | Ay sonu gözden geçirme, kategorilendirme ve bütçe özeti akışları |
+| [Command line](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md) | `firefly-cli`: araçlar terminal komutu olarak, önizleme ve onay |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | 152 operasyonun tamamı, yanıt kırpma, Firefly'ın tuzakları |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, arama ve sekiz insight ucu |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Geliştirirken sunucuyu interaktif kurcalama |

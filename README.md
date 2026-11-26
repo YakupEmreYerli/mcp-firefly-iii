@@ -166,6 +166,21 @@ Every variable, including HTTP and OAuth mode: [docs/configuration.md](https://g
 
 The split is enforced, not just advertised — a delete reached through `firefly_query` is refused, and a connection granted only `firefly:read` never even sees the two writing tools. Responses are trimmed before they reach the model: empty and null attributes are always dropped, and every execution tool takes a `fields` list — roughly a 90% cut on a large transaction list. Full reference: [docs/api/operations.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md).
 
+## Command line
+
+The same package ships `firefly-cli`: the five tools as terminal commands, for agents and scripts that would rather run a command than hold an MCP connection. It reads the same `FIREFLY_API_URL` and `FIREFLY_API_TOKEN`, and goes through the same validation, previews and access split.
+
+```bash
+npm install -g @yakupemreyerli/firefly-mcp
+firefly-cli ops                                    # every operation, by the command that runs it
+firefly-cli schema transaction create              # its parameters (* = required)
+firefly-cli query transaction list period=this_month limit=20
+firefly-cli mutate bill create name=Rent amount_min=900 amount_max=900 date=2026-12-01 repeat_freq=monthly
+firefly-cli destructive transaction delete id=42   # preview; add --confirm --destructive to delete
+```
+
+Output is short text, one line per record; `--json` prints the raw result the tools return. A write only previews until it is repeated with `--confirm`, and a delete or bulk rewrite needs `--destructive` too. Full reference: [docs/cli.md](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md).
+
 ## Prompts
 
 Three ready-made workflows appear in your client's prompt menu. The two that write preview every change with `dry_run`, cap filter-driven writes with `max_matches`, and apply nothing until you confirm.
@@ -191,6 +206,7 @@ This server never sends your data to a third party, but it doesn't control what 
 | [Remote access with embedded OAuth](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/oauth.md) | Deploying for Claude web, Claude mobile, and ChatGPT |
 | [MCP Integration](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/integrations.md) | Claude Code, Claude Desktop, Cursor, VS Code, n8n and remote HTTP |
 | [Prompts](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/prompts.md) | The month-end review, categorisation and budget summary workflows |
+| [Command line](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/cli.md) | `firefly-cli`: the tools as terminal commands, previews and confirmation |
 | [Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/operations.md) | All 152 operations, response trimming, the Firefly quirks that bite |
 | [Analysis Operations](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/api/analysis.md) | `summary.overview`, search, and the eight insight endpoints |
 | [MCP Inspector](https://github.com/YakupEmreYerli/mcp-firefly-iii/blob/main/docs/development/mcp-inspector.md) | Poking at the server interactively while developing |
